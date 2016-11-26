@@ -1,0 +1,6 @@
+{
+    "nodes": [
+        "/home/user/test/js/bar.js",
+        "/home/user/test/js/foo.js"
+    ]
+}
