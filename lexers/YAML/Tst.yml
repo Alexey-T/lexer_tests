@@ -1,0 +1,28 @@
+import_transform: "lambda x: x.split(';')"
+
+# List of all the transformer classes.
+transformers:
+  # A sample using a CSV file with a header.
+- model: models.Customer
+  connector: csv
+  connector_options:
+    encoding: utf-8
+    columns: from_header
+  property_map:
+    - property: __key__
+      external_name: ID
+      export_transform: datastore.Key.name
+    - property: name
+      import_template: "%(First Name)s %(Last Name)s"
+      export:
+        - external_name: First Name
+          export_transform: transform.regexp_extract('([^ ]+) ?.*$')
+        - external_name: Last Name
+          export_transform: transform.regexp_extract('[^ ]+ (.*)$')
+    - property: phone
+      external_name: Phone
+    - property: created
+      external_name: Created
+      import_transform: transform.import_date_time('%m/%d/%Y')
+      export_transform: transform.export_date_time('%m/%d/%Y')
+

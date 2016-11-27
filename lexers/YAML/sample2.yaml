@@ -1,0 +1,44 @@
+--- !graviteklabs.com/^pattern
+info:
+    title : YAML Example
+    description : Sample YAML pattern file
+
+
+modules:
+    - content
+    - taxonomy
+    - views
+    - nodereference
+    - taxonomy
+    - menu
+    - block
+
+actions:
+    - pattern:
+        - core_modules
+        - companies
+        - contacts
+        - projects
+
+    - content :
+      name : example
+      type : example
+      description : Sample description about this content type
+      status : status
+      promote : true
+
+    - vocabulary : Foo Category
+      hierarchy : 0
+      nodes :
+        - example
+        - page
+    - term : Foo item
+      vocabulary : Foo Category
+    - term : Bar item
+      vocabulary : Foo Category
+
+    - menu :
+      parent : Primary Links
+      title : Foo Menu Item
+      path : foo
+      weight : -4

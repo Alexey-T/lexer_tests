@@ -1,0 +1,201 @@
+regions:
+  l19:
+    min: {z: 206.0, y: 54.0, x: 274.0}
+    flags: {}
+    max: {z: 215.0, y: 74.0, x: 283.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [andydem401]
+  l17:
+    min: {z: 196.0, y: 54.0, x: 269.0}
+    flags: {}
+    max: {z: 205.0, y: 74.0, x: 278.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [jumjummju, hatvie]
+  test:
+    min: {z: 212.0, y: 32.0, x: 333.0}
+    flags: {}
+    max: {z: 213.0, y: 32.0, x: 334.0}
+    priority: 0
+    type: cuboid
+    owners: {}
+    members: {}
+  l18:
+    min: {z: 206.0, y: 54.0, x: 254.0}
+    flags: {}
+    max: {z: 220.0, y: 74.0, x: 263.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [lewism96, adamdh321]
+  l15:
+    min: {z: 181.0, y: 54.0, x: 249.0}
+    flags: {}
+    max: {z: 190.0, y: 74.0, x: 263.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [dirtinc]
+  l16:
+    min: {z: 196.0, y: 54.0, x: 249.0}
+    flags: {}
+    max: {z: 205.0, y: 74.0, x: 263.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [lewism96, adamdh321]
+  okibank:
+    min: {z: 2421.0, y: 65.0, x: 1336.0}
+    flags: {}
+    max: {z: 2438.0, y: 72.0, x: 1369.0}
+    priority: 0
+    type: cuboid
+    owners:
+      players: [okidgk]
+    members: {}
+  freecity:
+    min: {z: 1040.0, y: 0.0, x: 51.0}
+    flags: {}
+    max: {z: 1170.0, y: 127.0, x: 218.0}
+    priority: 0
+    type: cuboid
+    owners: {}
+    members: {}
+  city:
+    min: {z: 111.0, y: 0.0, x: 248.0}
+    flags: {creeper-explosion: deny, deny-spawn: allow, lava-flow: deny, pvp: deny,
+      mob-damage: deny, fire-spread: deny, lighter: deny}
+    max: {z: 270.0, y: 127.0, x: 404.0}
+    priority: 0
+    type: cuboid
+    owners:
+      players: [spymaha]
+    members: {}
+  spawn:
+    min: {z: 56.0, y: 0.0, x: 15.0}
+    flags: {creeper-explosion: deny, pvp: deny}
+    max: {z: 82.0, y: 127.0, x: 43.0}
+    priority: 0
+    type: cuboid
+    owners: {}
+    members: {}
+  tree:
+    min: {z: 16.0, y: 79.0, x: 297.0}
+    flags: {creeper-explosion: deny, fire-spread: deny}
+    max: {z: 37.0, y: 127.0, x: 333.0}
+    priority: 0
+    type: cuboid
+    owners:
+      players: [heyitsmee888\]
+    members: {}
+  arena:
+    min: {z: 152.0, y: 13.0, x: 157.0}
+    flags: {}
+    max: {z: 240.0, y: 113.0, x: 237.0}
+    priority: 0
+    type: cuboid
+    owners: {}
+    members: {}
+  l14:
+    min: {z: 181.0, y: 54.0, x: 269.0}
+    flags: {}
+    max: {z: 190.0, y: 74.0, x: 278.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [lewism96, adamdh321]
+  l12:
+    min: {z: 171.0, y: 54.0, x: 274.0}
+    flags: {}
+    max: {z: 180.0, y: 74.0, x: 283.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [lewism96, adamdh321]
+  l11:
+    min: {z: 156.0, y: 54.0, x: 259.0}
+    flags: {}
+    max: {z: 165.0, y: 74.0, x: 273.0}
+    priority: 0
+    type: cuboid
+    owners:
+      players: [gibson1027]
+    members: {}
+haruku:
+    min: {z: 73.0, y: 0.0, x: -170.0}
+    flags: {creeper-explosion: deny, tnt: deny, fire-spread: deny, lighter: deny}
+    max: {z: 118.0, y: 127.0, x: -143.0}
+    priority: 0
+    parent: oldcity
+    type: cuboid
+    owners:
+      players: [haruku_kun]
+    members:
+      players: [haruku_kun]
+  l10:
+    min: {z: 161.0, y: 54.0, x: 279.0}
+    flags: {}
+    max: {z: 170.0, y: 74.0, x: 288.0}
+    priority: 0
+    parent: city
+    type: cuboid
+    owners: {}
+    members:
+      players: [aidanjan, no_hands_45]
+  '202':
+    min: {z: 89.0, y: 42.0, x: 45.0}
+    flags: {}
+    max: {z: 95.0, y: 45.0, x: 46.0}
+    priority: 0
+    parent: vault
+    type: cuboid
+    owners: {}
+    members:
+      players: [red_spy95]
+  '203':
+    min: {z: 80.0, y: 42.0, x: 48.0}
+    flags: {}
+    max: {z: 86.0, y: 45.0, x: 49.0}
+    priority: 0
+    parent: vault
+    type: cuboid
+    owners: {}
+    members:
+      players: [mai2500]
+  '204':
+    min: {z: 89.0, y: 42.0, x: 48.0}
+    flags: {}
+    max: {z: 95.0, y: 45.0, x: 49.0}
+    priority: 0
+    parent: vault
+    type: cuboid
+    owners: {}
+    members:
+      players: [cohocat]
+   '205':
+    min: {z: 80.0, y: 42.0, x: 51.0}
+    flags: {}
+    max: {z: 86.0, y: 45.0, x: 52.0}
+    priority: 0
+    parent: vault
+    type: cuboid
+    owners: {}
+    members:
+      players: [mrtrister]

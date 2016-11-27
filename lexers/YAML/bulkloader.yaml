@@ -1,0 +1,158 @@
+# A sample of a declarative input conversion.
+# Each transformer describes:
+#  * The external connector (CSV, XML, etc.). And some flags for that.
+#    On import, generates a dict-per-record.
+#  * Some description of the transform of input dict->model (or entity).
+
+
+# Equivalent of 'import foo' in Python.
+python_preamble:
+- import: models
+- import: google.appengine.ext.bulkload.transform
+- import: google.appengine.api.datastore
+
+# List of all the transformer classes.
+transformers:
+  # A sample using a CSV file with a header.
+- model: models.Customer
+  connector: csv
+  connector_options:
+    encoding: utf-8
+    columns: from_header
+  property_map:
+    - property: __key__
+      external_name: ID
+      export_transform: datastore.Key.name
+    - property: name
+      import_template: "%(First Name)s %(Last Name)s"
+      export:
+        - external_name: First Name
+          export_transform: transform.regexp_extract('([^ ]+) ?.*$')
+        - external_name: Last Name
+          export_transform: transform.regexp_extract('[^ ]+ (.*)$')
+    - property: phone
+      external_name: Phone
+    - property: created
+      external_name: Created
+      import_transform: transform.import_date_time('%m/%d/%Y')
+      export_transform: transform.export_date_time('%m/%d/%Y')
+
+
+# A sample using a TSV file with no header, specifying the columns here.
+- model: models.Visit
+  connector: csv
+  connector_options:
+    encoding: windows-1252
+    # TSV is specified using an extra parameter of the Python csv module.
+    import_options:
+      dialect: excel-tab
+    export_options:
+      dialect: excel-tab
+    # Columns here are a sequence in YAML, so can be specified in either block
+    # or flow style. This is short enough that I'll use flow style.
+    column_list: [visitid, customer, date, score, activities]
+  property_map:
+    - property: __key__
+      external_name: visitid
+      export_transform: datastore.Key.name
+    - property: customer
+      external_name: customer
+      import_transform: transform.create_foreign_key('Customer')
+      export_transform: datastore.Key.name
+    - property: visit_date
+      external_name: date
+      import_transform: transform.import_date_time('%m/%d/%Y')
+      export_transform: transform.export_date_time('%m/%d/%Y')
+    - property: score
+      external_name: score
+      import_transform: float
+    - property: activities
+      external_name: activities
+      # This is a CSV list of strings inside the TSV file.
+      import_transform: "lambda x: x.split(',')"
+      export_transform: "','.join"
+
+
+# A sample using an XML file
+- model: models.CustomerCall
+  connector: simplexml
+  connector_options:
+    xpath_to_nodes: /CustomerCalls/CustomerCall
+    style: element_centric
+    #style: attribute_centric
+  property_map:
+    - property: __key__
+      external_name: ID
+      export_transform: transform.key_id_or_name_as_string
+    - property: customer
+      external_name: Customer
+      import_transform: transform.create_foreign_key('Customer')
+      export_transform: datastore.Key.name
+    - property: call_date
+      external_name: CallDate
+      import_transform: transform.import_date_time('%m/%d/%Y')
+      export_transform: transform.export_date_time('%m/%d/%Y')
+    - property: answered
+      external_name: Answered
+      import_transform: transform.regexp_bool('true^')
+
+
+# A sample writing a BlobProperty to an external file.
+# (Note: not a BlobReferenceProperty.)
+- model: models.Attachment
+  connector: csv
+  connector_options:
+    encoding: utf-8
+    columns: from_header
+  property_map:
+    - property: __key__
+      external_name: ID
+      export_transform: datastore.Key.name
+    - property: filename
+      external_name: filename
+    - property: filecontents
+      external_name: local_filename
+      export_transform:
+        transform.blob_to_file('filename', 'AttachmentBlobs')
+
+
+# A sample with a deep key.
+# Note that this particular sample is actually best handled as a list property.
+# Two columns of data: 'Visit', 'Activity'
+- model: models.VisitActivity
+  connector: csv
+  property_map:
+    - property: __key__
+      external_name: Activity
+      import_transform: transform.create_deep_key(('Visit', 'Visit'),
+                            ('VisitActivity', transform.CURRENT_PROPERTY))
+      export:
+        - external_name: Visit
+          export_transform: transform.key_id_or_name_as_string_n(0)
+        - external_name: Activity
+          export_transform: transform.key_id_or_name_as_string_n(1)
+    - property: activity
+      external_name: Activity
+
+
+# A sample using a PolyModel--Adult is a Person.
+- model: models.Person
+  connector: csv
+  property_map:
+    - property: first_name
+      external_name: first_name
+    - property: last_name
+      external_name: last_name
+
+- model: models.Adult
+  name: Adult # Inferred kind would be 'Person' since this is a polymodel.
+  connector: csv
+  property_map:
+    - property: first_name
+      external_name: first_name
+    - property: last_name
+      external_name: last_name
+    - property: interests
+      external_name: interests
+      # A semicolon-separated list.
+      import_transform: "lambda x: x.split(';')"

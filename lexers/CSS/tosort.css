@@ -1,0 +1,44 @@
+﻿/*Clipboard ÆӨÆӨÆӨ*/
+td, body {  
+  color:#000;
+  line-height: 1.5;
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+body{
+	background: #FFFFFF url(bg.jpg) top repeat-x;
+}
+li{
+  list-style: square;
+}
+h1 {
+   font-size: 22px;
+ }
+h2{
+    font-size: 18px;
+  }
+h3{
+    font-size: 16px;
+}
+.code{
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  background: #EEEEEE;
+  color: #4B0082;
+  margin-top: 2px;
+  margin-right: 20px;
+}
+.inlinecode{
+  font-family: "Courier New", Courier, monospace;
+  background: #EEEEEE;
+  color: #4B0082;
+}
+table
+{
+  border-collapse:collapse;
+  border:darkgray;
+}
+td
+{
+  padding:3px;
+}

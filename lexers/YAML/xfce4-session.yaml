@@ -1,0 +1,53 @@
+Name: xfce4-session
+Summary: Xfce session manager
+Version: 4.6.1
+Release: 1
+Group: System/Desktop
+License: GPLv2+
+URL: http://www.xfce.org/
+Description: |
+    xfce4-session is the session manager for the Xfce desktop environment.    
+Patches:
+    - xfce4-session-4.4.2-hide-tips.patch
+    - xfce4-session-4.5.99.1-splash.patch
+    - xfce4-session-logout.patch
+Sources:
+    - http://www.xfce.org/archive/xfce-%{version}/src/xfce4-session-%{version}.tar.bz2
+    - xfce4-autostart-editor.png
+
+Requires:
+    - libxfcegui4 >= %{version}
+    - xorg-x11-server-utils
+    
+PkgConfigBR:
+    - libwnck-1.0
+    - xt
+    - dbus-1
+    - libstartup-notification-1.0
+    - libglade-2.0
+    - libxfcegui4-1.0
+PkgBR:
+    - gettext
+    - intltool
+    - imake
+    - xorg-x11-server-utils
+    - GConf2-devel
+
+Configure: configure
+ConfigOptions:
+    - --enable-gnome
+    - --enable-final
+
+LocaleName: xfce4-session
+
+AutoSubPackages:
+    - devel
+SubPackages:
+    - Name: engines
+      Group: System/Desktop
+      Summary: Additional engines for xfce4-session 
+      Description: |
+            Additional splash screen engines for the Xfce Session Manager.
+
+
+
