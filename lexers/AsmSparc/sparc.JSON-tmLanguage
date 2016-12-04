@@ -1,0 +1,109 @@
+{ "name": "SPARC",
+  "scopeName": "source.sparc",
+  "fileTypes": ["m", "s"],
+  "comment": "Referenced from the SPARC Architecture Manual, Version 8: http://sparc.org/standards/V8.pdf",
+  "patterns": [
+    { "captures": {
+        "1": { "name": "meta.toc-list.banner.block.sparc" }
+      }, 
+      "match": "^/\\* =(\\s*.*?)\\s*= \\*/$\\n?", 
+      "name": "comment.block.sparc",
+      "comment": "Shamelessly stolen from c.tmLanguage"
+    }, 
+    { "begin": "/\\*", 
+      "captures": {
+        "0": { "name": "punctuation.definition.comment.sparc" }
+      }, 
+      "end": "\\*/", 
+      "name": "comment.block.sparc",
+      "comment": "Shamelessly stolen from c.tmLanguage"
+    }, 
+    { "match": "\\*/.*\\n", 
+      "name": "invalid.illegal.stray-comment-end.sparc",
+      "comment": "Shamelessly stolen from c.tmLanguage"
+    }, 
+    { "captures": {
+        "1": { "name": "meta.toc-list.banner.line.sparc" }
+      }, 
+      "match": "^// =(\\s*.*?)\\s*=\\s*$\\n?", 
+      "name": "comment.line.banner.sparc",
+      "comment": "Shamelessly stolen from c.tmLanguage"
+    }, 
+    { "name": "comment.line.sparc",
+      "begin": "!|;",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.comment.sparc" }
+      },
+      "end": "$\\n?",
+      "comment": "SPARC comments"
+    },
+    { "name": "string.quoted.double.sparc",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "match": "\\\\(\\\\|[abefnprtv'\"?]|[0-3]\\d{,2}|[4-7]\\d?|x[a-fA-F0-9]{,2}|u[a-fA-F0-9]{,4}|U[a-fA-F0-9]{,8})", 
+          "name": "constant.character.escape.sparc",
+          "comment": "Shamelessly stolen from c.tmLanguage"
+        }, 
+        { "match": "\\\\.", 
+          "name": "invalid.illegal.unknown-escape.sparc",
+          "comment": "Shamelessly stolen from c.tmLanguage"
+        },
+        { "match": "(?x)%\n    \t\t\t\t\t\t(\\d+\\$)?   # field (argument #)\n    \t\t\t\t\t\t[#0\\- +']*                           # flags\n    \t\t\t\t\t\t[,;:_]?                              # separator character (AltiVec)\n    \t\t\t\t\t\t((-?\\d+)|\\*(-?\\d+\\$)?)?              # minimum field width\n    \t\t\t\t\t\t(\\.((-?\\d+)|\\*(-?\\d+\\$)?)?)?         # precision\n    \t\t\t\t\t\t(hh|h|ll|l|j|t|z|q|L|vh|vl|v|hv|hl)? # length modifier\n    \t\t\t\t\t\t[diouxXDOUeEfFgGaACcSspn%]           # conversion type\n    \t\t\t\t\t", 
+          "name": "constant.other.placeholder.sparc",
+          "comment": "Shamelessly stolen from c.tmLanguage"
+        }, 
+        { "match": "%", 
+          "name": "invalid.illegal.placeholder.sparc",
+          "comment": "Shamelessly stolen from c.tmLanguage"
+        }
+      ],
+      "comment": "Double quote strings"
+    },
+    {  "name": "keyword.control.sparc",
+       "match": "\\b(?i)(cmp|tst|restore|save|set|not|neg|inc|dec|deccc|bst|bset|bclr|btog|clr|clrb|clrh|mov|ldsb|ldsh|ldub|lduh|ld|ldd|ldsba|ldsha|lduba|lduha|lda|ldda|ldf|lddf|ldfsr|ldc|lddc|ldcsr|stb|sth|st|std|stba|stha|sta|stda|stf|stdf|stfsr|stdfq|ldstub|ldstuba|swap|swapa|sethi|and|andcc|andn|andncc|or|orcc|orn|orncc|xor|xorcc|xnor|xnorcc|sll|srl|sra|add|addcc|addx|addxcc|taddcc|taddcctv|sub|subcc|subx|subxcc|tsubcc|tsubcctv|mulscc|umul|umulcc|smul|smulcc|udiv|udivcc|sdiv|sdivcc|bicc|fbfcc|cbccc|rett|ticc|rdasr|rdy|rdpsr|rdwim|rdtbr|wrasr|wry|wrpsr|wrwim|wrtbr|stbar|unimp|flush|fpop|cpop)(?-i)\\b",
+       "comment": "Regular opcodes"
+    },
+    {  "name": "constant.other.sparc",
+       "match": "\\b(?i)(ba|bn|bne|be|bg|ble|bge|bl|bgu|bleu|bcc|bcs|bpos|bneg|bvc|bvs|ret|retl|call|jmp|jmpl|return|b)(?-i)\\b",
+       "comment": "Opcodes that require delay slots"
+    },
+    {  "name": "support.constant.variable.sparc",
+       "match": "\\b(nop)\\b",
+       "comment": "No operation, for delay slots"
+    },
+    {  "name": "constant.numeric.sparc",
+       "match": "\\b\\d+\\b",
+       "comment": "Numbers"
+    },
+    {  "name": "keyword.operator.sparc",
+       "match": "(&|-|\\+|\\||\\[|\\]|,|`|')",
+       "comment": "Basic number operators"
+    },
+    {  "name": "support.variable.sparc",
+       "match": "(%)(sp|fp|hi|lo)",
+       "comment": "Special registers & register-like entities"
+    },
+    {  "name": "variable.language.sparc",
+       "match": "(%)(((i|o|g|l)[0-7]))|((%)r([0-9]|[1-2][0-9]|3[0-2])\\b)",
+       "comment": "Regular registers"
+    },
+    {  "name": "variable.other.sparc",
+       "match": "(%)\\w+",
+       "comment": "User-defined registers (e.g. from macros)"
+    },
+    {  "name": "entity.name.function.sparc",
+       "match": "[\\S]+:",
+       "comment": "Labels"
+    },
+    {  "name": "storage.modifier.sparc",
+       "match": "[^\\w]\\.(ascii|asciz|text|data|bss|skip|align|byte|half|word|single|double|quad|global|common|empty|file|section|type|proc|size|ident|section)\\b",
+       "comment": "Pseudo-operators"
+    },
+    {  "name": "support.function.sparc",
+       "match": "\\b[\\S]*(?=\\()",
+       "comment": "M4 macro functions"
+    }
+  ],
+  "uuid": "d407d941-d4c9-4203-8445-9a64b75a996a"
+}
