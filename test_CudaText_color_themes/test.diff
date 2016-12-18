@@ -1,0 +1,20 @@
+﻿Index: components/chmhelp/lhelp/lhelp.ico
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = image/icon
+Index: ide/filename
+some text
+simple text
+--- a/python/Makefile.am	2010-05-26 22:09:50 +0000
++++ b/python/Makefile.am	2010-09-10 20:26:24 +0000
+@@ -41,9 +41,9 @@
+ libvirtmod_la_CFLAGS = $(WARN_PYTHON_CFLAGS)
+ 
+ libvirtmod_la_LDFLAGS = -module -avoid-version -shared -L$(top_builddir)/src/.libs \
+-	$(CYGWIN_EXTRA_LDFLAGS)
++	$(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS) -L/python/libs
+ libvirtmod_la_LIBADD = $(mylibs) \
+-	$(CYGWIN_EXTRA_LIBADD) $(CYGWIN_EXTRA_PYTHON_LIBADD)
++	$(CYGWIN_EXTRA_LIBADD) $(CYGWIN_EXTRA_PYTHON_LIBADD) -lpython26
+ 
+ GENERATE = generator.py
