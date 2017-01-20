@@ -1,0 +1,27 @@
+%requires \usepackage{gmverb}
+\fooatletter{%
+  \def\dddfrac#1{%
+    \relaxen\dddfrac@i
+    \relaxen\dddfrac@ii
+    \relaxen\dddfrac@iii
+    \def\dddfrac@i{#1}%
+    \@ifnextchar\bgroup\dddfrac@getii\dddfrac@typeset}%
+  % 
+  \def\dddfrac@getii#1{%
+    \def\dddfrac@ii{#1}%
+    \@ifnextchar\bgroup\dddfrac@getiii\dddfrac@typeset}%
+  %
+  \def\dddfrac@getiii#1{%
+    \def\dddfrac@iii{#1}%
+    \dddfrac@typeset}%
+  %
+  \def\dddfrac@typeset{%
+    \@ifundefined{dddfrac@iii}{%
+      \@ifundefined{dddfrac@ii}{% 1 argument only
+        \frac{\partial }{\partial \dddfrac@i}
+      }{% 2 arguments
+        \frac{\partial \dddfrac@i}{\partial \dddfrac@ii}%
+        }}{% 3 arguments
+        \left( \frac{\partial \dddfrac@i}{\partial \dddfrac@ii} \right)_{\dddfrac@iii}%
+      }}
+}
