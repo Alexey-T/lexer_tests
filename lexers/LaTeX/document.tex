@@ -1,0 +1,134 @@
+% !TeX program = lualatex
+% !TeX encoding = utf8
+
+% The preamble is the first section of an input file, 
+% before the text of the document itself, in which you tell 
+\documentclass[12pt, letterpaper, twoside]{article}
+\usepackage[utf8]{inputenc} %codification of the document
+\usepackage[demo]{graphicx}
+\usepackage{luacode, pythontex} 
+
+\title{\LaTeX Lexer for Synwrite/CudaText}
+\begin{document}
+\maketitle
+
+\section*{Introduction}
+
+\section{Lists}
+
+The unordered (unnumbered) lists are produced by the itemize environment. Each entry must be preceded by the control sequence \string\item.
+
+\begin{itemize}
+  \item The individual entries are indicated with a black dot, a so-called bullet.
+  \item The text in the entries may be of any length.
+\end{itemize}
+
+\section{Mathematics}
+
+\LaTeX allows two writing modes for mathematical expressions: the inline mode and the display mode. 
+
+The well known Pythagorean theorem \(x^2 + y^2 = z^2\) was 
+proved to be invalid for other exponents. 
+Meaning the next equation has no integer solutions:
+ 
+\[ x^n + y^n = z^n \]
+
+The mass-energy equivalence is described by the famous equation
+ 
+$$E=mc^2$$
+ 
+discovered in 1905 by Albert Einstein. 
+In natural units ($c$ = 1), the formula expresses the identity
+ 
+\begin{equation}\label{key}
+	E=mc^2
+\end{equation}
+
+\section{Figures and tables}
+
+\subsection{Figures}
+If we want to further specify how \LaTeX should include our image in the document (length, height, etc), we can pass those settings in the following format:
+ 
+\begin{figure}[h!]
+ \centering
+ \includegraphics[draft, width=0.5\textwidth]{example-image-b}
+ \caption{Example of a parametric plot ($\sin (x), \cos(x), x$)}
+\end{figure}
+
+\subsection{Tables}
+Below you can see the simplest working example of a table:
+\begin{center}
+\begin{tabular}{ |c|c|c| } 
+ \hline
+ cell1 & cell2 & cell3 \\ 
+ cell4 & cell5 & cell6 \\ 
+ cell7 & cell8 & cell9 \\ 
+ \hline
+\end{tabular}
+\end{center}
+
+\section{The verbatim text}
+The default tool to display code in \LaTeX is verbatim, which generates an output in monospaced font.
+
+For example:\\
+\verb|Text inside \verb is printed directly and all \LaTeX{} commands are ignored.|
+
+And also standard verbatim environment do the same:
+\begin{verbatim}
+Text enclosed inside verbatim environment 
+is printed directly and all \LaTeX{} commands are ignored.
+\end{verbatim}
+
+\section{Using Lua\LaTeX}
+
+The first job is, as ever, to have the Lua function at the ready
+\begin{luacode}
+   -- 'mchoose' is patterned after the posting in http://stackoverflow.com/a/15302448.
+   -- Thanks, @egreg, for providing the pointer to this posting!
+   function mchoose( n, k )
+     if (k == 0 or k == n) then
+       return 1 
+     else 
+       return (n * mchoose(n - 1, k - 1)) / k 
+     end
+   end
+
+   -- print an arbitrary length integer as formatted string
+   function fwrite(z) 
+      tex.sprint ( string.format("%.0f",z) )
+   end
+\end{luacode}
+
+\section{Using Python}
+
+\begin{pycode}
+
+import numpy as np
+import matplotlib.pyplot as plt
+def f(t):
+    return np.exp(-t) * np.cos(2*np.pi*t)
+
+t1 = np.arange(0.0, 5.0, 0.1)
+t2 = np.arange(0.0, 5.0, 0.02)
+
+plt.figure(1)
+plt.subplot(211)
+plt.plot(t1, f(t1), 'bo', t2, f(t2), 'k')
+
+plt.subplot(212)
+plt.plot(t2, np.cos(2*np.pi*t2), 'r--')
+plt.savefig('myplot.pdf', bbox_inches='tight')
+plt.show()
+print (r'\includegraphics[width=\linewidth]{myplot.pdf}')
+
+\end{pycode}
+
+\begin{pycode}
+def fib(n): # nth Fibonacci value
+     a, b = 0, 1
+     for i in range(n):
+         a, b = b, a + b
+     return a
+\end{pycode}
+
+\end{document}
