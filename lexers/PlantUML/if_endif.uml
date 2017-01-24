@@ -1,0 +1,40 @@
+ @startuml
+:Enter;
+if (Condition 0?) then (yes)
+:Action 0]
+else (no)
+if (Condition 1?) then (yes)
+if (Condition 2?) then (yes)
+:Action 1]
+else (no)
+:Action 2]
+endif
+else (no)
+:Action 3]
+endif
+endif
+:Exit;
+@enduml
+ 
+
+while dd
+dd
+endwhile
+
+
+@startuml
+start
+repeat
+:Hello guys;
+repeat while() is (repeat)
+/'I would like to write on this arrow'/
+stop
+@enduml
+
+• <s>, <del>, <strike>
+• <font color="#AAAAAA"> or <font color="colorName">
+• <color:#AAAAAA> or <size:nn>
+• <img src="file"> or <img:file> 
+      
+AliceBlue
+AntiqueWhite
