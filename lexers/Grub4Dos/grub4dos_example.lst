@@ -1,0 +1,403 @@
+
+#check version of grub4dos is later than 01-02-2012
+checkrange 20120201:-1 read 0x8278 || pause --wait=3 Please use grub4dos-0.4.5c-2012-02-01 or later! && exit 1
+
+#reset key map
+setkey
+
+#change key map for UK keyboard
+setkey
+setkey at doublequote
+setkey doublequote at
+setkey tilde bar
+setkey numbersign backslash
+
+#French
+setkey
+setkey less backquote
+setkey greater tilde
+setkey ampersand 1
+setkey 1 exclam
+setkey tilde 2
+setkey 2 at
+setkey doublequote 3
+setkey 3 numbersign
+setkey quote 4
+setkey 4 dollar
+setkey parenleft 5
+setkey 5 percent
+setkey minus 6
+setkey 6 caret
+setkey backquote 7
+setkey 7 ampersand
+setkey underscore 8
+setkey 8 asterisk
+setkey backslash 9
+setkey 9 parenleft
+setkey at 0
+setkey 0 parenright
+setkey parenright minus
+setkey numbersign underscore
+:: no change for equal
+:: no change for plus
+setkey a q
+setkey A Q
+setkey z w
+setkey Z W
+setkey caret bracketleft
+:: no equivalent for diaresis => we keep the US braceleft
+setkey dollar bracketright
+:: no equivalent for pound => we keep the US braceright
+setkey q a
+setkey Q A
+setkey m semicolon
+setkey M colon
+setkey bracketleft quote
+setkey percent doublequote
+setkey asterisk backslash
+setkey bracketright bar
+setkey w z
+setkey W Z
+setkey comma m
+setkey question M
+setkey semicolon comma
+setkey period less
+setkey colon period
+setkey slash greater
+setkey exclam slash
+setkey bar question
+
+#Japan 106
+setkey
+setkey at bracketleft
+setkey doublequote at
+setkey ampersand caret
+setkey quote ampersand
+setkey parenleft asterisk
+setkey parenright parenleft
+setkey underscore parenright
+setkey equal underscore
+setkey plus colon
+setkey colon quote
+setkey asterisk doublequote
+setkey bracketleft bracketright
+setkey braceleft braceright
+setkey bracketright backslash
+setkey braceright bar
+setkey backslash backquote
+setkey tilde plus
+setkey caret equal
+setkey backquote braceleft
+setkey bar tilde
+
+
+# to set a german keyboard use these setkey commands before the first title command
+setkey
+setkey yz
+setkey zy
+setkey YZ
+setkey ZY
+setkey equal parenright
+setkey parenright parenleft
+setkey parenleft asterisk
+setkey doublequote at
+setkey plus bracket right
+setkey minus slash
+setkey slash ampersand
+setkey ampersand percent
+setkey percent caret
+setkey underscore question
+setkey question underscore
+setkey semicolon less
+setkey less number sign
+setkey number sign backslash
+setkey colon greater
+setkey greater bar
+setkey asterisk braceright
+
+# set AZERTY ketyboard
+setkey
+setkey a q
+setkey A Q
+setkey z w
+setkey Z W
+setkey q a
+setkey Q A
+setkey m semicolon
+setkey M colon
+setkey w z
+setkey W Z
+setkey comma m
+setkey question M
+setkey semicolon comma
+setkey period less
+setkey colon period
+setkey slash greater
+setkey exclam slash
+setkey dollar bracketright
+setkey asterisk backslash
+setkey percent doublequote
+setkey ampersand 1
+setkey 1 exclam
+setkey tilde 2
+setkey 2 at
+setkey doublequote 3
+setkey 3 numbersign
+setkey quote 4
+setkey 4 dollar
+setkey parenleft 5
+setkey 5 percent
+setkey minus 6
+setkey 6 caret
+setkey backquote 7
+setkey 7 ampersand
+setkey underscore 8
+setkey 8 asterisk
+setkey caret 9
+setkey 9 parenleft
+setkey at 0
+setkey 0 parenright
+setkey parenright minus
+setkey less backquote
+setkey greater tilde
+setkey numbersign braceright
+setkey backslash question
+setkey bracketright braceleft
+setkey braceleft quote
+setkey braceright underscore
+
+#QWERTZ keyboard
+setkey
+setkey y z
+setkey z y
+setkey Y Z
+setkey Z Y
+setkey equal parenright
+setkey parenright parenleft
+setkey parenleft asterisk
+setkey doublequote at
+setkey backquote equal
+setkey plus bracketright
+setkey minus slash
+setkey slash ampersand
+setkey ampersand percent
+setkey percent caret
+setkey underscore question
+setkey question underscore
+setkey semicolon less
+setkey less numbersign
+setkey numbersign backslash
+setkey colon greater
+setkey greater bar
+setkey asterisk braceright
+setkey caret backquote
+setkey backslash minus
+
+
+# ensure not in debug=2 mode or gfxmenu will need two key presses!
+debug 1
+gfxmenu /message
+color black/cyan yellow/cyan
+timeout 1
+default 0
+# line below will ensure the gfxmenu is always loaded even after an error
+configfile (bd)/menu.lst
+
+# if booting from a USB Flash drive get the UUID like this
+debug 1
+uuid (bd) > (md)0x220+1
+cat --skip=18 --length=9 (md)0x220+1 | set UUID=
+# if booting from HDD use --length=16
+echo UUID of boot device is %UUID%
+
+# Ignore boot device and boot to Windows XP, Vista, 7 or 8 from the internal hard disk
+# This works by mapping the boot device (bd) which may have bootmgr or ntldr on it, to a virtual memory drive so that files on it are not found by the find command
+title Boot to Windows from an internal hard disk
+map --mem (md)+8 (bd)
+map --hook
+find --set-root --ignore-floppies --ignore-cd /bootmgr || find --set-root --ignore-floppies --ignore-cd /ntldr
+map (bd) (bd)
+map --rehook
+chainloader /bootmgr || chainloader /ntldr
+
+
+#This entry sends an ESC character which can be used to exit from the GFXMenu back to the grub4dos text menu (or the user can just press ESC instead)
+#The file esc.txt must exist and contain the ESC character (0x1b or 27 or 033 octal) - the esc.txt file is in Beta Downloads section if you want it!
+title grub4dos menu
+cat /esc.txt && clear
+
+title List partitions
+clear
+cat (hd0,0)+1 > (md)800+1 && parttype (hd0,0) && echo Contents of (hd0,0): && ls (hd0,0)/ && echo && echo --------
+cat (hd0,1)+1 > (md)800+1 && parttype (hd0,1) && echo Contents of (hd0,1): && ls (hd0,1)/ && echo && echo --------
+cat (hd0,2)+1 > (md)800+1 && parttype (hd0,2) && echo Contents of (hd0,2): && ls (hd0,2)/ && echo && echo --------
+cat (hd0,3)+1 > (md)800+1 && parttype (hd0,3) && echo Contents of (hd0,3): && ls (hd0,3)/ && echo && echo --------
+cat (hd0,4)+1 > (md)800+1 && parttype (hd0,4) && echo Contents of (hd0,4): && ls (hd0,4)/ && echo && echo --------
+cat (hd1,0)+1 > (md)800+1 && parttype (hd1,0) && echo Contents of (hd1,0): && ls (hd1,0)/ && echo && echo --------
+cat (hd1,1)+1 > (md)800+1 && parttype (hd1,1) && echo Contents of (hd1,1): && ls (hd1,1)/ && echo && echo --------
+cat (hd1,2)+1 > (md)800+1 && parttype (hd1,2) && echo Contents of (hd1,2): && ls (hd1,2)/ && echo && echo --------
+cat (hd1,3)+1 > (md)800+1 && parttype (hd1,3) && echo Contents of (hd1,3): && ls (hd1,3)/ && echo && echo --------
+cat (hd1,4)+1 > (md)800+1 && parttype (hd1,4) && echo Contents of (hd1,4): && ls (hd1,4)/ && echo && echo --------
+echo
+pause --wait=10 Please check available partitions...
+configfile (bd)/menu.lst
+
+title Reboot
+reboot
+
+title Switch Off
+halt
+
+#hotkey and autonumber example
+color white/blue
+write 0x8274 0x2001
+## run hotkey once to enable hotkey.
+/hotkey
+## show this menu only if /ntldr can be found
+iftitle [find /ntldr] ^Ctrl+F1 Press Ctrl+F1 to boot /ntldr
+find --set-root /ntldr
+chainloader /ntldr
+
+
+# Check this CD/USB drive is not too old - see Tutorial #71 for details
+# Usage: /checkdate.g4b <Release Year> <Release Month> <Release DayOfMonth> <ExpiresInDays> [<SILENT>]
+/checkdate.g4b 2012 12 3 2
+pause
+if NOT "%CHECKDATE%"=="OK" reboot
+
+#Boot using the original backup MBR sector (copied to LBA1 by grub4dos on install)
+#This will boot the system as it would before grub4dos was installed
+title Normal Windows Boot
+rootnoverify (hd0)
+chainloader (hd0)1+1
+
+#this assumes you have booted from a USB drive and you want to boot from the hard disk
+title Boot from 1st Hard Disk \nBoot from MBR of first hard disk
+map (hd0) (hd1)
+map (hd1) (hd0)
+map --hook
+chainloader (hd0)+1
+rootnoverify (hd0)
+
+
+title FreeDOS
+find --set-root /kernel.sys
+chainloader /kernel.sys
+
+title MSDOS
+find --set-root /io.sys
+chainloader /io.sys
+
+title FreeDOS (AS HDD)
+map (hd0) (hd1)
+map (hd1) (hd0)
+map --hook
+rootnoverify (hd1,0)
+chainloader /kernel.sys
+
+title FreeDOS (AS FLOPPY)
+map (hd0,0)+1 (fd0)
+map (hd0) (hd1)
+map (hd1) (hd0)
+map --hook
+chainloader (fd0)/kernel.sys
+rootnoverify (fd0)
+map --floppies=1
+
+title MS-DOS (AS HDD)
+rootnoverify (hd0,0)
+chainloader (hd0,0)/io.sys
+
+title Always boot from USB to MS-DOS AS FLOPPY DISK A:
+checkrange 0x80 read 0x8280 && map (hd0,0)+1 (fd0)
+checkrange 0x80 read 0x8280 && map (hd1) (hd0)
+checkrange 0x80 read 0x8280 && map --hook
+ls (fd0)/io.sys && clear && pause --wait=1 /IO.SYS found on floppy disk
+ls (fd0)/io.sys || pause --wait=3 /IO.SYS not found on floppy disk
+ls (fd0)/io.sys && chainloader (fd0)/io.sys
+ls (fd0)/io.sys && rootnoverify (fd0)
+ls (fd0)/io.sys && map --floppies=1
+ls (fd0)/io.sys && map --harddrives=1
+clear
+boot
+
+title MS-DOS (AS FLOPPY) AND HDD as HDD0
+map (hd0,0)+1 (fd0)
+# map the first partition of the hard disk as a floppy disk
+map (hd0) (hd32)
+# map the UFD as a virtual cd
+map (hd1) (hd0)
+# map the real hard disk as hard disk 0
+map --hook
+# hook Int13 interrupts so all map changes take affect
+chainloader (fd0)/io.sys
+# load the io.sys code into memory from the floppy disk (now ufd is fd0)
+rootnoverify (fd0)
+# set the file root as the floppy disk
+map --floppies=1
+map --harddrives=1
+# Tweak BIOS device numbers so DOS sees 1 floppy and 1 hd
+
+
+title MS-DOS (AS FLOPPY) AND HDD as HDD0 (no comments)
+map (hd0,0)+1 (fd0)
+map (hd0) (hd32)
+map (hd1) (hd0)
+map --hook
+chainloader (fd0)/io.sys
+rootnoverify (fd0)
+map --floppies=1
+map --harddrives=1
+
+#boot from floppy image with internal hdd as hd0 (no other hdds) (use ImDisk to create a large floppy .ima file)
+title Install Win98\n Install Win98 using large .ima file
+map /Win98_SE.ima (fd0)
+map --hook
+set A=
+if exist (fd0)/IO.SYS set A=1
+if exist (fd0)/KERNEL.SYS set A=1
+if not exist A set /p A=ERROR: No DOS boot files found in .ima file! && chainloader /grldr
+map (hd1) (hd0)
+map --hook
+#set just one HDD and one floppy
+map --harddrives=1
+map --floppies=1
+root (fd0)
+chainloader /IO.SYS || chainloader /KERNEL.SYS
+
+
+# http://www.partition-saving.com/
+title savepart.iso
+# map the iso file as a virtual cd
+map /savepart.iso (0xff)
+# hook the int 13 interrupt so the BIOS sees it as a CD
+map --hook
+# set the root path to the new virtual CD
+root (0xff)
+# boot from the CD
+chainloader (0xff)
+
+title spartbdk.img
+# map the 1.44MB floppy image as fd0
+map /spartbdk.img (fd0)
+map --hook
+root (fd0)
+# load the freedos kernel.sys as the boot file
+chainloader /kernel.sys
+
+# Use SHIFT to boot linux in safe mode
+title Run Linux\nPress SHIFT+ENTER for safe mode
+/bios int=0x16 eax=0x00000200 > (md)0x300+1 && cat --skip=12 --length=2 (md)0x300+1 | set /a n=0x > nul
+set /a n=%n% & 0x03 > nul && if %n%>=1 echo SHIFT PRESSED!
+#LShift=01,RShift=02,CTRL=04,ALT=08,SCROLL=10,NUM=20,CAPS=40,INS=80
+#set /a n=%n% & 0x04 > nul && if %n%>=1 echo CTRL PRESSED!
+set sf=
+if %n%>=1 set sf=acpi=off irqpoll noapic noapm nodma nomce nolapic nosmp
+kernel /casper/vmlinuz file=/cdrom/preseed/ubuntu.seed boot=casper %sf% splash
+initrd /casper/initrd.img
+
+
+title WinPe v2
+map /bootmgr (rd)
+chainloader (rd)+1
+root ()
