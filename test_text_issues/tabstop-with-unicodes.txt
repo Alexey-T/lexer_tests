@@ -1,0 +1,14 @@
+====================================================================================================
+CONDITIONALS
+====================================================================================================
+
+X	int
+|	int
+&	int
+>	int/fix/flt/dbl
+≥	int/fix/flt/dbl
+<	int/fix/flt/dbl
+≤	int/fix/flt/dbl
+=	int/fix/flt/dbl
+TRUE	int/fix/flt/dbl
+FALSE	int/fix/flt/dbl
