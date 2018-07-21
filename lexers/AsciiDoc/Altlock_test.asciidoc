@@ -1,0 +1,261 @@
+= about
+Altlock
+2018-07-14
+:jbake-type: page
+:jbake-status: published
+:jbake-tags: asciidoc, about
+:idprefix:
+:revision: 1.0.1
+:another-variable: with spaces
+
+// Comment
+Only // works if it's the first 2 characters on a line
+
+////
+A multi-line comment.
+
+Notice it's a delimited block.
+////
+
+`monospace`^superscript^~subscript~"`double curved quotes`" For some reason '`single curved quotes`' don't
+ work correctly for me without space before and after it. I use the asciidocter JS live preview.
+
+
+Forced line +
+break.
+
+[%hardbreaks]
+sddaa
+
+adad
+
+== After a different item..
+
+hardbreak
+environments
+aren't
+in effect
+anymore
+
+== _Literals_
+
+ This is a literal, *asterisks* are displayed
+
+....
+This as _well_
+....
+
+Onotha one:
+
+----
+
+Abouts abouted abouter.
+----
+
+=== List with sub-items
+
+* list
+** Linux
+*** Ubuntu
+**** Server
+**** Desktop
+*** Fedora
+**** Spin
+***** Security
+**** Desktop
+** BSD
+*** NetBSD
+* listpart 2
+**** Immediate switch to 4 asterisks is only a subitem
+
+//- split list
+
+list::
+    . Linux
+        * OpenSUSE
+            ** Multiple asterisks
+                .. Indeed
+                    ... More indents
+                        .... Even more
+                            *** Let's go back to asterisks
+                                even more again:::
+                                    even even more::::
+                                        **** Hello?
+                                            ***** Still reading?
+    . Windows
+* Indenting not important
+
+
+[%reversed]
+ . Step three
+ . Step two
+ . Step one
+
+[start=4]
+ . Step four
+ . Step five
+ . Step six
+
+.overwrite type
+[lowerroman, start=5]
+. Five
+. Six
+
+//- split lists
+
+.Labeled list
+[horizontal]
+CPU:: The brain of the computer.
+Hard drive:: Permanent storage for operating system and/or user files.
+RAM:: Temporarily stores information the CPU uses during operation.
+Keyboard:: Used to enter text or control items on the screen.
+Mouse:: Used to point to and select items on your computer screen.
+Monitor:: Displays information in visual form using text and graphics.
+
+
+=== Simple table
+
+|===
+|Not fun |Meh |Lot's 'o fun!
+
+|kadoepee
+|swup
+|haha
+
+|swapperdepap
+|muh
+|lol
+
+
+|klapedaap
+|sniff
+|xD
+
+|===
+
+
+
+.More advanced table
+|===
+|Header 1 |Header 2 |Header 3
+
+|Column 1, row 1
+|
+|Column 3, row 1
+
+|Column 1, row 2
+|Column 2, row 2
+|Column 3, row 2
+
+|Column 1, row 3
+|Column 2, row 3
+|
+
+|Column 1, row 4
+|Column 2, row 4
+|
+
+|Column 1, row 5
+|Column 2, row 5
+|
+
+|Column 1, row 6
+|Column 2, row 6
+|Column 3, row 6
+|===
+
+=== Variable
+author: {author}
+rev: {revision}
+
+==== level 4 heading
+
+WARNING: HELLO! :D
+
+NOTE: THIS IS A NOTE
+
+TIP: this is a tip.
+
+IMPORTANT: Very important
+
+CAUTION: watch out
+
+
+
+
+.sourcecode
+[source,ruby]
+----
+require 'sinatra'
+
+get '/hi' do
+  "Hello World!"
+end
+----
+
+
+:version: 1.5.6.1
+.sourcecode with variable substitution
+[source,xml,subs="verbatim,attributes"]
+----
+<dependency>
+  <groupId>org.asciidoctor</groupId>
+  <artifactId>asciidoctor-java-integration</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+
+=== *HTML* passthrough
+
+The text pass:[<u>underline me</u>] is underlined.
+
+The text pass:+++<b>make me bold please</b>+++ is made bold.
+
+.sourcecode with passthrough and escaping
+[source,java,subs="+quotes,+macros"]
+----
+protected void configure(HttpSecurity http) throws Exception {
+    http
+        .authorizeRequests()
+            **.antMatchers("/resources/$$**$$").permitAll()**
+            .anyRequest().authenticated()
+            .and()
+        .formLogin()
+            .loginPage("/login")
+            .permitAll();
+----
+
+==== Passthrough block
+
+++++
+<video poster="images/movie-reel.png">
+  <source src="videos/writing-zen.webm" type="video/webm">
+</video>
+++++
+
+
+===== Links
+https://asciidoctor.org +
+https://asciidoctor.org[asciidoctor] +
+search/link:https://ecosia.org[Ecosia]
+// If we didn’t use the link: prefix in this case, the URL macro would not be detected by the parser.
+
+===== Verses(quotes)
+
+[verse, Carl Sandburg, two lines from the poem Fog]
+The fog comes
+on little cat feet.
+
+
+.Delimited verse
+[verse, Carl Sandburg, Fog]
+____
+The fog comes
+on little cat feet.
+
+It sits looking
+over harbor and city
+on silent haunches
+and then moves on.
+____
