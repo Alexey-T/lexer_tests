@@ -7,6 +7,16 @@
 //  ^^^^^^^^^^^^^^^ meta.tag
 </head>
 <body>
+    <%@ include file="foo.bar" %>
+//  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.directive
+//  ^^^ punctuation.section.directive
+//                             ^^ punctuation.section.directive
+
+    Plain text
+//  ^^^^^^^^^^ text.html.jsp - meta
+
+    <%-- This is a comment --%>
+//  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.block.jsp
     <%
 //  ^^ punctuation.section.embedded.begin.jsp - source.java.embedded.html
 //    ^ source.java.embedded.html
@@ -26,14 +36,22 @@
             %>
 //          ^^ punctuation.section.embedded.end.jsp - source.java.embedded.html
 //            ^ text.html.jsp - source.java.embedded.html
+
+            <%-- This is a comment --%>
+//          ^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.block.jsp
+            <% int aNumber = 0; // this scriptlet should close %>
+//                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.line.double-slash.java
+//                                                             ^^ punctuation.section.embedded.end.jsp
+
+
             <div style="width: 90%"></div>
 //          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.tag
             <%
 //          ^^ punctuation.section.embedded.begin.jsp - source.java.embedded.html
         }
-//      ^ - invalid.illegal.stray-bracket
+//      ^ - invalid.illegal.stray-brace-end
     }
-//  ^ - invalid.illegal.stray-bracket
+//  ^ - invalid.illegal.stray-brace-end
     %>
 //  ^^ punctuation.section.embedded.end.jsp - source.java.embedded.html
 //    ^ text.html.jsp - source.java.embedded.html

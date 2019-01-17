@@ -18,6 +18,22 @@ pg_select $database \
 data
 # <- - variable.function
 
+becs::wizFrame -info [becs_infobody "interface.jpg" \
+    "Specify VID parameters<br><br><strong>VID groups</strong> can be used to build ranges that is added to the VID range field."] \
+    -title "$ifacename VID parameters"
+# ^ - meta.substitution
+
+if {[catch {becs::objectCreate -class interface \
+        -flags "statistics,interfaceautoprobe" \
+        -name $aggrname -role $extra_role \
+                        -parameters [array get params] \
+        -opaque [list "becs.editor" "ifrole.tcl"] \
+        -parentoid $aggr_attach_oid} err]} {
+return "Creating aggregator interface $aggrname under element/management element-module OID $aggr_attach_oid: $err"
+}
+#^ - meta.block
+#^ - meta.substitution
+
 # -------------------------------------------------------------------------- #
 # Issue 134: https://github.com/SublimeTextIssues/DefaultPackages/issues/134
 # -------------------------------------------------------------------------- #
@@ -26,6 +42,12 @@ regsub -all {\/} $line {\\} line;
 # <- keyword.other
 #            ^ string.regexp
 #                       ^ constant.character.escape
+
+foreach {one_arg_opt_pattern} [list {-first\S*} {-second\S*} {-group\S*}] {
+    regsub -- "${one_arg_opt_pattern}\\s+\\S+" $args {} args
+#             ^ string.quoted.double
+}
+
 regsub -all {\\\\} $line {\\} line;
 # <- keyword.other
 #            ^ string.regexp constant.character.escape
@@ -47,6 +69,30 @@ namespace eval A {
         }
     }
 }
+
+set dirname "${v_seagull_cfg_root}/seagull-[format "%02d" [expr $ctrlport - $v_seagull_ctrl_port]]"
+#                                           ^^^^^^ keyword.other
+#                                                          ^^^^ keyword.other
+
+set a [list]
+#      ^^^^ keyword.other
+
+set res "[join [lrange [split $res ","] 0 end-1] ","] ..."
+#         ^^^^ keyword.other
+#               ^^^^^^ keyword.other
+#                       ^^^^^ keyword.other
+
+regexp {instance="?([^" \t]+)"?} $counter matchedstring instance; # comment
+#       ^^^^^^^^^^^^^^^^^^^^^^^ string.regexp
+
+set check1 [regexp {^'(.){0,32}'$} $param]
+#                   ^^^^^^^^^^^^^ string.regexp
+
+set check2 [regexp {[*\?\|"<>:/\]+} $param]
+#                   ^^^^^^^^^^^^^^ string.regexp
+
+set stepquote [regsub -all {"} $line {""} ]
+#                             ^ - string
 
 set copy [[$root selectNodes //*\[@ID="$idref"\]] cloneNode -deep]
 #                               ^^ constant.character.escape
@@ -97,17 +143,11 @@ proc ${ns}::suffix {} {}
 # Issue 131: https://github.com/SublimeTextIssues/DefaultPackages/issues/131
 # -------------------------------------------------------------------------- #
 set ok1 {["]"]}
-#       ^^^^^^^ meta.block
-#        ^^^^^ meta.substitution
-#         ^^^ string.quoted.double
+#       ^^^^^^^ string.quoted.brace
 set ok2 {["][]"]}
-#       ^^^^^^^^^ meta.block
-#        ^^^^^^^ meta.substitution
-#         ^^^^^ string.quoted.double
+#       ^^^^^^^^^ string.quoted.brace
 set not_ok {["]["]}
-#          ^^^^^^^^ meta.block
-#           ^^^^^^ meta.substitution
-#            ^^^^ string.quoted.double
+#          ^^^^^^^^ string.quoted.brace
 puts $ok1            ;# ["]"]
 # ^ keyword.other
 #    ^^^^ variable.other
@@ -157,5 +197,211 @@ if {$var == true} {
 else {}
 # <- - keyword.control
 
+# Ideally this would be a test to make the "a" invalid,
+# but there isn't a good way to handle that and brace strings
+# containing regexes as exhibited in the tests for issues
+# 783 and 784
 set y {1 2 3}a
-#            ^ invalid.illegal
+#     ^^^^^^^^ string.quoted.brace
+#     ^ punctuation.definition.string.begin
+#           ^ - punctuation.definition.string
+
+# -------------------------------------------------#
+# https://github.com/sublimehq/Packages/issues/779
+# ------------------------------------------------ #
+regexp -inline -all -- {%[a-zA-Z_]*%} "whatever"
+#      ^^^^^^^^^^^^^^^^ - string
+
+regexp -all -inline {%[a-zA-Z_]*%} "whatever"
+#      ^^^^^^^^^^^^^ - string
+
+# -------------------------------------------------#
+# https://github.com/sublimehq/Packages/issues/783
+# https://github.com/sublimehq/Packages/issues/784
+# ------------------------------------------------ #
+set objRegExp {(^[a-zA-Z]{2}[a-zA-Z0-9-]{2,12}$)}
+#             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ string.quoted.brace - invalid
+#                                                ^ - meta.block
+set objRegExp {(.{0,200})}
+#             ^^^^^^^^^^^^ string.quoted.brace - invalid
+#                         ^ - meta.block
+
+proc test {} {
+
+    set saoid [svcmap_saoid sm]
+#   ^^^ keyword.other
+    # Syntax highligting works inside an if statement:
+    if {[defvar cpe_uplink_ifoid 0] == 0} {
+        array set cpe_param [objectGetField -oid $cpeoid -fieldname parameters]
+#       ^^^^^ keyword.other
+#                            ^^^^^^^^^^^^^^ variable.function
+        if {[info exists cpe_param(model)]} {
+            set cpe_model $cpe_param(model)
+        } else {
+            error "ERROR: Model not set"
+#           ^^^^^ keyword.other
+#                 ^ string.quoted.double
+        }
+    }
+
+    # but not within for example a foreach loop:
+    foreach cpe_ifoid [objectTreeFind -oid $cpeoid -walkdown 0 -classmask interface] {
+#   ^^^^^^^ keyword.control
+#                      ^^^^^^^^^^^^^^ variable.function
+        set cpe_if_role [objectGetField -oid $cpe_ifoid -fieldname role]
+#       ^^^ keyword.other
+        if {[string match "uplink.running" $cpe_if_role]} {
+#       ^^ keyword.control
+#            ^^^^^^ keyword.other
+            set cpe_uplink_ifoid $cpe_ifoid
+            set cpe_uplink_name [objectGetField -oid $cpe_uplink_ifoid -fieldname name]
+            break
+        }
+    }
+
+    switch -- $parclass {
+#   ^^^^^^ keyword.control
+        "element-attach" {
+#       ^^^^^^^^^^^^^^^^ string.quoted.double
+            # CPE SA
+#           ^^^^^^^^^ comment
+            return [svcmap_hook_return sm]
+#           ^^^^^^ keyword.control
+#                   ^^^^^^^^^^^^^^^^^^ variable.function
+        }
+
+        "interface" {
+#       ^^^^^^^^^^^ string.quoted.double
+            set ifoid $paroid
+            set eaoid [elm_oid_by_iface $ifoid]
+            set earole [objectGetField -oid $eaoid -fieldname role]
+		}
+	}
+}
+
+# https://github.com/sublimehq/Packages/issues/1145
+
+# When set has a brace followed by non-whitespace,
+# we treat it as a string
+set w {foobar}
+#     ^^^^^^^^ string.quoted.brace
+#     ^ punctuation.definition.string.begin
+#            ^ punctuation.definition.string.end
+
+# For set when the brace is not followed by a newline,
+# we treat it as expression, but without command names
+set x { 1 { 2 3 } }
+#     ^^^^^^^^^^^^^ meta.block
+#       ^ constant.numeric
+#         ^^^^^^^ meta.block meta.block
+#           ^ constant.numeric
+#             ^ constant.numeric
+
+set y { foo {}
+#     ^^^^^^^^ meta.block
+#     ^ punctuation.section.block.begin
+#       ^ - variable.function
+#           ^^ meta.block meta.block
+#           ^ punctuation.section.block.begin
+#            ^ punctuation.section.block.end
+        # comment
+#       ^^^^^^^^^^ comment
+        bar {}
+#       ^^^^^^ meta.block
+#       ^ - variable.function
+#           ^^ meta.block meta.block
+#           ^ punctuation.section.block.begin
+#            ^ punctuation.section.block.end
+        baz {} }
+#       ^^^^^^^^ meta.block
+#       ^ - variable.function
+#           ^^ meta.block meta.block
+#           ^ punctuation.section.block.begin
+#            ^ punctuation.section.block.end
+#              ^ meta.block punctuation.section.block.end
+
+# For a set with a brace followed by a newline, we
+# treat it as a block of code with commands
+set z {
+#     ^ meta.block punctuation.section.block.begin
+    foo {}
+#   ^ meta.block variable.function
+#       ^^ meta.block meta.block
+#       ^ punctuation.section.block.begin
+#        ^ punctuation.section.block.end
+    bar {}
+#   ^ variable.function
+#       ^^ meta.block meta.block
+#       ^ punctuation.section.block.begin
+#        ^ punctuation.section.block.end
+    baz {}
+#   ^ variable.function
+#       ^^ meta.block meta.block
+#       ^ punctuation.section.block.begin
+#        ^ punctuation.section.block.end
+}
+# <- meta.block punctuation.section.block.end
+
+if { 1 } {
+# <- keyword.control
+#  ^^^^^ meta.block
+#    ^ constant.numeric
+#       ^ - meta.block
+#        ^ meta.block
+
+# This tests an implicit block after the if statement. This could
+# be refactored, but the current implementation treats it this way.
+    if 2 {
+#   ^^^ meta.block - meta.block meta.block
+#   ^^ keyword.control
+#      ^ meta.block meta.block constant.numeric
+#       ^ meta.block - meta.block meta.block
+#        ^ meta.block meta.block punctuation.section.block.begin
+
+        set x 1
+#       ^^^^^^^ meta.block meta.block
+#             ^ constant.numeric
+
+        set y 2
+#       ^^^^^^^ meta.block meta.block
+#             ^ constant.numeric
+    }
+#   ^ meta.block meta.block punctuation.section.block.end
+}
+# <- meta.block punctuation.section.block.end
+
+if { $mpv(radar) eq "VHF" } {
+# <- keyword.control
+#  ^^^^^^^^^^^^^^^^^^^^^^^^ meta.block
+#                ^^ keyword.operator.word
+#                           ^ meta.block punctuation.section.block.begin
+
+    if [ catch  {UpdateIfKst} imf ] {
+#   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.block
+#   ^^ keyword.control
+#      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.substitution
+#                                   ^ meta.block meta.block punctuation.section.block.begin
+        set imf -1
+#               ^ keyword.operator
+#                ^ constant.numeric
+
+        if { $mpv(ifmon_errcount) < 5 } {
+#       ^ keyword.control
+#          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.block meta.block meta.block
+#                                 ^ keyword.operator
+#                                   ^ constant.numeric
+            EngineMsg [list $msg] [Utime]
+#           ^ variable.function
+            incr mpv(ifmon,errcount)
+        } else {
+#       ^ punctuation.section.block.end
+#         ^ keyword.control
+#              ^ punctuation.section.block.begin
+            set msg "Too many IF monitor errors -- giving up"
+#                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ string.quoted.double
+            EngineMsg [list $msg] [Utime]
+#           ^ variable.function
+        }
+    }
+}
+

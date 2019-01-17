@@ -34,7 +34,7 @@
     '                     ^^^ punctuation.section.embedded.begin.asp - source.asp
     '                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.asp
     '                        ^^^^^^^ support.class.asp
-    '                               ^ punctuation.accessor.asp
+    '                               ^ punctuation.accessor.dot.asp
     '                                ^^^^^^^^^^^^^^^ support.class.collection.asp
     '                                                              ^^ punctuation.section.embedded.end.asp - source.asp
     '                                                                ^^^^^^^^ meta.tag
@@ -50,11 +50,12 @@
    '^^^^^^^^^^^^^^^ keyword
     
     Class TestClass
-   '^^^^^^^^^^^^^^^ meta.class.asp meta.class.identifier.asp
+   '^^^^^^^^^^^^^^^ meta.class.asp meta.class.identifier.asp - meta.class.body.asp
    '^^^^^ storage.type.asp
    '      ^^^^^^^^^ meta.class.asp meta.class.identifier.asp entity.name.class.asp
         ' comment
        '^^^^^^^^^^ comment.line.apostrophe.asp
+       '<- meta.class.body.asp - meta.class.identifier.asp
         Private m_NameVar
        '^^^^^^^ storage.modifier.asp - meta.method.identifier.asp
        '        ^^^^^^^^^ variable.other.asp
@@ -62,11 +63,11 @@
         Public Const a = 2e-3, b2="c""": const c = 4, const =
        '^^^^^^^^^^^^ storage.modifier.asp
        '             ^ entity.name.constant.asp
-       '               ^ keyword.operator.asp
-       '                 ^^^^ constant.numeric.asp
+       '               ^ keyword.operator.assignment.asp
+       '                 ^^^^ constant.numeric.float.decimal.asp
        '                     ^ punctuation.separator.variable-declaration.asp
        '                       ^^ entity.name.constant.asp
-       '                         ^ keyword.operator.asp
+       '                         ^ keyword.operator.assignment.asp
        '                          ^^^^^ string.quoted.double.asp
        '                               ^ punctuation.terminator.statement.asp
        '                                 ^^^^^ storage.modifier.asp
@@ -74,7 +75,8 @@
 '<- - invalid.illegal.unexpected-token.asp
         Const d = &HAB
        '^^^^^ storage.modifier.asp
-       '          ^^^^ constant.numeric.asp
+       '          ^^^^ constant.numeric.integer.hexadecimal.asp
+       '          ^^ punctuation.definition.numeric.hexadecimal.asp
         Const e = "I am an unclosed string
         '         ^^^^^^^^^^^^^^^^^^^^^^^^ string.quoted.double.asp
         '                                 ^ invalid.illegal.unclosed-string.asp
@@ -97,8 +99,8 @@
        '^^^^^^ storage.modifier.asp
        '       ^^^^^^^^^^^^ storage.type.function.asp
        '                    ^^^^ entity.name.function.asp
-       '                        ^ punctuation.section.parameters.begin.asp - entity.name.function.asp
-       '                         ^ punctuation.section.parameters.end.asp
+       '                        ^ punctuation.section.parens.begin.asp - entity.name.function.asp
+       '                         ^ punctuation.section.parens.end.asp
             Name = m_NameVar
 '<- meta.method.asp meta.method.body.asp - meta.method.identifier.asp
         End Property
@@ -111,9 +113,9 @@
        '^^^^^^ storage.modifier.asp
        '       ^^^^^^^^^^^^ storage.type.function.asp
        '                    ^^^^ entity.name.function.asp - storage.type.function.asp
-       '                        ^ punctuation.section.parameters.begin.asp - entity.name.function.asp
+       '                        ^ punctuation.section.parens.begin.asp - entity.name.function.asp
        '                         ^^^^^^^^^ variable.parameter.function.asp
-       '                                  ^ punctuation.section.parameters.end.asp
+       '                                  ^ punctuation.section.parens.end.asp
             m_NameVar = nameParam
         End Property
         
@@ -129,7 +131,7 @@
        '^^^^^^^^^^^^^^^^^^^^^ meta.method.asp meta.method.identifier.asp
        '^^^^^^^^^^^^ storage.type.function.asp
        '             ^^^^^^^^ entity.name.function.asp
-       '                     ^ punctuation.section.parameters.begin.asp
+       '                     ^ punctuation.section.parens.begin.asp
        '                      ^^^^^^^^^^^^^ variable.parameter.function.asp
        '                                   ^ invalid.illegal.unexpected-end-of-statement.asp
             m_CategoryVar = categoryParam
@@ -141,15 +143,16 @@
         
         Private Property Set Category(categoryParam) Set m_CategoryVar = categoryParam End Property
        '^^^^^^^ storage.modifier.asp
-       '        ^^^^^^^^^^^^ meta.method.asp meta.method.identifier.asp storage.type.function.asp - meta.method.body.asp
+       '        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.class.asp meta.class.body.asp meta.method.asp meta.method.identifier.asp - meta.method.identifier.asp meta.method.identifier.asp - meta.method.body.asp
+       '        ^^^^^^^^^^^^ storage.type.function.asp
        '                     ^^^^^^^^ entity.name.function.asp
-       '                             ^ punctuation.section.parameters.begin.asp
+       '                             ^ punctuation.section.parens.begin.asp
        '                              ^^^^^^^^^^^^^ variable.parameter.function.asp
-       '                                           ^ punctuation.section.parameters.end.asp
+       '                                           ^ punctuation.section.parens.end.asp
        '                 ^^^ storage.type.function.asp - keyword - storage.type.asp
        '                                            ^ meta.method.asp meta.method.body.asp - meta.method.identifier.asp
        '                                                                               ^^^^^^^^^^^^ storage.type.function.end.asp
-       '                                                                                           ^ - meta.method.asp - meta.method.body.asp
+       '                                                                                           ^ - meta.method
         
         Public Default Function Go rem no parens
        '^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.method.asp meta.method.identifier.asp
@@ -159,12 +162,12 @@
        '                           ^^^^^^^^^^^^^ comment.line.rem.asp
             Go = "going... going... gone!"
 '<- meta.method.asp meta.method.body.asp - meta.method.identifier.asp
-           '^^ - invalid.illegal
+           '^^ - invalid
            '   ^ keyword.operator.asp
         End Function
        '^^^^^^^^^^^^ meta.method.asp
        '^^^^^^^^^^^^ storage.type.function.end.asp
-       '            ^ - meta.method.asp - meta.method.body.asp
+       '            ^ - meta.method
         
         Sub Test123:Call DoSomething:End Sub
        '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.method.asp
@@ -173,7 +176,7 @@
        '           ^ punctuation.terminator.statement.asp
        '            ^^^^^^^^^^^^^^^^ meta.method.body.asp
        '                             ^^^^^^^ storage.type.function.end.asp
-       '                                    ^ - meta.method.asp - meta.method.body.asp
+       '                                    ^ - meta.method
         
         Class SubClass ' nested classes are not allowed
 '<- - invalid.illegal.unexpected-token.asp
@@ -199,19 +202,19 @@
     
                  "blah"rem-"testing"
     '            ^^^^^^ string.quoted.double.asp
-    '                  ^^^^^^^^^^^^^^ comment.line.rem.asp - string.quoted.double.asp
+    '                  ^^^^^^^^^^^^^^ comment.line.rem.asp - string
     
     Class TestClass2 Public Sub TestSub () Response.Write("wow") End Sub End Class
    '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.class.asp
-   '^^^^^^^^^^^^^^^^ meta.class.identifier.asp
+   '^^^^^^^^^^^^^^^^ meta.class.identifier.asp - meta.class.body.asp - meta.class.identifier.asp meta.class.identifier.asp
    '^^^^^ storage.type.asp
    '      ^^^^^^^^^^ entity.name.class.asp
-   '                ^ - meta.class.identifier.asp
+   '                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.class.body.asp - meta.class.identifier.asp
    '                 ^^^^^^^^^^^^^^^^^^^^^ meta.method.asp meta.method.identifier.asp
    '                 ^^^^^^ storage.modifier.asp
    '                        ^^^ storage.type.function.asp
    '                            ^^^^^^^ entity.name.function.asp
-   '                                    ^^ punctuation.section.parameters
+   '                                    ^^ punctuation.section.parens - meta.method.identifier.asp meta.method.identifier.asp
    '                                      ^ meta.method.asp meta.method.body.asp - meta.method.identifier.asp
    '                                                             ^^^^^^ storage.type.function.end.asp
    '                                                                     ^^^^^^^^^ meta.class.body.asp
@@ -232,7 +235,7 @@
    '        ^^^ keyword.other.new.asp
     a.Name = blah
    '^ variable.other.asp
-   ' ^ punctuation.accessor.asp
+   ' ^ punctuation.accessor.dot.asp
     
     Function GetModifiedDate(path) ' test function
    '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.method.asp meta.method.identifier.asp
@@ -241,39 +244,39 @@
    '                              ^ - meta.method.identifier.asp
    '^^^^^^^^ storage.type.function.asp
    '         ^^^^^^^^^^^^^^^ entity.name.function.asp
-   '                        ^ punctuation.section.parameters.begin.asp
+   '                        ^ punctuation.section.parens.begin.asp
    '                         ^^^^ variable.parameter.function.asp
-   '                             ^ punctuation.section.parameters.end.asp
+   '                             ^ punctuation.section.parens.end.asp
         On Error Resume Next
-'<- meta.method.body.asp - comment.line.apostrophe.asp
+'<- meta.method.body.asp - comment
        '^^^^^^^^^^^^^^^^^^^^ storage.type.asp
         Set fs = Server.CreateObject("Scripting.FileSystemObject")
        '^^^ keyword.other.set.asp
        '       ^ keyword.operator.asp
        '         ^^^^^^ support.class.asp
-       '               ^ punctuation.accessor.asp
+       '               ^ punctuation.accessor.dot.asp
        '                ^^^^^^^^^^^^ support.function
        '                             ^ punctuation.definition.string.begin.asp
-       '                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ string.quoted.double.asp - punctuation.accessor.asp
+       '                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ string.quoted.double.asp - punctuation.accessor.dot.asp
        '                                                        ^ punctuation.definition.string.end.asp
         With fs
        '^^^^ keyword.control.flow.asp
        '     ^^ variable.other.asp
        '       ^ meta.with.block.asp
             Set rs = .GetFile(Server.MapPath(path))
-           '         ^ meta.with.block.asp punctuation.accessor.asp
-           '                        ^ meta.with.block.asp punctuation.accessor.asp
+           '         ^ meta.with.block.asp punctuation.accessor.dot.asp
+           '                        ^ meta.with.block.asp punctuation.accessor.dot.asp
             GetModifiedDate = rs.DateLastModified
             Set rs = Nothing
            '^^^ keyword.other.set.asp
            '       ^ keyword.operator.asp
            '         ^^^^^^^ storage.type.asp
             .Close
-           '^ punctuation.accessor.asp
+           '^ punctuation.accessor.dot.asp
            ' ^^^^^ variable
             . Close
-           '^ punctuation.accessor.asp
-           ' ^ - invalid.illegal
+           '^ punctuation.accessor.dot.asp
+           ' ^ - invalid
            '  ^^^^^ variable
         End With
        '^^^^^^^^ keyword.control.flow.asp
@@ -294,10 +297,10 @@
    '^^^ storage.type.function.asp
    '    ^^^^^^^ entity.name.function.asp
    '           ^ - entity.name.function.asp
-   '            ^^ punctuation.section.parameters
+   '            ^^ punctuation.section.parens
         div = 4
        '    ^ keyword.operator.asp
-       '      ^ constant.numeric.asp
+       '      ^ constant.numeric
        
         If 1<div And 2>1 Then ' if block
        '^^ keyword.control.flow.asp
@@ -314,7 +317,7 @@
        '      ^^^^^^^^^^^^^^^^^^^^^^ meta.between-if-and-then.asp
        '           ^ string.quoted.double.asp - keyword.operator.asp
        '             ^^ keyword.operator.asp
-       '                   ^ string.quoted.double.asp - keyword.operator.asp
+       '                   ^ string.quoted.double.asp - keyword.operator
        '                     ^^^^ string.quoted.double.asp - keyword.control.flow.asp
        '                            ^^^^ keyword.control.flow.asp
        '                                ^ meta.if.block.asp
@@ -366,10 +369,10 @@
     ' ^^^^^^^^^^^^^^^^^^ meta.between-if-and-then.asp
     '                       ^^^^^^^^^^^^^^ meta.if.line.asp
     '                        ^ variable.other.asp
-    '                         ^ punctuation.accessor.asp
+    '                         ^ punctuation.accessor.dot.asp
     '                          ^ variable
     '                                     ^ - meta.if.line.asp
-    '        ^^^^^^ - invalid.illegal.unexpected-token.asp
+    '        ^^^^^^ - invalid
     '        ^^ keyword.operator.logical.asp
     '           ^^^^^^^ storage.type.asp
     
@@ -378,6 +381,8 @@
         DoSomething ( invalid_token_inside_parens, 2, if )
        '                                              ^^ invalid.illegal.unexpected-token.literal.asp
        '^^^^^^^^^^^ variable
+       '            ^ punctuation.section.parens.begin.asp
+       '                                                 ^ punctuation.section.parens.end.asp
     ElseIf a = b Then AnotherSomething ' despite this being on the same line as the ElseIf, the End If is still required because the opening if statement was a block
     '                ^ meta.if.block.asp - meta.if.line.asp
     Else DoSomethingElse ' despite this being on the same line as the Else, the End If is still required because the opening if statement was a block
@@ -407,9 +412,11 @@
     '                                          ^^ constant.character.escape.apostrophe.asp - punctuation.definition.string.end.asp
     '                                              ^ keyword.operator.asp
     '                                                        ^ punctuation.separator.continuation.line.asp
-    '                                                          ^^^^^^^^^^^^^ invalid.illegal.expected-end-of-line.asp - comment.line.apostrophe.asp
+    '                                                          ^^^^^^^^^^^^^ invalid.illegal.expected-end-of-line.asp - comment
                 Chr(34) & vbCrLf _ +
     '           ^^^ support.function.vb.asp
+    '              ^ punctuation.section.parens.begin.asp
+    '                 ^ punctuation.section.parens.end.asp
     '                     ^^^^^^ support.type.vb.asp
     '                            ^ punctuation.separator.continuation.line.asp
     '                              ^ invalid.illegal.expected-end-of-line.asp
@@ -417,7 +424,7 @@
     value = 1/2
     '        ^ keyword.operator.asp
     value = &HFF mod 3
-    '       ^^^^ constant.numeric.asp
+    '       ^^^^ constant.numeric.integer.hexadecimal.asp
     '            ^^^ keyword.operator.asp
     Select Case call value:Case 1
    '^^^^^^^^^^^ keyword.control.flow.asp
@@ -439,7 +446,9 @@
             '                               ^^^^^^ support.function.vb.asp
             If Not (value Is Nothing) then valueis = vbFalse
             '  ^^^ keyword.operator.logical.asp
+            '      ^ punctuation.section.parens.begin.asp
             '             ^^ keyword.operator.logical.asp
+            '                       ^ punctuation.section.parens.end.asp
             '                                   ^^ - keyword.operator
             '                                        ^^^^^^^ support.type.vb.asp
 '<- meta.select.block.asp
@@ -447,8 +456,8 @@
    '^^^^^^^^^^ keyword.control.flow.asp
    '          ^ - meta.select.block.asp
     'the underscore in this comment should be ignored _ as should the colon :
-    '                                                 ^ comment.line.apostrophe.asp - keyword - invalid.illegal - punctuation
-    '                                                                       ^ comment.line.apostrophe.asp - keyword - punctuation - invalid.illegal
+    '                                                 ^ comment.line.apostrophe.asp - keyword - invalid - punctuation
+    '                                                                       ^ comment.line.apostrophe.asp - keyword - punctuation - invalid
     
     Sub Test _
  _ '         ^ punctuation.separator.continuation.line.asp
@@ -456,7 +465,7 @@
  _ '    ^^^^ entity.name.function.asp
  _ '^^^^^^^^^ meta.method.asp meta.method.identifier.asp
             (_
- _ '        ^ meta.method.asp meta.method.identifier.asp punctuation.section.parameters.begin.asp
+ _ '        ^ meta.method.asp meta.method.identifier.asp punctuation.section.parens.begin.asp
  _ '         ^ punctuation.separator.continuation.line.asp
              abc, ByRef def _
  _          '^^^ meta.method.asp meta.method.identifier.asp variable.parameter.function.asp
@@ -465,7 +474,7 @@
  _          '           ^^^ meta.method.asp meta.method.identifier.asp variable.parameter.function.asp
  _          '               ^ meta.method.asp meta.method.identifier.asp punctuation.separator.continuation.line.asp
              )
-            '^ meta.method.asp meta.method.identifier.asp punctuation.section.parameters.end.asp
+            '^ meta.method.asp meta.method.identifier.asp punctuation.section.parens.end.asp
         
         Dim x _
            ,y()
@@ -477,45 +486,47 @@
        '^^^^^ storage.modifier.asp
        '      ^^^ variable.other.asp
        '         ^^^^^ meta.array.definition.asp
-       '          ^ constant.numeric.asp
+       '          ^ constant.numeric
        '           ^ punctuation.separator.array.asp
-       '            ^ variable.other.asp - invalid.illegal - constant.numeric
+       '            ^ variable.other.asp - invalid - constant.numeric
        '             ^ punctuation.section.array.end.asp
         
         ReDim arr(dim, other)
         '         ^^^ invalid.illegal
-        '        ^ - invalid.illegal
-        '            ^^^^^^^^ - invalid.illegal.unexpected-token.asp - invalid.illegal.name.asp
+        '        ^ - invalid
+        '            ^^^^^^^^ - invalid
         ReDim Dim(2,4)
         '     ^^^ invalid.illegal.name.asp
         
-'<- - invalid.illegal.unexpected-token.asp
+'<- - invalid
 
-        Dim a(0,&H5)
+        Dim a(0,&H5&)
         '    ^^^^^^^ meta.array.definition.asp
         '    ^ punctuation.section.array.begin.asp
-        '     ^ constant.numeric.asp
+        '     ^ constant.numeric
         '      ^ punctuation.separator.array.asp
-        '       ^^^ constant.numeric.asp
-        '          ^ punctuation.section.array.end.asp
+        '       ^^^^ constant.numeric.integer.hexadecimal.asp
+        '       ^^ punctuation.definition.numeric.hexadecimal.asp
+        '          ^ punctuation.definition.numeric.hexadecimal.asp
+        '           ^ punctuation.section.array.end.asp
         b = a Is Empty : Dim loop,nope : Dim foobar
        '^^^^^^^^^^^^^^^^^^^^^ - invalid.illegal.unexpected-token.asp - invalid.illegal.name.asp
-       '                               ^^^^^^^^^^^^^ - invalid.illegal.unexpected-token.asp - invalid.illegal.name.asp
+       '                               ^^^^^^^^^^^^^ - invalid
         '              ^ punctuation.terminator.statement.asp
         '                ^^^ storage.modifier.asp
         '                    ^^^^ invalid.illegal.name.asp - variable.other.asp
         '                              ^ punctuation.terminator.statement.asp
         '                                ^^^ storage.modifier.asp
         Dim hello_world, 2
-        '                ^ invalid.illegal.unexpected-token.asp - variable.other.asp
-        '                 ^ - invalid.illegal.unexpected-token.asp
+        '                ^ invalid.illegal.unexpected-token.asp - variable
+        '                 ^ - invalid
         
         ReDim Preserve arr ( &HA,c)
        '^^^^^^^^^^^^^^ storage.modifier.asp
        '               ^^^ variable.other.asp
        '                   ^^^^^^^^ meta.array.definition.asp
        '                   ^ punctuation.section.array.begin.asp
-       '                     ^^^ constant.numeric.asp
+       '                     ^^^ constant.numeric.integer.hexadecimal.asp
        '                        ^ punctuation.separator.array.asp
        '                          ^ punctuation.section.array.end.asp
         For x = LBound(a) to UBound(a) Step 2 'test
@@ -523,19 +534,23 @@
        '    ^ variable.other.asp
        '      ^ keyword.operator.asp
        '        ^^^^^^ support.function.vb.asp
+       '              ^ punctuation.section.parens.begin.asp
        '               ^ variable.other.asp
+       '                ^ punctuation.section.parens.end.asp
+       '                           ^ punctuation.section.parens.begin.asp
        '                            ^ variable.other.asp
+       '                             ^ punctuation.section.parens.end.asp
        '                  ^^ keyword.control.flow.asp
        '                     ^^^^^^ support.function.vb.asp
        '                               ^^^^ keyword.control.flow.asp
-       '                                    ^ constant.numeric.asp
+       '                                    ^ constant.numeric
        '                                     ^ meta.for.block.asp
        '                                      ^^^^^^ comment.line.apostrophe.asp
             a(x) = x * 10
            '^ variable.other.asp
            '  ^ variable.other.asp
-           ' ^ - variable.other.asp
-           '   ^ - variable.other.asp
+           ' ^ punctuation.section.parens.begin.asp - variable.other.asp
+           '   ^ punctuation.section.parens.end.asp - variable.other.asp
            '       ^ variable.other.asp
            '         ^ keyword.operator.asp
         Next
@@ -551,12 +566,14 @@
     Function NoParams'()
    '^^^^^^^^^^^^^^^^^ meta.method.asp meta.method.identifier.asp
    '         ^^^^^^^^ entity.name.function.asp
-   '                 ^^^ comment.line.apostrophe.asp - entity.name.function.asp - invalid.illegal.unexpected-token-after-method-declaration.asp - punctuation.section.parameters
+   '                 ^^^ comment.line.apostrophe.asp - entity.name.function.asp - invalid.illegal.unexpected-token-after-method-declaration.asp - punctuation.section.parens
         NoParams = InStr(1, "hello_'", "L", vbTextCompare)
 '<- meta.method.body.asp - invalid.illegal.unexpected-token-after-method-declaration.asp - meta.method.identifier.asp
        '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ - invalid.illegal.unexpected-token-after-method-declaration.asp - meta.method.asp meta.method.identifier.asp - invalid.illegal.expected-end-of-line.asp - comment.line.rem.asp
         '          ^^^^^ support.function.vb.asp
+        '               ^ punctuation.section.parens.begin.asp
         '                                   ^^^^^^^^^^^^^ support.type.vb.asp
+        '                                                ^ punctuation.section.parens.end.asp
         Test = True Xor False
         '      ^^^^ storage.type.asp
         '           ^^^ keyword.operator.logical.asp
@@ -578,7 +595,7 @@
         '    ^^^ entity.name.function.asp
         '                ^^^^^ invalid.illegal.expected-end-of-line.asp
     ) ' this bracket doesn't form part of the method declaration - the line above is missing a _ and contains non-whitespace
-   '^ meta.method.body.asp - meta.method.identifier.asp - punctuation.section.parameters.end.asp
+   '^ meta.method.body.asp - meta.method.identifier.asp - punctuation.section.parens.end.asp
         MsgBox "hi", vbOkCancel or vbExclamation or vbDefaultButton1, "title"
         '            ^^^^^^^^^^ support.type.vb.asp - variable.other.asp
         '                       ^^ keyword.operator.logical.asp
@@ -609,6 +626,8 @@
    '^^^^^^^^^^^^ storage.type.function.end.asp
     Response.Write [abcdef()hij]("hello")
    '               ^^^^^^^^^^^^^ variable.other.asp
+   '                            ^ punctuation.section.parens.begin.asp
+   '                                    ^ punctuation.section.parens.end.asp
     
     End If ' nothing to end
    '^^^ invalid.illegal.unexpected-token.asp
@@ -623,7 +642,7 @@
    '                                  ^ meta.for.block.asp
         Response.Write(vbCrLf & cookie)
        '^^^^^^^^ support.class.asp
-       '        ^ punctuation.accessor.asp
+       '        ^ punctuation.accessor.dot.asp
        '               ^^^^^^ support.type.vb.asp
        '                      ^ keyword.operator.asp
        '                        ^^^^^^ variable.other.asp
@@ -637,6 +656,8 @@
        '                      ^ - meta.if.line.asp
         Response.Write("----" & vbCrLf)
        '^^^^^^^^ support.class.asp
+       '              ^ punctuation.section.parens.begin.asp
+       '                              ^ punctuation.section.parens.end.asp
         
         abc = x >< y
        '        ^^ invalid.illegal.unexpected-token.asp
@@ -686,13 +707,17 @@
    
     Application.Lock
    '^^^^^^^^^^^ support.class.asp - variable.other.asp
-   '           ^ punctuation.accessor.asp
+   '           ^ punctuation.accessor.dot.asp
    '            ^^^^ support.function.asp - variable.other.asp
     Application("NumVisits") = Application("NumVisits") + 1
    '^^^^^^^^^^^ support.class.asp
+   '           ^ punctuation.section.parens.begin.asp
+   '                       ^ punctuation.section.parens.end.asp
+   '                                      ^ punctuation.section.parens.begin.asp
+   '                                                  ^ punctuation.section.parens.end.asp
     Application.Unlock
    '^^^^^^^^^^^ support.class.asp
-   '           ^ punctuation.accessor.asp
+   '           ^ punctuation.accessor.dot.asp
    '            ^^^^^^ support.function.asp
     %>
     This application page has been visited
@@ -703,6 +728,8 @@
    '^^^ storage.type.function.asp
    '    ^^^^^^^^^^^^^^^^^^^ entity.name.function.asp support.function.magic.event.asp
         Application("NumVisits") = 0
+   '               ^ punctuation.section.parens.begin.asp
+   '                           ^ punctuation.section.parens.end.asp
     End Sub
    '^^^^^^^ storage.type.function.end.asp
     
@@ -710,10 +737,21 @@
    '    ^^^^^^^^^^^^^^^^^^^^^ entity.name.function.asp - support.function.magic.event.asp
     End Sub
     
+    Sub Func_With_Explicit_Arrays(ByRef array_variable(), blah ())
+   '                                                  ^ punctuation.section.array.begin.asp
+   '                                                   ^ punctuation.section.array.end.asp
+   '                                                  ^^^^^^^^^^^^ - invalid
+   '                                                    ^ punctuation.separator.parameter-declaration.asp
+   '                                                      ^^^^ variable.parameter.function.asp
+   '                                                           ^ punctuation.section.array.begin.asp
+   '                                                            ^ punctuation.section.array.end.asp
+   '                                                             ^ punctuation.section.parens.end.asp
+    End Sub
+    
     Sub Another_Test()rem
    '^^^ storage.type.function.asp
    '    ^^^^^^^^^^^^ entity.name.function.asp
-   '                ^^ punctuation.section.parameters
+   '                ^^ punctuation.section.parens
    '                  ^^^^ comment.line.rem.asp - meta.method.identifier.asp
         Const ForAppending = 8
        '^^^^^ meta.method.body.asp storage.modifier.asp
@@ -732,7 +770,7 @@
        '^^^^^^^^^^^^^^^^^^^^^ meta.do.block.asp - meta.while.block.asp
        '         ^^^^ variable.other.asp
        '              ^ keyword.operator.asp
-       '                ^^^^ constant.numeric.asp
+       '                ^^^^ constant.numeric
             objTextFile.WriteLine("long l" & Line & " = " & Line)
            '^^^^^^^^^^^ variable.other.asp
            '            ^^^^^^^^^ variable
@@ -745,7 +783,7 @@
            '^^^^^^^^ keyword.control.flow.asp
            '         ^^^^ variable.other.asp
            '                ^^^^ variable.other.asp
-           '^^^^^^^^^^^^^^^^^^^^^ meta.do.block.asp meta.do.block.asp - invalid.illegal
+           '^^^^^^^^^^^^^^^^^^^^^ meta.do.block.asp meta.do.block.asp - invalid
                 ' this code will never run
             loop
            '^^^^ keyword.control.flow.asp
@@ -762,32 +800,32 @@
     ' ^^^ storage.type.function.end.asp - meta.method.identifier.asp
     
     a=3.4*.5*6.*0.25
-    ' ^^^ constant.numeric.asp
-    '     ^^ constant.numeric.asp
-    '        ^^ constant.numeric.asp
-    '           ^^^^ constant.numeric.asp
+    ' ^^^ constant.numeric.float.decimal.asp
+    '     ^^ constant.numeric.float.decimal.asp
+    '        ^^ constant.numeric.float.decimal.asp
+    '           ^^^^ constant.numeric.float.decimal.asp
     a=a+0.8
-    '   ^^^ constant.numeric.asp
+    '   ^^^ constant.numeric.float.decimal.asp
     ExampleSub 3.4,.5,6.,&HA,&H2,7*2.1e2,9,-3.402823E+38, 3.402823E38 ,1.401298E-45,Round(4.94065645841247E-324),a2,2a,123.456.789.321.654.321
-    '          ^^^ constant.numeric.asp
-    '              ^^ constant.numeric.asp
-    '                 ^^ constant.numeric.asp
-    '                    ^^^ constant.numeric.asp
-    '                        ^^^ constant.numeric.asp
-    '                            ^ constant.numeric.asp
-    '                              ^^^^^ constant.numeric.asp
-    '                                    ^ constant.numeric.asp
-    '                                       ^^^^^^^^^^^^ constant.numeric.asp
-    '                                                     ^^^^^^^^^^^ constant.numeric.asp
-    '                                                                  ^^^^^^^^^^^^ constant.numeric.asp
+    '          ^^^ constant.numeric.float.decimal.asp
+    '              ^^ constant.numeric.float.decimal.asp
+    '                 ^^ constant.numeric.float.decimal.asp
+    '                    ^^^ constant.numeric.integer.hexadecimal.asp
+    '                        ^^^ constant.numeric.integer.hexadecimal.asp
+    '                            ^ constant.numeric
+    '                              ^^^^^ constant.numeric.float.decimal.asp
+    '                                    ^ constant.numeric
+    '                                       ^^^^^^^^^^^^ constant.numeric.float.decimal.asp
+    '                                                     ^^^^^^^^^^^ constant.numeric.float.decimal.asp
+    '                                                                  ^^^^^^^^^^^^ constant.numeric.float.decimal.asp
     '                                                                               ^^^^^ support.function.vb.asp
-    '                                                                                     ^^^^^^^^^^^^^^^^^^^^^ constant.numeric.asp
-    '                                                                                                            ^^ - constant.numeric.asp
-    '                                                                                                                ^ - constant.numeric.asp
-    '                                                                                                                         ^^^^^^^^ - constant.numeric.asp
+    '                                                                                     ^^^^^^^^^^^^^^^^^^^^^ constant.numeric.float.decimal.asp
+    '                                                                                                            ^^ - constant.numeric
+    '                                                                                                                ^ - constant.numeric
+    '                                                                                                                         ^^^^^^^^ - constant.numeric
     
     response.write(test..b)
-    '                  ^ punctuation.accessor.asp
+    '                  ^ punctuation.accessor.dot.asp
     '                   ^ invalid.illegal.unexpected-token.asp
     
     [abc=123:def] = 4
@@ -841,7 +879,7 @@
     <%='test %>
    '^^^ punctuation.section.embedded.begin.asp - source.asp
    '   ^^^^^^ comment.line.apostrophe.asp
-   '         ^^ punctuation.section.embedded.end.asp - comment.line.apostrophe.asp
+   '         ^^ punctuation.section.embedded.end.asp - comment
    '         ^^^ - source.asp.embedded.html
     <%= "this" + Chr(32) + "that" %>
    '^^^ punctuation.section.embedded.begin.asp - source.asp.embedded.html
@@ -869,21 +907,32 @@ Class ClassContainingMethodsWithReservedWords
 End Class
 Set ccmwrw = new ClassContainingMethodsWithReservedWords
 ccmwrw.Select()
-'     ^ punctuation.accessor.asp
-'      ^^^^^^ variable.other.asp - invalid.illegal - keyword
+'     ^ punctuation.accessor.dot.asp
+'      ^^^^^^ variable.other.member.asp - invalid - keyword
+'            ^^ - variable - invalid - keyword
 ccmwrw. Select() ' spaces are not allowed after the .
-'     ^ punctuation.accessor.asp
-'      ^ - invalid.illegal.unexpected_token.asp
-'       ^^^^^^ variable.other.asp - invalid.illegal - keyword
+'     ^ punctuation.accessor.dot.asp
+'      ^ - invalid
+'       ^^^^^^ variable.other.member.asp - invalid - keyword
+'             ^^ - variable - invalid - keyword
 ccmwrw.End
-'     ^ punctuation.accessor.asp
-'      ^^^ variable.other.asp - invalid.illegal - keyword
-'         ^ - invalid.illegal
+'     ^ punctuation.accessor.dot.asp
+'      ^^^ variable.other.member.asp - invalid - keyword
+'         ^ - invalid - variable
 ccmwrw .End
 '     ^ invalid.illegal.unexpected-token.asp
-'      ^ punctuation.accessor.asp
-'       ^^^ variable.other.asp - invalid.illegal - keyword
-'          ^ - invalid.illegal
+'      ^ punctuation.accessor.dot.asp
+'       ^^^ variable.other.member.asp - invalid - keyword
+'          ^ - invalid
+ccmwrw.[End] ()
+'     ^ punctuation.accessor.dot.asp
+'      ^^^^^ variable.other.member.asp - invalid - keyword
+'           ^^^ - variable - invalid - keyword
+ccmwrw. [End] ()
+'     ^ punctuation.accessor.dot.asp
+'      ^ - invalid - variable
+'       ^^^^^ variable.other.member.asp - invalid - keyword
+'            ^^^ - variable - invalid - keyword
 
 _
      'a line continuation char can be followed by just a comment on the next non blank line
@@ -893,7 +942,7 @@ _
 t = [unclosed variable identifier
 '   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ variable.other.asp
 Dim test
-'<- storage.modifier.asp - variable.other.asp
+'<- storage.modifier.asp - variable
  rem the syntax on the next line will cause an unterminated string constant error
 '^^^^^^ comment.line.rem.asp
 test = "hello%>
@@ -953,7 +1002,7 @@ test = "hello%>
 '   ^^^^^ meta.attribute-with-value.class.html entity.other.attribute-name.class.html
 '         ^^^ meta.attribute-with-value.class.html string.quoted.double.html
 '                                   ^^^^^^^^^^ meta.attribute-with-value.class.html string.quoted.double.html
-'                                             ^ - string.quoted.double.html
+'                                             ^ - string
 '          ^^^^^^^^^^^^^^^^ meta.class-name.html
 '                                  ^^^^^^^^^^ meta.class-name.html
 '          ^^ punctuation.section.embedded.begin.asp
@@ -1074,7 +1123,7 @@ test = "hello%>
 '   ^^^^^^^^^^ source.asp.embedded.html
 '    ^^ variable.other.asp
 '       ^ keyword.operator.asp
-'         ^ constant.numeric.asp
+'         ^ constant.numeric
 '           ^ comment
 
 '<- - comment - source.asp.embedded.html

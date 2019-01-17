@@ -64,6 +64,10 @@ int func() {
 /* <- meta.function meta.block punctuation.section.block.end */
  /* <- - meta.function meta.block */
 
+int f(int x, \
+         /*  ^ punctuation.separator.continuation */
+      int y);
+
 #define CONST0 16 // Comment
 #define CONST1 8
 /* <- keyword.control.import.define */
@@ -135,6 +139,36 @@ int disabled_func() {
     int d = 4;
 /*  ^ comment.block */
 #endif
+
+FOO
+/* <- meta.assumed-macro */
+FOO;
+/* <- - meta.assumed-macro */
+foo
+/* <- - meta.assumed-macro */
+; // fix highlighting
+/* <- punctuation.terminator */
+FOO()
+/* <- meta.assumed-macro variable.function.assumed-macro */
+FOO();
+/* <- - meta.assumed-macro */
+foo()
+/* <- - meta.assumed-macro */
+; // fix highlighting
+/* <- punctuation.terminator */
+
+struct X
+{
+    ENABLED("reason")
+    /* <- meta.assumed-macro variable.function.assumed-macro */
+    int foo;
+    /* <- storage.type */
+
+    DISABLED("reason")
+    /* <- meta.assumed-macro variable.function.assumed-macro */
+    float bar;
+    /* <- storage.type */
+};
 
 /////////////////////////////////////////////
 // Preprocessor branches starting blocks
@@ -208,6 +242,39 @@ struct foo **alloc_foo();
 /*         ^^ keyword.operator */
 /*           ^ entity.name.function */
 
+int main(void)
+{
+    struct UI_BoundingBox decorativeBox = {10, titleHeight-3, width-20, height-10};
+/*         ^ - entity.name */
+/*                        ^ - entity.name */
+}
+
+struct foo MACRO {
+/*     ^ entity.name.struct */
+/*         ^ - entity.name */
+}
+
+// Partially-typed
+struct foo
+/*     ^ entity.name */
+
+struct UI_MenuBoxData
+/* <- storage.type */
+/*     ^ entity.name.struct */
+{
+    struct UI_BoundingBox position;
+/*         ^ - entity.name */
+/*                        ^ - entity.name */
+    enum UI_BoxCharType borderType;
+/*       ^ - entity.name */
+/*                      ^ - entity.name */
+    unsigned int paddingX;
+    unsigned int paddingY;
+    struct UI_ScrollBoxText boxContents[];
+/*         ^ - entity.name */
+/*                          ^ - entity.name */
+};
+
 /////////////////////////////////////////////
 // Test preprocessor branching and C blocks
 /////////////////////////////////////////////
@@ -228,7 +295,8 @@ int foo(int val, float val2[])
     myClass *result;
     result->kk = func(val);
 /*        ^^ punctuation.accessor */
-    if (result == 0) {
+    if (result != 0) {
+/*             ^^ keyword.operator.comparison.c */
         return 0;
 #if CROSS_SCOPE_MACRO
  /* <- keyword.control.import */
@@ -247,6 +315,7 @@ int foo(int val, float val2[])
     ;
 
     if (val == -1) {
+/*  ^^ keyword.control */
 /*                 ^ meta.block meta.block punctuation.section.block.begin */
 #else
  /* <- keyword.control.import */
@@ -264,6 +333,30 @@ int foo(int val, float val2[])
 /* <- meta.function punctuation.section.block.end */
  /* <- - meta.function */
 
+BOOL
+GetTextMetrics(
+    HDC hdc,
+    LPTEXTMETRIC lptm
+    )
+{
+#ifdef UNICODE
+/* <- keyword.control.import */
+    return GetTextMetricsW(
+/*         ^ variable.function */
+#else
+/* <- keyword.control.import */
+    return GetTextMetricsA(
+/*         ^ variable.function */
+#endif
+/* <- keyword.control.import */
+        hdc,
+        lptm
+        );
+/*      ^ meta.function-call */
+/*       ^ - meta.function-call */
+}
+ /* <- - meta.function */
+ /* <- - meta.block */
 
 /////////////////////////////////////////////
 // Matching various function definitions
@@ -371,6 +464,22 @@ int32
 /* <- - entity.name.function */
 () {}
 
+_declspec(deprecated("bla")) void func2(int) {}
+/* <- meta.function-call variable.function                    */
+/*                                ^ entity.name.function      */
+__declspec(deprecated("bla")) void func2(int) {}
+/* <- storage.modifier - variable.function                    */
+/*         ^ storage.modifier - variable.function             */
+/*                    ^ string.quoted.double punctuation      */
+/*                     ^ string.quoted.double - punctuation   */
+/*                       ^ string.quoted.double - punctuation */
+/*                        ^ string.quoted.double punctuation  */
+/*                         ^^ punctuation - invalid           */
+/*                                 ^ entity.name.function     */
+__notdeclspec(deprecated("bla")) void func2(int) {}
+/* <- meta.function-call variable.function                    */
+/*                                    ^ entity.name.function  */
+
 /////////////////////////////////////////////
 // Test function call in function parameters
 /////////////////////////////////////////////
@@ -398,3 +507,74 @@ func_call(foo
 /* <- invalid.illegal.stray-bracket-end */
 }
 /* <- invalid.illegal.stray-bracket-end */
+
+/////////////////////////////////////////////
+// Includes
+/////////////////////////////////////////////
+
+#include "foobar.h"
+/* <- keyword.control.import.include */
+/*       ^ punctuation.definition.string.begin */
+/*        ^^^^^^^^ string.quoted.double.include */
+/*                ^ punctuation.definition.string.end */
+
+#include <cstdlib>
+/* <- keyword.control.import.include */
+/*       ^ punctuation.definition.string.begin */
+/*        ^^^^^^^ string.quoted.other.lt-gt.include */
+/*               ^ punctuation.definition.string.end */
+
+#ifdef _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+#include_next <math.h>
+/* <- keyword.control.import.include */
+/*            ^ punctuation.definition.string.begin */
+/*             ^^^^^^ string.quoted.other.lt-gt.include */
+/*                   ^ punctuation.definition.string.end */
+#endif
+
+#include<iostream>
+/* <- keyword.control.import.include */
+/*      ^ punctuation.definition.string.begin */
+/*       ^^^^^^^^ string.quoted.other.lt-gt.include */
+/*               ^ punctuation.definition.string.end */
+
+/////////////////////////////////////////////
+// Numeric Constants
+/////////////////////////////////////////////
+
+dec1 = 1234567890;
+/*     ^ constant.numeric */
+/*              ^ constant.numeric */
+
+dec2 = 1234567890f;
+/*     ^ constant.numeric */
+/*               ^ constant.numeric */
+
+dec2 = 1234567890L;
+/*     ^ constant.numeric */
+/*               ^ constant.numeric */
+
+dec2 = 1234567890ul;
+/*     ^ constant.numeric */
+/*                ^ constant.numeric */
+
+dec4 = 1234567890Lu;
+/*     ^ constant.numeric */
+/*                ^ constant.numeric */
+
+dec3 = 1234567890LLU;
+/*     ^ constant.numeric */
+/*                 ^ constant.numeric */
+
+dec3 = 1234567890uLL;
+/*     ^ constant.numeric */
+/*                 ^ constant.numeric */
+
+
+scanf("%ms %as %*[, ]", &buf);
+/*     ^^^ constant.other.placeholder */
+/*         ^^^ constant.other.placeholder */
+/*             ^^^^^^ constant.other.placeholder */
+
+"foo % baz"
+/*   ^ - invalid */
