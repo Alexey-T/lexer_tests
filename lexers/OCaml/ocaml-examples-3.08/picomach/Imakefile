@@ -1,0 +1,7 @@
+CamlProgP4(asm,code.cmo stockage.cmo lexuniv.cmo lecture.cmo asm.cmo,)
+CamlProgP4Opt(asm,code.cmx stockage.cmx lexuniv.cmx lecture.cmx asm.cmx,)
+CamlProgP4(exec,code.cmo simul.cmo exec.cmo,)
+CamlProgP4Opt(exec,code.cmx simul.cmx exec.cmx,)
+
+clean::
+	$(RM) *.o

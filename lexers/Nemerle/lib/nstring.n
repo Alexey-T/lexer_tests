@@ -1,0 +1,587 @@
+﻿/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using Nemerle.Collections;
+using Nemerle.Imperative;
+using System;
+using System.Diagnostics.Debug;
+using SCG = System.Collections.Generic;
+
+namespace Nemerle.Utility
+{
+  public module NString
+  {
+    public EndsWith(this str : string, value : char) : bool
+    {
+        def len = str.Length;
+        len != 0 && str[len - 1] == value
+    }
+
+    public EndsWith(this str : string, beforeEnd : char, end : char) : bool
+    {
+      def len = str.Length;
+      len > 1 && str[len - 2] == beforeEnd && str[len - 1] == end
+    }
+
+    public StartsWith(this str : string, first : char, second : char) : bool
+    {
+      str.Length > 1 && str[0] == first && str[1] == second
+    }
+
+    public EndsWith(this str : string, params values : array[string]) : bool
+    {
+      str.EndsWith(StringComparison.InvariantCulture, values);
+    }
+
+    public EndsWith(this str : string, comparisonType : StringComparison, params values : array[string]) : bool
+    {
+      foreach (value in values)
+        when (str.EndsWith(value, comparisonType))
+          return true;
+      false;
+    }
+    
+    public StartsWith(this str : string, params values : array[string]) : bool
+    {
+      str.StartsWith(StringComparison.InvariantCulture, values);
+    }
+
+    public StartsWith(this str : string, comparisonType : StringComparison, params values : array[string]) : bool
+    {
+      foreach (value in values)
+        when (str.StartsWith(value, comparisonType))
+          return true;
+      false;
+    }
+ 
+    public SplitToList (this str : string, params seperators : array [char]) : list [string]
+    {
+      Split (str, seperators)
+    }
+
+    /// Splits the string at positions of occurrence of one
+    /// of the characters from the given array.
+    public Split (str : string, params seperators : array [char]) : list [string]
+    {
+      def seplen = seperators.Length - 1;
+      
+      mutable last = str.Length - 1;
+      mutable res = [];
+      
+      for (mutable i = str.Length - 1; i >= 0; --i)
+      {
+        def isseparator (j) {
+          if (seperators[j] == str[i]) {
+            when (last - i > 0)
+              res = str.Substring (i + 1, last - i) :: res;
+            last = i - 1;
+          }
+          else
+            when (j < seplen) isseparator (j + 1)
+        }
+        
+        isseparator (0)
+      }
+      
+      if (last + 1 > 0)
+        str.Substring (0, last + 1) :: res
+      else
+        res
+    }
+
+    
+    /**
+     * Splits the string at positions of occurrence of one
+     * of the characters from the given list.
+     */
+    public Split (str : string, sep : list [char]) : list [string]
+    {
+      mutable last = str.Length - 1;
+      mutable res = [];
+      
+      for (mutable i = str.Length - 1; i >= 0; --i)
+      {
+        def isseparator (sep : list [char])
+        {
+          | sep :: rest =>
+            if (str [i] == sep) {
+              when (last - i > 0)
+                res = str.Substring (i + 1, last - i) :: res;
+              last = i - 1;
+            }
+            else
+              isseparator (rest)
+
+          | [] => ()
+        }
+        
+        isseparator (sep)
+      }
+      
+      if (last + 1 > 0)
+        str.Substring (0, last + 1) :: res
+      else
+        res
+      
+    }
+
+    
+    /**
+     * Concatenates strings from the list, inserting given
+     * separator between them.
+     */
+    public Concat (sep : string, l : list [string]) : string
+    {
+      def loop (l : list[string], acc : NStringBuilder)
+      {
+        match (l) {
+          | [x] => acc.Append (x)
+          | x :: xs => loop (xs, acc.Append (x).Append (sep))
+          | [] => acc
+        }
+      }
+      
+      loop (l, NStringBuilder ("")).ToString ()
+    }
+
+    
+    /**
+     * Calls the given function on elements of given list, appending
+     * given separator to string builder between those calls.
+     *
+     * NOTE: the `f' function should be taking `acc' as a parameter,
+     *       so that this function looks more Fold-like.
+     */
+    public SeparatedCalls ['a] (sep : string, l : list ['a], f : 'a -> void,
+                                acc : NStringBuilder) : void
+    {
+      def loop (l)
+      {
+        | [x] => f (x)
+        | x :: xs => f (x); ignore (acc.Append (sep)); loop (xs)
+        | [] => ()
+      }
+      
+      loop (l)
+    }
+
+
+    /// Same as [Implode (NList.Map (Explode (s), f))] but a lot faster.
+    public Map (this s : string, f : char -> char) : string
+    {
+      def res = NStringBuilder (s.Length);
+      for (mutable i = 0; i < s.Length; ++i)
+        _ = res.Append (f (s [i]));
+      res.ToString ()
+    }
+
+
+    /** Same as [Concat ("", NList.Map (Explode (s), f))] but a lot faster.  */
+    public MapCS (this s : string, f : char -> string) : string
+    {
+      def res = NStringBuilder (s.Length);
+      for (mutable i = 0; i < s.Length; ++i)
+        _ = res.Append (f (s [i]));
+      res.ToString ()
+    }
+
+
+    /** Call [f] for all characters in [s] in turn.  */
+    public Iter (this s : string, f : char -> void) : void
+    {
+      for (mutable i = 0; i < s.Length; ++i)
+        f (s [i]);
+    }
+
+
+    /** Call [f] for all characters in [s] in turn, passing the current 
+        index as the additional paramter.  */
+    public IterI (this s : string, f : char * int -> void) : void
+    {
+      for (mutable i = 0; i < s.Length; ++i)
+        f (s [i], i);
+    }
+
+
+    public Fold['a] (this s : string, ini : 'a, f : char * 'a -> 'a) : 'a
+    {
+      def loop (acc, i) {
+        if (i >= s.Length) acc
+        else loop (f (s [i], acc), i + 1)
+      }
+
+      loop (ini, 0)
+    }
+
+    public Fold2['a] (s1 : string, s2 : string, ini : 'a, f : char * char * 'a -> 'a) : 'a
+    {
+      def loop (acc, i) {
+        if (i >= s1.Length) acc
+        else loop (f (s1 [i], s2 [i], acc), i + 1)
+      }
+
+      if (s1.Length != s2.Length)
+        throw System.ArgumentException ("NString.Fold2")
+      else
+        loop (ini, 0)
+    }
+
+    /** Return [true] if [f] is returns [true] for all of the characters 
+        in the string [s].  */
+    public ForAll (this s : string, f : char -> bool) : bool
+    {
+      def loop (i) {
+        if (i >= s.Length) true
+        else
+          f (s [i]) && loop (i + 1)
+      }
+      loop (0)
+    }
+
+
+    /** Return [true] if [f] is returns [true] for any of the characters 
+        in the string [s].  */
+    public Exists (this s : string, f : char -> bool) : bool
+    {
+      def loop (i) {
+        if (i >= s.Length) false
+        else
+          f (s [i]) || loop (i + 1)
+      }
+      loop (0)
+    }
+
+
+    /** Changes string into a corresponding list of characters.
+
+        Warning: this should not be used in performance critical parts of
+        the program, because of list's memory overheads.  */
+    public Explode (this s : string) : list [char]
+    {
+      def loop (i, acc) {
+        if (i < 0) acc
+        else
+          loop (i - 1, s [i] :: acc)
+      }
+      loop (s.Length - 1, [])
+    }
+
+
+    /** Constructs a string out of a list of characters.
+
+        Warning: this should not be used in performance critical parts of
+        the program, because of list's memory overheads.  */
+    public Implode (this s : list [char]) : string
+    {
+      def sb = NStringBuilder ();
+      foreach (ch in s)
+        _ = sb.Append (ch);
+      sb.ToString ()
+    }
+  }
+
+  // Usually, import of namespace System.Text used to get access to the StringBuilder type.
+  // The rest is used rarely. Inventing a public alias for StringBuilder hepls us to avoid such import.
+  //
+  public type NStringBuilder = System.Text.StringBuilder;
+
+  public module NStringBuilderExtensions
+  {
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="sep">The string used as element separator. </param>
+    public AppendSeq[T] (this builder : NStringBuilder, seq : SCG.IEnumerable [T], seperator : string) : void
+    {
+      mutable firstTime = true;
+      
+      foreach (elem in seq)
+      {
+        if (firstTime)
+          firstTime = false;
+        else
+          _ = builder.Append(seperator);
+        
+        _ = builder.Append(elem);
+      }
+    }
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="sep">The string used as element separator. </param>
+    public AppendSeq[T] (
+      this builder   : NStringBuilder, 
+           seq       : SCG.IEnumerable [T], 
+           seperator : string,
+           convert   : T -> string
+    )
+      : void
+    {
+      mutable firstTime = true;
+      
+      foreach (elem in seq)
+      {
+        if (firstTime)
+          firstTime = false;
+        else
+          _ = builder.Append(seperator);
+        
+        def str = convert(elem);
+        _ = builder.Append(str);
+      }
+    }
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="sep">The string used as element separator. </param>
+    public AppendSeqByConvert[T] (
+      this builder   : NStringBuilder, 
+           seq       : SCG.IEnumerable [T], 
+           seperator : string,
+           convert   : T -> void
+    )
+      : void
+    {
+      mutable firstTime = true;
+      
+      foreach (elem in seq)
+      {
+        if (firstTime)
+          firstTime = false;
+        else
+          _ = builder.Append(seperator);
+        
+        convert(elem);
+      }
+    }
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="sep">The string used as element separator. </param>
+    public AppendSeq[T] (this builder : NStringBuilder, seq : list [T], seperator : string) : void
+    {
+      _ = AppendList (builder, seq, seperator);
+    }
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="seperator">The string used as element separator. </param>
+    public AppendList[T] (this builder : NStringBuilder, l : list [T], seperator : string) : NStringBuilder
+    {
+      match (l) {
+        | [x] => builder.Append (x)
+        | x :: xs => AppendList (builder.Append (x).Append (seperator), xs, seperator)
+        | [] => builder
+      }
+    }
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="append">A function used to append elements. </param>
+    /// <param name="seperator">The string used as element separator. </param>
+    public AppendList[T] (this builder : NStringBuilder, l : list [T], append : NStringBuilder * T -> NStringBuilder, seperator : string) : NStringBuilder
+    {
+      match (l) {
+        | [x] => append (builder, x)
+        | x :: xs => AppendList (append (builder, x).Append (seperator), xs, append, seperator)
+        | [] => builder
+      }
+    }
+
+    /// <summary>Appends to the end of a <see cref="NStringBuilder"/> instance if a condition is true.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="condition">true to cause a message to be written; otherwise, false. </param>
+    /// <param name="append">A function used to append elements. </param>
+    public AppendWhen (this builder : NStringBuilder, condition : bool, append : NStringBuilder -> NStringBuilder) : NStringBuilder
+    {
+      if (condition)
+        append (builder)
+      else
+        builder
+    }
+
+    /// <summary>Appends to the end of a <see cref="NStringBuilder"/> instance if a condition is false.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="condition">true to cause a message to be written; otherwise, false. </param>
+    /// <param name="append">A function used to append elements. </param>
+    public AppendUnless (this builder : NStringBuilder, condition : bool, append : NStringBuilder -> NStringBuilder) : NStringBuilder
+    {
+      if (condition)
+        builder
+      else
+        append (builder)
+    }
+
+    /// <summary>Appends the string representation of a specified item to the end of a <see cref="NStringBuilder"/> instance number of times.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="count">The number of times when the item should be written. </param>
+    /// <param name="a">The item. </param>
+    /// <param name="seperator">The string used as element separator. </param>
+    public AppendNTimes[T] (this builder : NStringBuilder, count : int, a : T, seperator : string) : NStringBuilder
+    {
+      def loop (cnt) {
+        | 1 => builder.Append(a)
+        | x when x > 0 => loop(x - 1).Append(seperator).Append(a)
+        | _ => builder
+      }
+
+      loop (count)
+    }
+
+    /// <summary>Appends to the end of a <see cref="NStringBuilder"/> instance number of times.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="count">The number of times when the function should be invoked. </param>
+    /// <param name="append">A function used to append elements. </param>
+    /// <param name="seperator">The string used as element separator. </param>
+    public AppendNTimes (this builder : NStringBuilder, count : int, append : NStringBuilder -> NStringBuilder, seperator : string) : NStringBuilder
+    {
+      def loop (cnt) {
+        | 1 => append(builder)
+        | x when x > 0 => append(loop(x - 1).Append(seperator))
+        | _ => builder
+      }
+
+      loop (count)
+    }
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="sep">The string used as element separator. </param>
+    public AppendSeq[T] (
+      this builder   : NStringBuilder, 
+           seq       : SCG.IEnumerable [T], 
+           seperator : string,
+           indent    : string,
+           convert   : T -> string
+    )
+      : void
+    {
+      mutable firstTime = true;
+      
+      Assert(true);
+      
+      foreach (elem in seq)
+      {
+        if (firstTime)
+          firstTime = false;
+        else
+        {
+          def pos = builder.Length;
+          _ = builder.Append(seperator);
+          _ = builder.Replace("\n", indent, pos, seperator.Length);
+        }
+        
+        def str = convert(elem).Replace("\n", indent);
+        _ = builder.Append(str);
+      }
+    }
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="sep">The string used as element separator. </param>
+    public AppendSeq[T] (
+      this builder   : NStringBuilder, 
+           seq       : SCG.IEnumerable [T], 
+           seperator : string,
+           indent    : string
+    )
+      : void
+    {
+      mutable firstTime = true;
+      
+      Assert(true);
+      
+      foreach (elem in seq)
+      {
+        if (firstTime)
+          firstTime = false;
+        else
+        {
+          def pos = builder.Length;
+          _ = builder.Append(seperator);
+          _ = builder.Replace("\n", indent, pos, seperator.Length);
+        }
+        
+        def str = elem.ToString().Replace("\n", indent);
+        _ = builder.Append(str);
+      }
+    }
+
+
+    /// <summary>Appends the string representation of a specified list items to the end of a <see cref="NStringBuilder"/> instance.</summary>
+    /// <returns>A reference to the NStringBuilder instance after the append operation has completed.</returns>
+    /// <param name="builder">A <see cref="NStringBuilder"/> instance pointer. </param>
+    /// <param name="l">A list. </param>
+    /// <param name="sep">The string used as element separator. </param>
+    public AppendSeqByConvert[T] (
+      this builder   : NStringBuilder, 
+           seq       : SCG.IEnumerable [T], 
+           seperator : string,
+           indent    : string,
+           convert   : T -> void
+    )
+      : void
+    {
+      Assert(true);
+      mutable firstTime = true;
+      
+      foreach (elem in seq)
+      {
+        if (firstTime)
+          firstTime = false;
+        else
+        {
+          def pos = builder.Length;
+          _ = builder.Append(seperator);
+          _ = builder.Replace("\n", indent, pos, seperator.Length);
+        }
+        
+        convert(elem);
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+// if T is a legal type, then Array<T> is a legal type, even T=void
+var a: Array<void> = [()];
+var b: Array<void> = [(), (), ()];
+var c: Array<void> = [];

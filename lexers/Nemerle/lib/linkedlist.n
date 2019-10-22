@@ -1,0 +1,302 @@
+/*
+ * Copyright (c) 2004-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+namespace Nemerle.Collections {
+  using Nemerle.Assertions;
+
+  /**
+   *  Doubly linked mutable list.
+   *
+   *  Insert and Remove operations on this list require constant time irrespective of whether it is
+   *  a single item or another LinkedList object, that is added. 
+   */
+  public class LinkedList ['a] : System.Collections.Generic.LinkedList['a],
+    ICollection['a],
+    System.IEquatable[LinkedList['a]]
+  {
+    public this () {
+      base ()
+    }
+    
+    /** Constructor initiliasing object with contents of a Nemerle list. */
+    public this (some_list : list ['a])
+    {
+      unless (some_list == null)
+        foreach (item in some_list) 
+          _ = AddLast (item);
+    }
+
+    concat_helper (separator : string, sb : System.Text.StringBuilder) : void
+    {
+      unless (IsEmpty) {
+        def e = GetEnumerator ();
+        _ = e.MoveNext ();
+        _ = sb.Append (e.Current);
+        while (e.MoveNext ()) {
+          _ = sb.Append (separator);
+          _ = sb.Append (e.Current);
+        }
+      }
+    }
+
+    /** Returns string representing contents of the list. */
+    public override ToString () : string
+    {
+      def sb = System.Text.StringBuilder ("[");
+      concat_helper (", ", sb);
+      sb.Append ("]").ToString ();
+    }
+
+    /** Constructs string out of list contents using given argument as a separator.
+      * <param name="separator">String to use a separator - it will be put between each
+      *  two items of the list.</param>
+      */
+    public ToString (separator : string) : string
+    {
+      def sb = System.Text.StringBuilder ();
+      concat_helper (separator, sb);
+      sb.ToString ();
+    }        
+
+    /** Compares two lists item by item using Equals method of contained objects. */
+    [Nemerle.OverrideObjectEquals]
+    public Equals (another_list : LinkedList ['a]) : bool
+      implements System.IEquatable[LinkedList['a]].Equals
+    {
+      def e = GetEnumerator ();
+      def f = another_list.GetEnumerator ();
+
+      def compare () : bool {
+        def rete = e.MoveNext ();
+        def retf = f.MoveNext ();
+        if (rete != retf)
+          false;
+        else
+          if (rete == true) // there is something to compare
+            if (e.Current.Equals (f.Current))
+              compare ();
+            else
+              false;
+          else // everything has been compared
+            true;
+      }
+
+      compare ();      
+    }
+
+    /** Reverses elements of the list. Complexity is O(n). */
+    public Reverse () : void
+    {
+      unless (IsEmpty) {
+        mutable current = Last.Previous;
+        while (current != null) {
+          _ = AddLast (current.Value);
+          def prev = current.Previous;
+          Remove (current);
+          current = prev;
+        }
+      }
+    }
+
+    /** Adds item at the beginning of the list. */
+    public Prepend (item : 'a) : void
+    {
+      _ = AddFirst (item)
+    }
+
+    /** Add given list at the beginning. The source will be cleared. */
+    public Prepend ([NotNull] l : LinkedList ['a]) : void
+    {
+      unless (l.IsEmpty) {
+        def enu = l.GetEnumerator ();
+        assert(enu.MoveNext ());
+        
+        mutable last_added = AddFirst (enu.Current);
+        while (enu.MoveNext ()) {
+          last_added = AddAfter (last_added, enu.Current);
+        }
+      }
+    }
+
+    /** Append item to the list. */
+    public Append (item : 'a) : void
+    {
+      _ = AddLast (item)
+    }
+
+    /** Append another list to an end. The source list will be cleared. */
+    public Append ([NotNull] l : LinkedList ['a]) : void
+    {
+      foreach (x in l)
+        _ = AddLast (x);
+    }
+
+    // Now the ICollection['a] interface implementation
+
+
+    /** Returns true, if the list is empty. */
+    public IsEmpty : bool
+    {
+      get { Count == 0 }
+    }
+
+    /** Adds item at the beginning of the list. */
+    public Add (item : 'a) : void
+    {
+      _ = AddFirst (item);
+    }
+
+    /** Returns first element of the list as an option. */
+    public new First () : option ['a]
+    {
+      match (base.First) {
+        | null => None ()
+        | node => Some (node.Value)
+      }
+    }
+
+    /** Returns shallow copy of the list. */
+    public Clone () : ICollection ['a]
+    {
+      def l = LinkedList ();
+      foreach (item in this)
+        l.Append (item);
+      l;
+    }
+
+    /**
+     * Folds the list using the specified fold function and an initial
+     * value. Elements are folded in order of appearance.
+     */
+    public Fold ['b] (f : 'a * 'b -> 'b, x : 'b) : 'b
+    {
+      mutable retval = x;
+      foreach (item in this)
+        retval = f (item, retval);
+      retval;
+    }
+
+    /**
+     * Creates new list with elements from the original with supplied
+     * function applied.
+     */
+    public Map ['b] (f : 'a -> 'b) : ICollection ['b]
+    {
+      def l = LinkedList();
+      foreach (item in this)
+        l.Append (f (item));
+      l;
+    }
+
+    /**
+     * Calls the supplied function for all the elements of the list.
+     */
+    public Iter (f : 'a -> void) : void
+    {
+      foreach (item in this)
+        f (item);
+    }
+
+    /**
+     * Checks if all the members of this list satisfy the supplied
+     * predicate.
+     */
+    public ForAll (f : 'a -> bool) : bool
+    {
+      def e = GetEnumerator ();
+      def check () : bool {
+        if (e.MoveNext())
+          if (f (e.Current))
+            check ();
+          else
+            false;
+        else
+          true;
+      }
+      check ();
+    }
+
+    /**
+     * Checks if there exists a member of list that satisfies
+     * the supplied condition.
+     */
+    public Exists (f : 'a -> bool) : bool
+    {
+      def e = GetEnumerator ();
+      def check () : bool {
+        if (e.MoveNext())
+          if (f (e.Current))
+            true;
+          else
+            check ();
+        else
+          false;
+      }
+      check ();
+    }
+
+    /**
+     * Filters the list removing all elements that do not satisfy
+     * the supplied predicate.
+     */
+    public Filter (f : 'a -> bool) : void
+    {
+      unless (IsEmpty) {
+        mutable current = base.First;
+        while (current != null) {
+          def next = current.Next;
+          unless (f (current.Value))
+            Remove (current);
+          current = next;
+        }
+      }
+    }
+
+
+    /** 
+     * Partitions list into two lists: elements that satisfy
+     * and elements that do not satisfy the supplied predicate.
+     */
+    public Partition (f : 'a -> bool) : ICollection ['a] * ICollection ['a]
+    {
+      def does = LinkedList ();
+      def donot = LinkedList ();
+      foreach (item in this)
+        if (f (item))
+          does.Append (item);
+        else
+          donot.Append (item);
+      (does, donot);
+    }
+
+    /** Remove all occurences of item from list */
+    public new Remove (item : 'a) : void {
+      while (base.Remove (item)) { }
+    }
+  } // LinkedList
+} // namespace 

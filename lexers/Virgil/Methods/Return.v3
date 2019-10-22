@@ -1,0 +1,9 @@
+def first() {
+	return; // return of void
+}
+def second() -> int {
+	return 13; // return of value
+}
+def third() -> bool {
+	return false;
+}

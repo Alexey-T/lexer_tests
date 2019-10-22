@@ -1,0 +1,3299 @@
+////////////////////////////////////////////////////////////////////////////
+// Copyright (c) Microsoft Corporation.  All rights reserved
+//
+// Title:	CreateEnvironmentFromXML.wsf
+// Author:	mtreit@microsoft.com
+// Created:	10/16/2001
+//
+// Purpose:	Reads in an XML file specifying a policy environment
+//		(OU's, GPO's, etc.) and creates that environment in 
+//		the domain.
+//		Can also undo the environment by deleting the 
+//		objects instead of creating them.
+////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////
+// Initialization
+///////////////////////////////////////
+<job>
+
+<script language="JScript">
+
+var GPM = new ActiveXObject("GPMgmt.GPM");
+var Constants = GPM.GetConstants();
+
+var DefaultPolicyGUID = "{31B2F340-016D-11D2-945F-00C04FB984F9}";
+var DefaultDCPolicyGUID = "{6AC1786C-016F-11D2-945F-00C04fB984F9}";
+var ENTERPRISEDCSID = "S-1-5-9";
+var SYSTEMSID = "S-1-5-18";
+var ERROR_OBJECT_ALREADY_EXISTS = -2147019886;
+
+/////////////////////////////////////
+// Main script
+///////////////////////////////////////
+
+// Handle command line arguments and set initial variables
+var ArgumentList = ProcessCommandLineArguments(WScript.Arguments);
+var szDomainName = ArgumentList.Item("Domain");
+var szDCName = ArgumentList.Item("DCName");
+var szXMLFileName = ArgumentList.Item("XML");
+var bUndo = ArgumentList.Item("Undo");
+var bExcludeSettings = ArgumentList.Item("ExcludeSettings");
+var bExcludePermissions = ArgumentList.Item("ExcludePermissions");
+var szMigrationTable = ArgumentList.Item("MigrationTable");
+var bCreateUsersEnabled = ArgumentList.Item("CreateUsersEnabled");
+var szPasswordForUsers = ArgumentList.Item("PasswordForUsers");
+var bQuietMode = ArgumentList.Item("QuietMode");
+var bImportDefaultGPOs = ArgumentList.Item("ImportDefaultGPOs");
+var bNoMapping = false;
+var bIsWin2kForest = false;
+var bIsWin2kDomain = false;
+
+// Initialize the Domain object
+var GPMDomain = GPM.GetDomain(szDomainName, szDCName, Constants.UseAnyDC);
+
+// Set the global LDAP prefix to use for all LDAP calls. This ensures we use the same DC for all ADSI operations
+var szGlobalLDAPPrefix = "LDAP://" + GPMDomain.DomainController;
+
+// Get the forest name
+var szForestName = GetForestDNSName(szDomainName);
+
+// Determine if the domain is Win2k, as WMI filters are not supported in
+// Win2k domains
+//
+bIsWin2kDomain = IsDomainW2k(szDomainName);
+
+// Determine if the forest is Win2k, as RSoP permissions are not supported in
+// Win2k forests
+//
+bIsWin2kForest = IsForestW2k(szForestName);
+
+// Create a global array to hold the list of GPOs we will need to import into at the end
+var aGPOImportList = new Array();
+
+var szNodeString = "";
+var szBannerHeading = "===================================================";
+
+WScript.Echo(szBannerHeading);
+WScript.Echo("Processing environment");
+WScript.Echo("XML:\t" + szXMLFileName);
+WScript.Echo("Forest:\t" + szForestName);
+WScript.Echo("Domain:\t" + GPMDomain.Domain);
+WScript.Echo("DC:\t" + GPMDomain.DomainController);
+WScript.Echo(szBannerHeading + "\n");
+	
+WScript.Echo("Forest running Windows 2003 or later:\t" + !bIsWin2kForest);
+WScript.Echo("Domain running Windows 2003 or later:\t" + !bIsWin2kDomain);
+
+// Process the specified XML file
+ProcessXML(szXMLFileName, szDomainName);
+
+///////////////////////////////////////
+// Function Definitions
+///////////////////////////////////////
+
+// Process an XML file
+function ProcessXML(szXMLFileName, szDomainName)
+{
+	// Load the XML file
+	var oXMLDoc = new ActiveXObject("Microsoft.XMLDOM");
+	oXMLDoc.load(szXMLFileName);
+
+	if (oXMLDoc.documentElement == null)
+	{
+		WScript.Echo("\nError loading XML file '" + szXMLFileName + "'");
+		WScript.Echo("Verify the file exists and is well-formed XML.");
+		return;
+	}
+
+	// Get the count of user nodes in the XML
+	var UserNodes = oXMLDoc.documentElement.selectNodes("//User");
+	var iCountOfUserNodes = UserNodes.length;
+
+	// Print a warning if the "Quiet" flag was not specified
+	if (!bQuietMode && !bUndo)
+	{
+
+		if (iCountOfUserNodes > 0)
+		{
+			WScript.Echo("\n\nWarning! This script is intended primarily for use in a test environment.");
+			WScript.Echo("\nThe specified XML file has " + iCountOfUserNodes + " user objects defined.");
+			WScript.Echo("Creating user objects through script could pose a security risk.");
+
+			if (bCreateUsersEnabled == false)
+			{
+				WScript.Echo("\nNote: These user accounts will be created disabled.");
+				WScript.Echo("To create user objects enabled, specify the /CreateUsersEnabled switch");
+			}
+
+			WScript.Echo("\nDo you want to proceed? [Y/N]");
+
+			var Response = "";
+			while (!WScript.StdIn.AtEndOfLine)
+			{
+				Response = WScript.StdIn.Read(1);
+			}
+
+			if (Response.toLowerCase() != "y")
+			{
+				WScript.Echo("\nOperation canceled by user. No action taken.");
+				WScript.Quit();
+			}
+			
+		}
+		else
+		{
+			WScript.Echo("\n\nWarning! This script is intended primarily for use in a test environment.");
+			WScript.Echo("\nDo you want to proceed? [Y/N]");
+
+			var Response = "";
+			while (!WScript.StdIn.AtEndOfLine)
+			{
+				Response = WScript.StdIn.Read(1);
+			}
+
+			if (Response.toLowerCase() != "y")
+			{
+				WScript.Echo("\nOperation canceled by user. No action taken.");
+				WScript.Quit();
+			}		
+		}
+
+	}
+	
+	if (bUndo && !bQuietMode)
+	{
+
+		WScript.Echo("\n\nWarning! You have chosen to perform an undo operation.");
+		WScript.Echo("\nThis will DELETE the objects specified in the XML file.");
+		WScript.Echo("\nDo you want to proceed? [Y/N]");
+
+		var Response = "";
+		while (!WScript.StdIn.AtEndOfLine)
+		{
+			Response = WScript.StdIn.Read(1);
+		}
+
+		if (Response.toLowerCase() != "y")
+		{
+			WScript.Echo("\nOperation canceled by user. No action taken.");
+			WScript.Quit();
+		}		
+	
+	}
+
+	// Prompt the user for a password to use if there are any user objects without passwords
+	// specified in the XML file.
+	//
+	var e = new Enumerator(UserNodes);
+	var iCountOfUsersWithoutPassword = 0;
+	var UserNode, szPassword;
+	
+	for (; !e.atEnd(); e.moveNext())
+	{
+		UserNode = e.item();
+		szPassword = UserNode.getAttribute("Password");
+		
+		if (szPassword == null)
+		{
+			iCountOfUsersWithoutPassword++;
+		}
+	}
+	
+	if (iCountOfUsersWithoutPassword > 0 && szPasswordForUsers == "" && bUndo == false)
+	{
+		WScript.Echo("\n\nYour XML file has " + iCountOfUsersWithoutPassword + " user objects defined that do not specify a password to use.");
+		WScript.Echo("\nYou must provide a password to use for any accounts that do not have one specified in the XML.");
+		WScript.Echo("Note: if the user object already exists in the domain, it will not be modified.");
+
+		szPasswordForUsers = GetPassword();
+	}
+
+	if (!bIsWin2kDomain)
+	{
+		// Process WMI Filter nodes
+		WScript.Echo(szBannerHeading);
+		WScript.Echo("Processing WMI Filter nodes...");
+		WScript.Echo(szBannerHeading);
+
+		ProcessWMIFilterNodes(oXMLDoc);
+		
+		WScript.Echo("");
+	}
+	
+	// Process GPO nodes
+	WScript.Echo(szBannerHeading);
+	WScript.Echo("Processing GPO nodes...");
+	WScript.Echo(szBannerHeading);
+	
+	ProcessGPONodes(oXMLDoc);
+	
+	WScript.Echo("");
+	
+	// Process OU nodes to get them created
+	WScript.Echo(szBannerHeading);
+	WScript.Echo("Processing OU nodes...");
+	WScript.Echo(szBannerHeading);
+	
+	ProcessOUNodes(oXMLDoc);
+	
+	WScript.Echo("");
+	
+	// Process user nodes
+	WScript.Echo(szBannerHeading);
+	WScript.Echo("Processing User nodes...");
+	WScript.Echo(szBannerHeading);
+	
+	ProcessUserNodes(oXMLDoc);
+	
+	WScript.Echo("");
+	
+	// Process security group nodes
+	WScript.Echo(szBannerHeading);
+	WScript.Echo("Processing SecurityGroup nodes...");
+	WScript.Echo(szBannerHeading);
+	
+	ProcessSecurityGroupNodes(oXMLDoc);
+
+	WScript.Echo("");
+		
+	// Process Domain Root
+	WScript.Echo(szBannerHeading);
+	WScript.Echo("Processing the Domain Root node...");
+	WScript.Echo(szBannerHeading);
+	
+	ProcessDomain(oXMLDoc);
+
+	if (!bExcludePermissions && !bUndo)
+	{
+		WScript.Echo("");
+	
+		// Process OU node permissions
+		WScript.Echo(szBannerHeading);
+		WScript.Echo("Processing permissions on OU nodes...");
+		WScript.Echo(szBannerHeading);
+	
+		ProcessOUNodePermissions(oXMLDoc);
+
+		WScript.Echo("\n");
+
+		// Process GPO permissions
+		WScript.Echo(szBannerHeading);
+		WScript.Echo("Processing GPO permissions...");
+		WScript.Echo(szBannerHeading);
+	
+		ProcessGPOSecurityInfo(oXMLDoc);
+	}
+	
+	WScript.Echo("");
+		
+	// Do any necessary GPO imports
+	ProcessGPOImportList(aGPOImportList);
+
+	WScript.Echo("\nDone processing XML.");
+	
+}
+
+// Process the OU nodes in the XML file
+function ProcessOUNodes(oXMLDoc)
+{
+	// Get all OU nodes and Process them
+	var OUNodes = oXMLDoc.documentElement.selectNodes("//OU");
+	WScript.Echo("\nFound " + OUNodes.length + " OU nodes to Process\n");
+
+	if (OUNodes.length == 0)
+	{
+		// No OU's to Process
+		return;
+	}
+
+	var node;
+	var e = new Enumerator(OUNodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessOU(node);
+	}
+}
+
+// Processes an individual OU node
+function ProcessOU(node)
+{
+	// Get the full path to this node
+	var szNodePath = GetNodePath(node);
+	var szDescription = node.getAttribute('Description');
+	var szBlockInheritance = node.getAttribute('BlockInheritance');
+	
+	if (szBlockInheritance == null)
+	{
+		szBlockInheritance = "false";
+	}
+	
+	// Build relative LDAP path
+	var szLDAPPath = BuildOULDAPPath(szNodePath);
+
+	if (bUndo == false)
+	{
+		// Attempt to create the OU
+		var OU = CreateOU(szLDAPPath, szDescription);
+		if (!OU)
+		{
+			WScript.Echo("Could not create OU '" + szNodePath + "', so skipping...");
+			return;
+		}
+
+		// Get the GPMSOM object representing this SOM
+		var GPMSOM = GPMDomain.GetSOM(szLDAPPath.slice(szGlobalLDAPPrefix.length + 1));
+
+		// Set the BlockInheritance flag,if necessary
+		if (szBlockInheritance.toLowerCase() == "true")
+		{
+			GPMSOM.GPOInheritanceBlocked = true;
+		}
+		else
+		{
+			GPMSOM.GPOInheritanceBlocked = false;
+		}
+		
+	}
+	else
+	{
+		// Make sure we aren't deleting the Domain Controllers OU
+		var re = new RegExp("/OU=domain controllers", "i");
+		var loc = szLDAPPath.toLowerCase().search(re);
+		if (loc > 0)
+		{
+			WScript.Echo("*** Skipping deletion of the 'Domain Controllers' OU. This OU should not be deleted. ***");
+			return;
+		}
+
+		// We are going to delete the OU, so move any computer objects out of the OU
+		RescueObjects(szLDAPPath, "computer");
+		
+		// Delete the OU
+		DeleteOU(szLDAPPath);
+		
+		// Since we just deleted the OU, everything related
+		// to it should have been deleted. So it should be
+		// safe to just return at this point.
+		return;
+	}
+
+	// Process Computer nodes for this OU
+	ProcessComputerNodes(node);
+	
+	// Process GPO links for this OU
+	ProcessGPOLinks(node, szLDAPPath);
+	
+}
+
+// Process the permissions for OU nodes in the XML file
+function ProcessOUNodePermissions(oXMLDoc)
+{
+	// Get all OU nodes and Process them
+	var OUNodes = oXMLDoc.documentElement.selectNodes("//OU");
+	WScript.Echo("\nFound " + OUNodes.length + " OU nodes to Process\n");
+
+	if (OUNodes.length == 0)
+	{
+		// No OU's to Process
+		return;
+	}
+
+	var node;
+	var e = new Enumerator(OUNodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+
+		// Get the full path to this node
+		var szNodePath = GetNodePath(node);
+
+		// Build relative LDAP path
+		var szLDAPPath = BuildOULDAPPath(szNodePath);
+		var szSOMPath = szLDAPPath.slice(szGlobalLDAPPrefix.length + 1)
+
+		// Get the GPMSOM object representing this SOM
+		try
+		{
+			var GPMSOM = GPMDomain.GetSOM(szSOMPath);
+		}
+		catch(err)
+		{
+			WScript.Echo("Error calling GetSOM() for path '" + szSOMPath + "'");
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+			continue;
+		}
+
+		// Set any necessary permissions
+		ProcessSOMSecurityFilters(node, GPMSOM);
+
+		ProcessOU(node);
+	}
+}
+
+
+// Moves any objects of the specified type out of an OU
+// Used to save objects we don't want deleted when we
+// are about to delete the OU
+function RescueObjects(szOUPath, szObjectType)
+{
+	var OU;
+
+	try
+	{	
+		OU = GetObject(szOUPath);
+	}
+	catch(err)
+	{
+		return;
+	}
+	
+	if (!OU)
+	{
+		return;
+	}
+	
+	if (szObjectType=="computer")
+	{
+		var szLDAPPath = szGlobalLDAPPrefix + "/cn=Computers," + GetLDAPSuffixFromDomainName(szDomainName);
+	}
+	else
+	{
+		var szLDAPPath = szGlobalLDAPPrefix;
+	}
+
+	var ADContainer = GetObject(szLDAPPath);
+	var obj;
+	
+	var e = new Enumerator(OU);
+	for (; !e.atEnd(); e.moveNext())
+	{
+		obj = e.item();
+
+		if (obj.Class == szObjectType)
+		{
+			try
+			{
+				ADContainer.MoveHere(obj.ADsPath, obj.name);
+				WScript.Echo("\nMoved " + obj.name + " to " + ADContainer.ADsPath);
+			}
+			catch(err)
+			{
+				WScript.Echo("Attempt to move " + szObjectType + " " + obj.name + " failed.");
+				WScript.Echo(ErrCode(err.number) + " - " + err.description);
+			}
+		}
+		
+		if (obj.Class == "organizationalUnit")
+		{
+			// Recursively call RescueObjects()
+			RescueObjects(obj.ADsPath, szObjectType);
+		}
+	}
+
+
+}
+
+// Gets the list of GPO links for a SOM and links the GPOs to the SOM.
+// For GPOs specified in the XML file, any existing links are removed
+// first to ensure proper link order.
+// Existing links not specified in the XML file are ignored and will
+// end up with higher precedence than those in the XML.
+//
+function ProcessGPOLinks(SOMNode, szLDAPPath)
+{
+	// See if there are any GPO links for the OU
+	var GPOLinks = SOMNode.selectNodes("GPOLink");
+	
+	if (GPOLinks.length == 0)
+	{
+		// No GPO Links to Process
+		return;
+	}
+
+	// For each link node, Process it
+	var node;
+	var e = new Enumerator(GPOLinks);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessGPOLink(node, szLDAPPath);
+	}
+	
+}
+
+// Takes a GPOLink tag and Processes it
+function ProcessGPOLink(node, szLDAPPath)
+{
+	// Get info about this link
+	var szGPOName = node.getAttribute("GPOName");
+
+	var szEnabled = node.getAttribute("Enabled");
+	if (szEnabled == null)
+	{
+		szEnabled = "true";
+	}
+	
+	var szEnforced = node.getAttribute("Enforced");
+	if (szEnforced == null)
+	{
+		szEnforced = "false";
+	}
+	
+	var bEnabled = true;
+	var bEnforced = false;
+	
+	if (szEnabled.toLowerCase() == "false")
+	{
+		bEnabled = false;
+	}
+	
+	if (szEnforced.toLowerCase() == "true")
+	{
+		bEnforced = true;
+	}
+	
+	// Get the path minus the LDAP prefix
+	var szSOMPath = szLDAPPath.slice(szGlobalLDAPPrefix.length + 1);
+
+	// Get a reference to the SOM object for this OU
+	try
+	{
+		var SOM = GPMDomain.GetSOM(szSOMPath);
+	}
+	catch (err)
+	{
+		// Couldn't get the SOM so just bail out
+		WScript.Echo("\nError getting SOM '" + szSOMPath + "' to link to");
+		return;
+	}
+	
+	// See if the link already exists
+	var GPOLinkList = SOM.GetGPOLinks();
+	var bFoundLink = false;
+	var link, GPO;
+	var e = new Enumerator(GPOLinkList);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		link = e.item();
+
+		// Get the GPO for this link
+		try
+		{
+			GPO = GPMDomain.GetGPO(link.GPOID);
+		}
+		catch (err)
+		{
+			// Most likely an orphaned link - delete if this is
+			// an undo operation
+			if (bUndo == true)
+			{
+				try
+				{
+					link.Delete();
+				}
+				catch (err)
+				{
+				}
+			}
+			
+			continue;
+		}
+		
+		// Check for a match
+		if (GPO.DisplayName.toLowerCase() == szGPOName.toLowerCase())
+		{
+			bFoundLink = true;
+			break;
+		} 
+	
+	}	
+	
+	if (bFoundLink == true)
+	{
+		if (bUndo == true)
+		{
+			// Don't delete the default GPO links
+			if (link.GPOID.toUpperCase() == DefaultPolicyGUID || link.GPOID.toUpperCase() == DefaultDCPolicyGUID)
+			{
+				return;
+			}
+
+			try
+			{
+				link.Delete();
+			}
+			catch (err)
+			{
+				var szMsg = "\nAttempt to delete link for SOM " + SOM.Name;
+				szMsg += " and GPO " + szGPOName + " failed with error: ";
+				szMsg += err.description;
+				WScript.Echo(szMsg);
+				return;
+			}
+			
+			WScript.Echo("\nDeleted link to GPO " + szGPOName);
+			return;
+		}
+		
+		// Delete the link. This will ensure we create the links in the order specified in
+		// the XML file. Note that any links that exist on the SOM but are not specified
+		// in the XML file will be ignored, which means they will end up with higher
+		// precedence than those in the XML file.
+		//
+		try
+		{
+			link.Delete();
+		}
+		catch (err)
+		{
+			var szMsg = "\nAttempt to delete link for SOM " + SOM.Name;
+			szMsg += " and GPO " + szGPOName + " failed with error: ";
+			szMsg += err.description;
+			WScript.Echo(szMsg);
+			return;
+		}
+		
+		WScript.Echo("\nDeleted existing link to GPO " + szGPOName);
+	
+	}
+
+	// If no link was found and we are in an undo, just return
+	if (bUndo == true)
+	{
+		return;
+	}
+	
+	// Create the link
+	try
+	{
+		// Get the GPO to link
+		GPO = GetGPOByName(szGPOName);
+		if (!GPO)
+		{
+			// Could not find the GPO to link to
+			WScript.Echo("\nCould not find GPO " + szGPOName + " to link to.");
+			return;
+		}
+		
+		// Create the link at the end of the list
+		var link = SOM.CreateGPOLink(-1, GPO); 		
+
+		// Set the properties specified
+		SetLinkProperties(link, bEnabled, bEnforced);
+		WScript.Echo("\nCreated GPO Link for GPO " + szGPOName);
+		
+	}
+	catch (err)
+	{
+		var szMsg = "\nAttempt to link GPO " + szGPOName + " to SOM " + SOM.Name;
+		szMsg += " failed with error: " + err.description;
+		WScript.Echo(szMsg);
+		return;
+	}
+}
+
+// Set properties for a GPO link
+function SetLinkProperties(link, bEnabled, bEnforced)
+{
+	link.Enabled = bEnabled;
+	link.Enforced = bEnforced;
+}
+
+// Process User nodes in the XML file
+function ProcessUserNodes(oXMLDoc)
+{
+	var UserNodes = oXMLDoc.documentElement.selectNodes("//User");
+	WScript.Echo("\nFound " + UserNodes.length + " User nodes to Process\n");
+
+	var node;
+	var e = new Enumerator(UserNodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessUserNode(node);
+	}	
+
+}
+
+// Process an individual user node
+function ProcessUserNode(node)
+{
+	var szUserName = node.getAttribute('Name');
+	
+	// Get the attributes we support setting on user objects from the XML file
+	// Supported attributes in the XML document are:
+	// "FullName", "ProfilePath", "LogonScript", "Password", "HomeDir"
+	var szFullName = node.getAttribute('FullName');
+	var szProfilePath = node.getAttribute('ProfilePath');
+	var szLogonScript = node.getAttribute('LogonScript');
+	var szHomeDrive = node.getAttribute('HomeDrive');
+	var szHomeDir = node.getAttribute('HomeDir');
+	var szPassword = node.getAttribute('Password');
+	var szDescription = node.getAttribute('Description');
+
+	if (szPassword == null)
+	{
+		// Use the globally defined password
+		szPassword = szPasswordForUsers;
+	}	
+
+	// Get the name of the user
+	var szDisplayName = szUserName;
+	var szFirstName = "";
+	var szLastName = "";
+	if (szFullName != null)
+	{
+		szDisplayName = szFullName;
+		var aName = szFullName.split(" ");
+		szFirstName = aName[0];
+		szLastName = aName[aName.length - 1];
+	}
+
+	// Build the LDAP path to the user object
+	var szObjectLDAPPath = "";
+
+	// Check if the group is in the special "Users" node
+	if (node.parentNode.nodeName.toLowerCase() == "users")
+	{
+		// Set the LDAP path to point to the users container
+		szObjectLDAPPath = szGlobalLDAPPrefix + "/cn=" + szDisplayName + ",cn=users," + GetLDAPSuffixFromDomainName(szDomainName);
+	}
+	else
+	{
+		var szNodePath = GetNodePath(node);
+		szObjectLDAPPath = BuildObjectLDAPPath(szNodePath);
+
+		// Make sure we are using the DisplayName in the path to the user object, in case
+		// a full name was specified.
+		var re = new RegExp(szUserName, "i");
+		szObjectLDAPPath = szObjectLDAPPath.replace(re, szDisplayName);
+	}
+
+
+	// If the user exists, fetch it. Otherwise create the user
+	var szLDAPPath = szGlobalLDAPPrefix;
+	var ADDomain = GetObject(szLDAPPath);
+	var szUsersContainerPath = "LDAP://CN=Users," + ADDomain.distinguishedName;
+	var ADUsersContainer = GetObject(szUsersContainerPath);
+	
+	// Try to get the user
+	var User = GetUser(szUserName);
+	if (!User)
+	{
+		// If we are in an undo, just return
+		if (bUndo == true)
+		{
+			return;
+		}
+
+		// The user does not exist, so create it
+		try
+		{
+			User = ADUsersContainer.Create("user", "cn=" + szDisplayName);
+			User.Put("samAccountName", szUserName);
+			User.SetInfo();
+
+			if (szFirstName != "" && szLastName != "")
+			{
+				User.FirstName = szFirstName;
+				User.LastName = szLastName;
+			}
+		
+			User.displayName = szDisplayName;
+			User.userPrincipalName = szUserName + "@" + szDomainName;
+
+			User.SetInfo();
+			User.SetPassword(szPassword);
+
+			// Create the user account disabled, unless the user
+			// explicitly specified not to.
+			//
+			if (bCreateUsersEnabled == true)
+			{
+				User.AccountDisabled = false;
+			}
+			else
+			{
+				User.AccountDisabled = true;			
+			}
+
+			if (szProfilePath != null)
+			{
+				User.Profile = szProfilePath;
+			}
+
+			if (szLogonScript != null)
+			{
+				User.LoginScript = szLogonScript;
+			}
+
+			if (szHomeDrive != null)
+			{
+				User.HomeDrive = szHomeDrive;
+			}
+
+			if (szHomeDir != null)
+			{
+				User.HomeDirectory = szHomeDir;
+			}
+
+			if (szDescription != null)
+			{
+				User.Description = szDescription;
+			}
+	
+			User.SetInfo();
+			WScript.Echo("\nCreated user " + szUserName);
+		}
+		catch (err)
+		{
+			try
+			{
+				User.DeleteObject(0);
+			}
+			catch (e)
+			{
+			}
+			
+			WScript.Echo("\nAttempt to create user " + szUserName + " failed.");
+			WScript.Echo("The error was " + ErrCode(err.number) + " - " + err.description);
+			return;
+		}
+		
+	}
+	
+	// If this is an undo, delete the user
+	if (bUndo == true)
+	{
+		try
+		{
+			User.DeleteObject(0);
+			WScript.Echo("\nDeleted user " + szUserName);
+		}
+		catch (err)
+		{
+			WScript.Echo("\nAttempt to delete user " + szUserName + " failed.");
+			WScript.Echo("The error was " + ErrCode(err.number) + " - " + err.description);
+		}
+		
+		return;
+	}
+	
+
+	// See if we need to move the user
+	var szTemp, loc, szDesiredPath, TargetContainer;
+	if (User.ADsPath.toLowerCase() != szObjectLDAPPath.toLowerCase())
+	{
+		// Move the user
+		szTemp = szGlobalLDAPPrefix + "/cn=" + szDisplayName + ",";
+		loc = szTemp.length;
+		szDesiredPath = szGlobalLDAPPrefix + "/" + szObjectLDAPPath.slice(loc);
+		WScript.Echo("Moving user " + szUserName + " to " + szDesiredPath);
+		
+		try
+		{
+			TargetContainer = GetObject(szDesiredPath);
+			User = TargetContainer.MoveHere(User.ADsPath, "cn=" + szDisplayName);
+		}
+		catch(err)
+		{
+			WScript.Echo("\nError moving user " + szUserName + " to container " + szDesiredPath);
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		}
+		
+	}
+
+}
+
+// Process Computer nodes in the XML file
+function ProcessComputerNodes(node)
+{
+	var ComputerNodes = node.selectNodes("Computer");
+
+	var node;
+	var e = new Enumerator(ComputerNodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessComputerNode(node);
+	}	
+
+}
+
+// Process an individual Comptuer node
+function ProcessComputerNode(node)
+{
+	var szComputerName = node.getAttribute('Name');
+	var szNodePath = GetNodePath(node);
+	var szObjectLDAPPath = BuildObjectLDAPPath(szNodePath);
+	
+	// If the computer exists, fetch it. Otherwise just bail out
+	var szLDAPPath = szGlobalLDAPPrefix;
+	var ADDomain = GetObject(szLDAPPath);
+	
+	// Try to get the computer
+	var Computer = GetComputer(szComputerName);
+	if (!Computer)
+	{
+		// The computer object does not exist - just return
+		return;
+	}
+	
+
+	// See if we need to move the computer
+	var szTemp, loc, szDesiredPath, TargetContainer;
+	if (Computer.ADsPath != szObjectLDAPPath)
+	{
+		// Move the computer
+		szTemp = szGlobalLDAPPrefix + "/cn=" + szComputerName + ",";
+		loc = szTemp.length;
+		szDesiredPath = szGlobalLDAPPrefix + "/" + szObjectLDAPPath.slice(loc);
+		WScript.Echo("\nMoving computer " + szComputerName + " to " + szDesiredPath);
+		
+		try
+		{
+			TargetContainer = GetObject(szDesiredPath);
+			User = TargetContainer.MoveHere(Computer.ADsPath, "cn=" + szComputerName);
+		}
+		catch(err)
+		{
+			WScript.Echo("\nError moving user " + szComputerName + " to container " + szDesiredPath);
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		}
+		
+	}
+	
+}
+
+// Processs the domain root
+function ProcessDomain(oXMLDoc)
+{
+	// Handle any GPO links at the domain level
+	var szDomainLDAPPath = szGlobalLDAPPrefix + "/" + GetLDAPSuffixFromDomainName(szDomainName);
+	var node = oXMLDoc.documentElement;
+	ProcessGPOLinks(node, szDomainLDAPPath);
+
+	// Get the SOM representing the domain level
+	var GPMSOM = GPMDomain.GetSOM("");
+	
+	// Set block inheritance if necessary
+	var szBlockInheritance = node.getAttribute('BlockInheritance');
+	
+	if (szBlockInheritance == null)
+	{
+		szBlockInheritance = "false";
+	}
+
+	if (szBlockInheritance.toLowerCase() == "true")
+	{
+		GPMSOM.GPOInheritanceBlocked = true;
+	}
+	else
+	{
+		GPMSOM.GPOInheritanceBlocked = false;
+	}
+
+	if (!bExcludePermissions)
+	{
+		// Process permissions
+		ProcessSOMSecurityFilters(node, GPMSOM);
+	}
+	
+	return;
+}
+
+// Takes a GPO name and returns the first instance of a
+// GPO by that name
+function GetGPOByName(szGPOName)
+{
+	// Create a search criteria object for the name
+	var GPMSearchCriteria = GPM.CreateSearchCriteria();
+	GPMSearchCriteria.Add(Constants.SearchPropertyGPODisplayName, Constants.SearchOpEquals, szGPOName);
+
+	// Search for the specified GPO
+	var GPOList = GPMDomain.SearchGPOs(GPMSearchCriteria);
+
+	if (GPOList.Count != 0)
+	{
+		return GPOList.Item(1);
+	}
+
+	return false;
+}
+
+// Take a simple OU path string in the format a\b\c
+// and builds an LDAP path
+function BuildOULDAPPath(szNodePath)
+{
+	var szResult = "";
+	var szLDAPPrefix = szGlobalLDAPPrefix + "/";
+	var szLDAPSuffix = GetLDAPSuffixFromDomainName(szDomainName);
+	var szOUPath = "";
+
+	var aNodeTokens = szNodePath.split("\\");
+	aNodeTokens = aNodeTokens.reverse();
+	
+	var e = new Enumerator(aNodeTokens);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		szOUPath += "OU=" + e.item() + ",";
+	}
+
+	szOUPath = szOUPath.slice(0,-1);
+
+	szResult = szLDAPPrefix + szOUPath + "," + szLDAPSuffix;
+	
+	return szResult;
+}
+
+// Take a simple object path string in the format a\b\c
+// and builds an LDAP path
+function BuildObjectLDAPPath(szNodePath)
+{
+	var szResult = "";
+	var szLDAPPrefix = szGlobalLDAPPrefix + "/";
+	var szLDAPSuffix = GetLDAPSuffixFromDomainName(szDomainName);
+	var szPath = "";
+
+	var aNodeTokens = szNodePath.split("\\");
+	aNodeTokens = aNodeTokens.reverse();
+	
+	var e = new Enumerator(aNodeTokens);
+	var i = 0;
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		if (i == 0)
+		{
+			// This is the first item, so use CN
+			szPath += "cn=" + e.item() + ",";
+		}
+		else
+		{
+			szPath += "OU=" + e.item() + ",";
+		}
+
+		i++;		
+	}
+
+	szPath = szPath.slice(0,-1);
+
+	szResult = szLDAPPrefix + szPath + "," + szLDAPSuffix;
+	
+	return szResult;
+}
+
+// Use ADSI to get the LDAP suffix for the domain
+function GetLDAPSuffixFromDomainName(szDomainName)
+{
+	// Get the RootDSE naming context for the specified domain
+	var RootDSE = GetObject("LDAP://" + szDomainName + "/RootDSE");
+
+	// Initialize the property cache
+	RootDSE.GetInfo();
+
+	return RootDSE.defaultNamingContext;
+}
+
+// Takes a full LDAP path to an OU and attempts to create that OU
+// if it does not already exist.
+//
+function CreateOU(szLDAPPath, szDescription)
+{
+	// See if the specified OU already exists
+	var bFoundOU = true;
+	try
+	{
+		var OUTest = GetObject(szLDAPPath);
+	}
+	catch (err)
+	{
+		bFoundOU = false;
+	}
+
+	if (bFoundOU == true)
+	{
+		return OUTest;
+	}
+
+	// Extract the domain from the LDAP path
+	var re = new RegExp(",DC=", "i");
+	var loc = szLDAPPath.search(re);
+	var szDomainPath = szLDAPPath.slice(loc + 1);
+
+	// Now get the OU part
+	re = szGlobalLDAPPrefix + "/";
+	loc = szLDAPPath.search(re);
+	var szOUPath = szLDAPPath.slice(loc + szGlobalLDAPPrefix.length + 1);
+	re = ",DC=";
+	loc = szOUPath.search(re);
+	szOUPath = szOUPath.slice(0, loc);
+
+	// Bind to the domain specified
+	var domain = GetObject(szGlobalLDAPPrefix + "/" + szDomainPath);
+
+	// Create the OU
+	try
+	{
+		var OU = domain.Create("organizationalUnit", szOUPath);
+		
+		if (szDescription != null)
+		{
+			OU.Put("description", szDescription);
+		}
+		
+		OU.SetInfo();
+		WScript.Echo("\nCreated OU LDAP://" + szOUPath + "," + szDomainPath);
+	}
+	catch (err)
+	{
+		var szErrMsg = "Attempt to create OU " + szLDAPPath;
+		szErrMsg += " failed with " + ErrCode(err.number) + " " + err.description;
+		WScript.Echo(szErrMsg);
+		return false;
+	}
+
+	return OU;
+}
+
+function DeleteOU(szLDAPPath)
+{
+	
+	// See if the specified OU does not exist
+	var bFoundOU = true;
+	var OU;
+	try
+	{
+		OU = GetObject(szLDAPPath);
+	}
+	catch (err)
+	{
+		bFoundOU = false;
+	}
+
+	if (bFoundOU == false)
+	{
+		// Already deleted, so just return
+		return;
+	}
+
+	WScript.Echo("\nDeleting OU " + szLDAPPath);
+
+	try
+	{
+		OU.DeleteObject(0);
+	}
+	catch (err)
+	{
+		WScript.Echo("Attempt to delete OU " + szLDAPPath + " failed with " + ErrCode(err.number) + " " + err.description);
+	}
+	
+}
+
+// Process all WMI Filter nodes in the XML document
+function ProcessWMIFilterNodes(oXMLDoc)
+{
+	var Nodes = oXMLDoc.documentElement.selectNodes("//WMIFilter");
+	WScript.Echo("\nFound " + Nodes.length + " WMI Filter nodes to Process\n");
+
+	var node;
+	var e = new Enumerator(Nodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessWMIFilter(node);
+	}
+}
+
+// Process an individual WMI Filter node
+function ProcessWMIFilter(node)
+{
+	// Get the attributes we want for this filter
+	var szFilterName = node.getAttribute('Name');
+	var szFilterDescription = node.getAttribute('Description');
+
+	WScript.Echo("\nProcessing filter '" + szFilterName + "'");
+
+	// Create WbemLocator object we will use to connect to WMI, if needed
+	var locator = new ActiveXObject("WbemScripting.SWbemLocator");
+
+	// Connect to the local root\policy namespace
+	var WBEMServices = locator.ConnectServer("", "root\\policy");
+
+	// Get some WMI classes we may need
+	var szRuleClass = "MSFT_Rule";
+	var RuleClass = WBEMServices.Get(szRuleClass);
+
+	var aQueryList = new Array();
+	var QueryNodes = node.selectNodes("Query");
+	var szQueryString;
+
+	var e = new Enumerator(QueryNodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		szQueryString = node.text;
+		aQueryList = aQueryList.concat(szQueryString);
+	}
+
+	// See if a WMI filter by this name exists
+	var WMIFilter = GetWMIFilter(szFilterName, GPMDomain);
+	
+	if (!WMIFilter)
+	{
+		if (bUndo)
+		{
+			// Nothing to do if we are in an undo, so return
+			return;
+		}
+		
+		// Create the filter
+		WScript.Echo("Creating WMI filter '" + szFilterName + "'");
+		var Result= CreateWMIFilter(szFilterName, szFilterDescription, GPMDomain.Domain, aQueryList);
+	}
+	else
+	{
+		WScript.Echo("Filter found.");
+
+		// Get the SWbemObject for the filter from WMI
+		var Filter = WBEMServices.Get(WMIFilter.Path);		
+
+		if (bUndo)
+		{
+			// Delete the filter
+			try
+			{
+				WScript.Echo("\nDeleting filter '" + WMIFilter.Name + "'");
+				Filter.Delete_();
+			}
+			catch (err)
+			{
+				WScript.Echo("Error deleting filter '" + WMIFilter.Name + "'");
+				WScript.Echo(ErrCode(err.number) + " - " + err.description);
+			}
+			
+			return;
+		}
+		else
+		{
+			// Update the filter
+			WScript.Echo("Updating the filter with the specified values.");
+
+			// Create an array of MSFT_Rule instances to add to the filter.
+			// Note that the array must be fixed length in order for this to
+			// work on Windows XP machines.
+			//
+			var aRules = new Array(aQueryList.length);
+			for (var i = 0; i < aQueryList.length; i++)
+			{
+				// Extract the namespace and WQL query
+				var aTemp = aQueryList[i].split(";");
+				var szNamespace = aTemp[0];
+				var szQuery = aTemp[1];
+				
+				// Create a new instance of a rule
+				var Rule = RuleClass.SpawnInstance_();
+
+				// Populate the rule with the correct data
+				Rule.TargetNamespace = szNamespace;
+				Rule.Query = szQuery;
+				Rule.QueryLanguage = "WQL";
+
+				// Add the rule to our array
+				aRules[i] = Rule;
+			}
+			
+			// Update the filter to the values specified
+			Filter.Description = szFilterDescription;
+			Filter.Rules = aRules;
+			
+			// Commit the WMI filter to the DS
+			try
+			{
+				Filter.Put_();
+			}
+			catch (err)
+			{
+				WScript.Echo("Error updating WMI filter '" + WMIFilter.Name + "'");
+				WScript.Echo(ErrCode(err.number) + " - " + err.description);
+			}
+
+		}
+	}
+
+}
+
+// Process all GPO nodes in the XML document
+function ProcessGPONodes(oXMLDoc)
+{
+	var GPONodes = oXMLDoc.documentElement.selectNodes("//GPO");
+	WScript.Echo("\nFound " + GPONodes.length + " GPO nodes to Process\n");
+
+	var node;
+	var e = new Enumerator(GPONodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessGPO(node);
+	}
+}
+
+// Process an individual GPO node
+function ProcessGPO(node)
+{
+	// Get the attributes we want for this GPO
+	var szGPOName = node.getAttribute('Name');
+	
+	var szEnabled = node.getAttribute('Enabled');
+	if (szEnabled == null)
+	{
+		szEnabled = "true";
+	}
+	
+	var szTemplatePath = node.getAttribute('TemplatePath');
+	var szTemplate = node.getAttribute('Template');
+	
+	var szWMIFilterLink = node.getAttribute('WMIFilter');
+	
+	// Find out if a GPO by this name already exists
+	var GPO = false;
+	var GPMSearchCriteria = GPM.CreateSearchCriteria();
+	GPMSearchCriteria.Add(Constants.SearchPropertyGPODisplayName, Constants.SearchOpEquals, szGPOName);
+	var GPOList = GPMDomain.SearchGPOs(GPMSearchCriteria);
+	
+	if (GPOList.Count > 0)
+	{
+		// We found an existing GPO
+		GPO = GPOList.Item(1);
+		
+		// If this is an undo operation, delete the GPO and return
+		if (bUndo == true)
+		{
+			if (GPO.ID.toLowerCase() == DefaultPolicyGUID.toLowerCase())
+			{
+				// Default domain policy - don't delete this one
+				WScript.Echo("\n*** Skipped deletion of GPO " + GPO.ID + " because it is the default domain policy. ***\n");
+				return;
+			}
+
+			if (GPO.ID.toLowerCase() == DefaultDCPolicyGUID.toLowerCase())
+			{
+				// Default DC policy - don't delete this one
+				WScript.Echo("\n*** Skipped deletion of GPO " + GPO.ID + " because it is the default domain controller policy. ***\n");
+				return;
+			}
+
+			try
+			{
+				WScript.Echo("\nDeleting GPO '" + GPO.DisplayName + "'");
+				GPO.Delete();
+			}
+			catch (err)
+			{
+				WScript.Echo("Tried to delete GPO " + szGPOName + " but the operation failed with: " + err.description + "\n");
+			}
+			
+			return;
+		}
+		
+
+	}
+	
+	// If the GPO was not found and this is an undo operation, just return
+	if (bUndo == true && !GPO)
+	{
+		return;
+	}
+	
+
+	// Create the GPO if it was not found
+	if (!GPO)
+	{
+		// Create the GPO
+		try
+		{
+			var GPO = GPMDomain.CreateGPO();
+			GPO.DisplayName = szGPOName;
+			WScript.Echo("\nCreated GPO '" + GPO.DisplayName + "'\n");
+
+		}
+		catch (err)
+		{
+			WScript.Echo("\nError trying to create GPO " + szGPOName + " - " + err.description);
+			return;
+		}
+	}
+	
+	// Set the proper attributes for the GPO
+	if (szEnabled.toLowerCase() == "false")
+	{
+		GPO.SetUserEnabled(false);
+		GPO.SetComputerEnabled(false);
+	}
+
+	if (szEnabled.toLowerCase() == "user")
+	{
+		GPO.SetUserEnabled(true);
+		GPO.SetComputerEnabled(false);
+	}
+	else
+	{
+		if (szEnabled.toLowerCase() == "machine")
+		{
+			GPO.SetComputerEnabled(true);
+			GPO.SetUserEnabled(false);
+		}
+	}
+
+	// Link up any WMI filters
+	if (szWMIFilterLink != null)
+	{
+		var WMIFilter = GetWMIFilter(szWMIFilterLink, GPMDomain);
+
+		if (WMIFilter)
+		{
+			WScript.Echo("Linking GPO '" + GPO.DisplayName + "' to WMI filter '" + WMIFilter.Name + "'");
+			try
+			{
+				GPO.SetWMIFilter(WMIFilter);
+			}
+			catch (err)
+			{
+				WScript.Echo("Error linking WMI filter.");
+				WScript.Echo(ErrCode(err.number) + " - " + err.description);
+			}
+		}
+	}
+	
+
+	// If this is the default domain policy or the default DC policy, just return
+	// unless the user has specified they want to do an import
+	//
+	if (GPO.ID.toLowerCase() == DefaultPolicyGUID.toLowerCase() || GPO.ID.toLowerCase() == DefaultDCPolicyGUID.toLowerCase())
+	{
+		if (bImportDefaultGPOs == false)
+		{
+			return;
+		}
+	}
+
+	// Update our array of dictionary objects representing the parameters we will use to
+	// import settings into the GPO after all security groups and users have been created.
+	// We need to delay this step since there may be some settings that require the user or
+	// group to have already been created.
+	//
+	var ParameterList = new ActiveXObject("Scripting.Dictionary");
+	ParameterList.add("GPO", GPO);
+	ParameterList.add("TemplatePath", szTemplatePath);
+	ParameterList.add("Template", szTemplate);
+	ParameterList.add("MigrationTable", szMigrationTable);
+	ParameterList.add("GPMDomain", GPMDomain);
+
+	if (szTemplatePath != null && szTemplate != null && bExcludeSettings == false)
+	{
+		aGPOImportList = aGPOImportList.concat(ParameterList);
+	}
+
+	return;
+}
+
+function ProcessGPOImportList(aGPOImportList)
+{
+	var Parameters;
+	for (var i in aGPOImportList)
+	{
+		Parameters = aGPOImportList[i];
+		ImportSettingsFromTemplate(	Parameters.Item("GPO"),
+						Parameters.Item("TemplatePath"),
+						Parameters.Item("Template"),
+						Parameters.Item("MigrationTable"),
+						Parameters.Item("GPMDomain") );
+	}
+}
+
+function ImportSettingsFromTemplate(GPMGPO, szBackupLocation, szBackupID, szMigrationTable, GPMDomain)
+{
+	WScript.Echo("Preparing to import settings into GPO '" + GPMGPO.DisplayName + "'");
+
+	// Initialize the migration table, if necessary
+	var GPMMigrationTable = null;
+
+	if (szMigrationTable != "")
+	{
+		try
+		{
+			GPMMigrationTable = GPM.GetMigrationTable(szMigrationTable);
+		}
+		catch (err)
+		{
+			WScript.Echo("Could not initialize migration table '" + szMigrationTable + "'");
+			return false;
+		}
+		
+		WScript.Echo("Using migration table '" + szMigrationTable + "'");
+	}
+
+	// Get the backup specified
+	var GPMBackup = GetBackup(szBackupLocation, szBackupID);
+	if (!GPMBackup)
+	{
+		WScript.Echo("\nThe specified template '" + szBackupID + "' could not be found at location '" + szBackupLocation +"'");
+		return;
+	}
+
+	// See if we should create a migration table on the fly to do a "Map By Name" mapping of security principals
+	if (!bNoMapping && GPMMigrationTable == null)
+	{
+		GPMMigrationTable = GPM.CreateMigrationTable();
+		
+		GPMMigrationTable.Add(Constants.ProcessSecurity, GPMBackup);
+		GPMMigrationTable = PopulateDestinationDefaults(GPMMigrationTable, GPMBackup.GPODomain, true);
+		
+	}
+
+	// Now do the actual import
+	WScript.Echo("\nImporting settings from " + szBackupLocation + "\\" + GPMBackup.ID + " to GPO " + GPMGPO.DisplayName + " in domain " + szDomainName + ".");
+
+	try
+	{
+		if (GPMMigrationTable == null)
+		{
+			var GPMResult = GPMGPO.Import(0, GPMBackup);
+		}
+		else
+		{
+			var GPMResult = GPMGPO.Import(0, GPMBackup, GPMMigrationTable);
+		}
+
+		// Call the OverallStatus method on the GPMResult. This will throw an exception if there
+		// were any errors during the actual operation.
+		GPMResult.OverallStatus();
+	}
+	catch (err)
+	{
+		// If we were able to get a GPMResult object, print any status message errors
+		if (GPMResult)
+		{
+			PrintStatusMessages(GPMResult);
+		}
+
+		WScript.Echo("\nError importing settings into GPO " + GPMGPO.DisplayName);
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		return;
+	}
+
+	WScript.Echo("\nThe import operation completed successfully.\n");
+}
+
+// Sets the default options for the destination field in a migration table,
+// given the source.
+//
+function PopulateDestinationDefaults(GPMMigrationTable, szSourceDomain, bMapByName)
+{
+	// Set the destination field for each entry
+	var Entries = GPMMigrationTable.GetEntries();
+	var e = new Enumerator(Entries);
+	for (; !e.atEnd(); e.moveNext())
+	{
+		Entry = e.item();
+		
+
+		switch (Entry.EntryType)
+		{
+			case Constants.EntryTypeUNCPath:
+			Entry = GPMMigrationTable.UpdateDestination(Entry.Source, Entry.Source);
+			break;
+			
+			case Constants.EntryTypeUnknown:
+
+			// See if it looks like a SID
+			if (Entry.Source.slice(0,4).toLowerCase() == "s-1-")
+			{
+				Entry = GPMMigrationTable.UpdateDestination(Entry.Source, Constants.DestinationOptionSameAsSource);
+			}
+			else
+			{
+				// Just add a destination matching the source
+				Entry = GPMMigrationTable.UpdateDestination(Entry.Source, Entry.Source);
+			}
+			break;
+			
+			default:
+			// Determine the domain by parsing the string
+			var szEntrySourceDomain = "";
+			var str = Entry.Source;
+			var re = new RegExp("@");
+			var loc = str.search(re);
+			if (loc > 0)
+			{
+				szEntrySourceDomain = str.slice(loc + 1);
+			}
+
+			if (bMapByName)
+			{	
+				if (szEntrySourceDomain.toLowerCase() != szSourceDomain.toLowerCase())
+				{
+					WScript.Echo("\nEntry '" + Entry.Source + "' is defined in an external domain.");
+					WScript.Echo("This will not be mapped by name and will be set to be copied as is.");
+				}
+				else
+				{
+					// Set it to map by relative name
+					Entry = GPMMigrationTable.UpdateDestination(Entry.Source, Constants.DestinationOptionByRelativeName);
+				}
+			}
+			else
+			{
+				Entry = GPMMigrationTable.UpdateDestination(Entry.Source, Constants.DestinationOptionSameAsSource);
+			}
+			break;
+		}
+
+	}
+
+	return GPMMigrationTable;
+}
+
+// Takes a string and resolves it to a GPMBackup object from
+// a specific file system location
+function GetBackup(szBackupLocation, szBackupID)
+{
+	// Get the backup folder
+	try
+	{
+		var GPMBackupDir = GPM.GetBackupDir(szBackupLocation);
+	}
+	catch (err)
+	{
+		WScript.Echo("\nError accessing template folder " + szBackupLocation);
+		return false;
+	}
+	
+	var GPMBackup;
+	
+	// See if we were passed a valid backup ID
+	try
+	{
+		GPMBackup = GPMBackupDir.GetBackup(szBackupID);
+	}
+	catch (err)
+	{
+		
+		GPMBackup = false;
+	}
+	
+	if (!GPMBackup)
+	{
+		// Not a valid backup ID, so fetch backup by GPO name
+		GPMBackup = GetLatestBackupByGPOName(GPMBackupDir, szBackupID);
+	}
+	else
+	{
+		WScript.Echo("GPO template found:");
+		WScript.Echo("\tID:\t\t" + GPMBackup.ID);
+		WScript.Echo("\tTimestamp:\t" + GPMBackup.TimeStamp);
+		WScript.Echo("\tGPO ID:\t\t" + GPMBackup.GPOID);
+		WScript.Echo("\tGPO Name:\t" + GPMBackup.GPODisplayName);				
+		WScript.Echo("\tComment:\t" + GPMBackup.Comment);
+	}
+	
+	return GPMBackup;
+
+}
+
+// Takes a GPO name or GUID and returns the most recent backup
+// for that GPO
+function GetLatestBackupByGPOName(GPMBackupDir, szGPOName)
+{
+	var GPMSearchCriteria = GPM.CreateSearchCriteria();
+	
+	// Get a list of all backups in the backup location
+	var Backups = GPMBackupDir.SearchBackups(GPMSearchCriteria);
+	var e = new Enumerator(Backups);
+	var aTimeStamps = new Array();
+	var Backup;
+	var Result;
+	var MostRecent = 0;
+	
+	for (; !e.atEnd(); e.moveNext())
+	{
+		Backup = e.item();
+		
+		if (Backup.GPODisplayName.toLowerCase() == szGPOName.toLowerCase() || Backup.GPOID.toLowerCase() == szGPOName.toLowerCase())
+		{
+			if (Backup.TimeStamp > MostRecent)
+			{
+				MostRecent = Backup.TimeStamp;
+				Result = Backup;
+			}
+		}
+	}
+	
+	if (Result == null)
+	{
+		return false;
+	}
+	
+	WScript.Echo("\nGPO template found:");
+	WScript.Echo("\tID:\t\t" + Result.ID);
+	WScript.Echo("\tTimestamp:\t" + Result.TimeStamp);
+	WScript.Echo("\tGPO ID:\t\t" + Result.GPOID);
+	WScript.Echo("\tGPO Name:\t" + Result.GPODisplayName);
+	WScript.Echo("\tComment:\t" + Result.Comment);
+	
+	return Result;
+}
+
+
+// Process GPO Security information
+function ProcessGPOSecurityInfo(oXMLDoc)
+{
+	if (bUndo == true)
+	{
+		return;
+	}
+
+	var GPONodes = oXMLDoc.documentElement.selectNodes("//GPO");
+
+	var node;
+	var e = new Enumerator(GPONodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessGPOSecurityFilters(node);
+	}
+
+
+}
+
+// Adds any necessary security filtering for a GPO node
+function ProcessGPOSecurityFilters(node)
+{
+	var szGPOName = node.getAttribute("Name");
+	var bExclusive = false;
+
+	WScript.Echo("\n== " + szGPOName + " ==");
+		
+	// Handle ApplyPermissions nodes
+	var ApplyPermissions = node.selectSingleNode("ApplyPermissions");
+	if (ApplyPermissions != null)
+	{
+		ProcessGPOPermissionList(szGPOName, ApplyPermissions);
+	}
+
+	// Handle ReadPermissions nodes
+	var ReadPermissions = node.selectSingleNode("ReadPermissions");
+	if (ReadPermissions != null)
+	{
+		ProcessGPOPermissionList(szGPOName, ReadPermissions);
+	}
+
+
+	// Handle EditPermissions nodes
+	var EditPermissions = node.selectSingleNode("EditPermissions");
+	if (EditPermissions != null)
+	{
+		ProcessGPOPermissionList(szGPOName, EditPermissions);
+	}
+
+	// Handle EditSecurityPermissions nodes
+	var EditSecurityPermissions = node.selectSingleNode("EditSecurityPermissions");
+	if (EditSecurityPermissions != null)
+	{
+		ProcessGPOPermissionList(szGPOName, EditSecurityPermissions);
+	}
+
+}
+
+// Process a list of permissions for a GPO
+function ProcessGPOPermissionList(szGPOName, PermissionNode)
+{
+	if (PermissionNode == null)
+	{
+		return;
+	}
+
+
+	// Determine the type of permission we are setting
+	var szNodeName = PermissionNode.nodeName;
+	var perm = null;
+	
+	switch ( szNodeName.toLowerCase() )
+	{
+		case "applypermissions":
+		perm = Constants.PermGPOApply;
+		break;
+		
+		case "readpermissions":
+		perm = Constants.PermGPORead;
+		break;
+		
+		case "editpermissions":
+		perm = Constants.PermGPOEdit;
+		break;
+		
+		case "editsecuritypermissions":
+		perm = Constants.PermGPOEditSecurityAndDelete;
+		break;
+		
+		default:
+		WScript.Echo("Unknown permission type " + szNodeName + " was specified.");
+		return;
+	}
+
+	// Get the GPO
+	var GPO = GetGPO(szGPOName);
+	if (GPO == null)
+	{
+		WScript.Echo("\nError setting permissions for GPO " + szGPOName);
+		WScript.Echo("The GPO could not be found.");
+		return;
+	}
+
+	// Get the existing set of permissions
+	var SecurityInfo = GPO.GetSecurityInfo();
+	
+	// See if we need to make these the exclusive permissions
+	var szExclusive;
+	var bExclusive = false;
+	szExclusive = PermissionNode.getAttribute('Exclusive');
+	if (szExclusive != null)
+	{
+		if (szExclusive.toLowerCase() == "true")
+		{
+			bExclusive = true;
+		}
+		else
+		{
+			bExclusive = false;
+		}
+	}
+
+	// If this is an exclusive list, strip out any permissions not
+	// in the list
+	// NOTE: Two permissions created by default on all GPOs are
+	// "Read" access for "ENTERPRISE DOMAIN CONTROLLERS" and "Edit"
+	// access for "System." The following is hard-coded to not touch
+	// those permissions.
+	//
+	if (bExclusive == true)
+	{
+
+		var e = new Enumerator(SecurityInfo);
+		for (; !e.atEnd(); e.moveNext())
+		{
+			var GPOPermission = e.item();
+			if (GPOPermission.Permission == perm)
+			{
+				
+				if (perm == Constants.PermGPORead && GPOPermission.Trustee.TrusteeSID == ENTERPRISEDCSID)
+				{
+					// Skip it
+					continue;
+				}
+				
+				if (perm == Constants.PermGPOEditSecurityAndDelete && GPOPermission.Trustee.TrusteeSID.toLowerCase() == SYSTEMSID.toLowerCase())
+				{
+					// Skip it
+					continue;
+				}
+				
+				// Remove the permission
+				try
+				{
+					SecurityInfo.Remove(GPOPermission);
+				}
+				catch(err)
+				{
+					WScript.Echo("\nError removing permission for " + GPOPermission.Trustee.TrusteeName + " on GPO " + szGPOName);
+				}
+				
+			}
+		}
+	}
+
+	// Add the specified permissions
+	var PermList = PermissionNode.selectNodes('Permission');
+	var e = new Enumerator(PermList);
+	for (; !e.atEnd(); e.moveNext())
+	{
+		szTrusteeName = e.item().Text;
+		try
+		{
+			// First try to create a permission with the current domain explicitly specified - this will handle the
+			// case where groups like 'Domain Admins' exist in multiple domains, and we want to ensure we go with the
+			// group matching the local domain
+			
+			try
+			{
+				if (szTrusteeName.toLowerCase() == "enterprise admins")
+				{
+					GPMPermission = GPM.CreatePermission(szForestName + "\\" + szTrusteeName, perm, false);
+				}
+				else
+				{
+					GPMPermission = GPM.CreatePermission(GPMDomain.Domain + "\\" + szTrusteeName, perm, false);
+				}
+			}
+			catch (err)
+			{
+				GPMPermission = GPM.CreatePermission(szTrusteeName, perm, false);			
+			}
+		}
+		catch(err)
+		{
+			// The trustee specified probably does not exist
+			WScript.Echo("Error: Could not add trustee " + szTrusteeName + " to the list of permissions for GPO " + szGPOName);
+			continue;
+		}
+
+		// Add the permission
+		try
+		{
+			SecurityInfo.Add(GPMPermission);
+			WScript.Echo("Added " + szNodeName + " for " + szTrusteeName + " to GPO " + szGPOName);
+		}
+		catch(err)
+		{
+			WScript.Echo("\nError adding permission for " + szTrusteeName + " to GPO " + szGPOName);
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		}
+	}
+	
+	
+	// Set the new permission on the GPO
+	try
+	{
+		GPO.SetSecurityInfo(SecurityInfo);
+	}
+	catch(err)
+	{
+		WScript.Echo("Attempt to change the security settings on GPO " + szGPOName + " failed.");
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+	}
+}
+
+// Adds any necessary security filtering for a GPO node
+function ProcessSOMSecurityFilters(node, GPMSOM)
+{
+	var szSOMName = GPMSOM.Name;
+	var bExclusive = false;
+
+	WScript.Echo("\n== " + szSOMName + " ==");
+	
+	// Handle LinkGPOPermissions nodes
+	var Permissions = node.selectSingleNode("LinkGPOPermissions");
+	if (Permissions != null)
+	{
+		ProcessSOMPermissionList(GPMSOM, Permissions);
+	}
+	
+	// Handle GPOCreationPermissions nodes
+	Permissions = node.selectSingleNode("GPOCreationPermissions");
+	if (Permissions != null)
+	{
+		ProcessSOMPermissionList(GPMSOM, Permissions);
+	}
+
+	// The following permissions are not valid in a Win2k forest
+	//
+	if (!bIsWin2kForest)
+	{
+		// Handle RSoPLoggingPermissions nodes
+		Permissions = node.selectSingleNode("RSoPLoggingPermissions");
+		if (Permissions != null)
+		{
+			ProcessSOMPermissionList(GPMSOM, Permissions);
+		}
+
+		// Handle RSoPPlanningPermissions nodes
+		Permissions = node.selectSingleNode("RSoPPlanningPermissions");
+		if (Permissions != null)
+		{
+			ProcessSOMPermissionList(GPMSOM, Permissions);
+		}
+	}
+	
+	// The following permissions are not valid in a Win2k domain
+	//
+	if (!bIsWin2kDomain)
+	{
+		// Handle WMIFilterCreationPermissions nodes
+		Permissions = node.selectSingleNode("WMIFilterCreationPermissions");
+		if (Permissions != null)
+		{
+			ProcessSOMPermissionList(GPMSOM, Permissions);
+		}
+
+		// Handle WMIFilterFullControlPermissions nodes
+		Permissions = node.selectSingleNode("WMIFilterFullControlPermissions");
+		if (Permissions != null)
+		{
+			ProcessSOMPermissionList(GPMSOM, Permissions);
+		}
+
+	}
+}
+
+// Process a list of permissions for a GPO
+function ProcessSOMPermissionList(GPMSOM, PermissionNode)
+{
+	// No need to do anything if this is an undo
+	if (bUndo)
+	{
+		return;
+	}
+
+	if (PermissionNode == null)
+	{
+		return;
+	}
+
+	// Determine the type of permission we are setting
+	var szNodeName = PermissionNode.nodeName;
+	var perm = null;
+	
+	switch ( szNodeName.toLowerCase() )
+	{
+		case "linkgpopermissions":
+		perm = Constants.PermSOMLink;
+		break;
+		
+		case "rsoploggingpermissions":
+		perm = Constants.PermSOMLogging;
+		break;
+		
+		case "rsopplanningpermissions":
+		perm = Constants.PermSOMPlanning;
+		break;
+
+		case "gpocreationpermissions":
+		perm = Constants.PermSOMGPOCreate;
+		break;
+
+		case "wmifiltercreationpermissions":
+		perm = Constants.PermSOMWMICreate;
+		break;
+
+		case "wmifilterfullcontrolpermissions":
+		perm = Constants.PermSOMWMIFullControl;
+		break;
+		
+		default:
+		WScript.Echo("Unknown permission type " + szNodeName + " was specified.");
+		return;
+	}
+
+	// Get the existing set of permissions
+	var SecurityInfo = GPMSOM.GetSecurityInfo();
+	
+	// See if we need to make these the exclusive permissions
+	var szExclusive;
+	var bExclusive = false;
+	szExclusive = PermissionNode.getAttribute('Exclusive');
+	if (szExclusive != null)
+	{
+		if (szExclusive.toLowerCase() == "true")
+		{
+			bExclusive = true;
+		}
+		else
+		{
+			bExclusive = false;
+		}
+	}
+
+	// If this is an exclusive list, strip out any permissions not
+	// in the list
+	if (bExclusive == true)
+	{
+		var e = new Enumerator(SecurityInfo);
+		for (; !e.atEnd(); e.moveNext())
+		{
+			var GPMPermission = e.item();
+			if (GPMPermission.Permission == perm)
+			{
+				// Remove the permission
+				try
+				{
+					SecurityInfo.Remove(GPMPermission);
+					
+					// Try setting it back. If this fails, we'll
+					// ignore it by getting back a new SecurityInfo
+					// to continue processing.
+					try
+					{
+						GPMSOM.SetSecurityInfo(SecurityInfo);
+					}
+					catch (err)
+					{
+						SecurityInfo = GPMSOM.GetSecurityInfo();
+					}
+				}
+				catch(err)
+				{
+					// We will ignore any errors trying to remove the permission
+				}
+				
+			}
+		}
+	}
+
+	// Add the specified permissions
+	var PermList = PermissionNode.selectNodes('Permission');
+	var szInheritable;
+	var bInheritable;
+	var e = new Enumerator(PermList);
+	for (; !e.atEnd(); e.moveNext())
+	{
+		szTrusteeName = e.item().Text;
+		szInheritable = e.item().getAttribute('Inheritable');
+
+		bInheritable = false;
+
+		// See if this permission should be inheritable to children
+		if (szInheritable != null)
+		{
+			if (szInheritable.toLowerCase() == "true")
+			{
+				bInheritable = true;
+			}
+			else
+			{
+				bInheritable = false;
+			}
+		}
+
+		try
+		{
+			// First try to create a permission with the current domain explicitly specified - this will handle the
+			// case where groups like 'Domain Admins' exist in multiple domains, and we want to ensure we go with the
+			// group matching the local domain
+			
+			try
+			{
+				if (szTrusteeName.toLowerCase() == "enterprise admins")
+				{
+					GPMPermission = GPM.CreatePermission(szForestName + "\\" + szTrusteeName, perm, bInheritable);
+				}
+				else
+				{
+					GPMPermission = GPM.CreatePermission(GPMDomain.Domain + "\\" + szTrusteeName, perm, bInheritable);
+				}
+
+			}
+			catch (err)
+			{
+				GPMPermission = GPM.CreatePermission(szTrusteeName, perm, bInheritable);			
+			}
+		}
+		catch(err)
+		{
+			// The trustee specified probably does not exist
+			WScript.Echo("\nCould not add trustee " + szTrusteeName + " to the list of permissions for SOM " + GPMSOM.Name);
+			continue;
+		}
+
+		// Add the permission
+		try
+		{
+			SecurityInfo.Add(GPMPermission);
+			WScript.Echo("\nAdded " + szNodeName + " for " + szTrusteeName + " to SOM " + GPMSOM.Name);
+		}
+		catch(err)
+		{
+			WScript.Echo("\nError adding permission for " + szTrusteeName + " to SOM " + GPMSOM.Name);
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		}
+	}
+	
+	// Set the new permission on the GPO
+	try
+	{
+		GPMSOM.SetSecurityInfo(SecurityInfo);
+	}
+	catch(err)
+	{
+		WScript.Echo("Attempt to change the security settings on SOM " + GPMSOM.Name + " failed.");
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+	}
+}
+
+// Handle all SecurityGroup nodes in the XML doc
+function ProcessSecurityGroupNodes(oXMLDoc)
+{
+	var SecurityGroupNodes = oXMLDoc.documentElement.selectNodes("//SecurityGroup");
+	WScript.Echo("Found " + SecurityGroupNodes.length + " SecurityGroup nodes to Process");
+
+	// Need to process the security group list in two passes - the first to create the groups,
+	// the second to cover any cases of created groups that are members of other created groups
+	//
+
+	WScript.Echo("\n== Processing groups ==");
+	var node;
+	var e = new Enumerator(SecurityGroupNodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessSecurityGroup(node, false);
+	}
+
+	if (bUndo)
+	{
+		return; // No need to check membership if we are in an undo
+	}
+
+	WScript.Echo("\n== Processing group membership ==");	
+	// Second pass
+	var e = new Enumerator(SecurityGroupNodes);
+	for (; !e.atEnd(); e.moveNext() )
+	{
+		node = e.item();
+		ProcessSecurityGroup(node, true);
+	}	
+
+}
+
+// Process an individual SecurityGroup node
+function ProcessSecurityGroup(node, bAddMembers)
+{
+	// If this is the special "Users" container, and we are in an undo, skip it since
+	// we never want to delete the built-in groups and users from that container
+	if (node.parentNode.nodeName.toLowerCase() == "users" && bUndo == true)
+	{
+		return;
+	}
+
+	// Necessary flags from IADS.h
+	var ADS_GROUP_TYPE_GLOBAL_GROUP		=	0x2;
+	var ADS_GROUP_TYPE_DOMAIN_LOCAL_GROUP	=	0x4;
+	var ADS_GROUP_TYPE_LOCAL_GROUP		=	0x4;
+	var ADS_GROUP_TYPE_UNIVERSAL_GROUP	=	0x8;
+	var ADS_GROUP_TYPE_SECURITY_ENABLED	=	0x80000000;
+
+	var szSecurityGroupName = node.getAttribute('Name');
+	var szSecurityGroupType = node.getAttribute('Type');
+	var szDescription = node.getAttribute('Description');
+	
+	// Default to Domain Global group if group type not specified
+	if (szSecurityGroupType == null)
+	{
+		szSecurityGroupType = "DomainGlobal";
+	}
+
+	var szObjectLDAPPath = "";
+
+	// Check if the group is in the special "Users" node
+	if (node.parentNode.nodeName.toLowerCase() == "users")
+	{
+		// Set the LDAP path to point to the users container
+		szObjectLDAPPath = szGlobalLDAPPrefix + "/cn=" + szSecurityGroupName + ",cn=users," + GetLDAPSuffixFromDomainName(szDomainName);
+	}
+	else
+	{
+		var szNodePath = GetNodePath(node);
+		szObjectLDAPPath = BuildObjectLDAPPath(szNodePath);
+	}
+	
+	// If the group exists, fetch it. Otherwise create the group
+	var szLDAPPath = szGlobalLDAPPrefix;
+	var ADDomain = GetObject(szLDAPPath);
+	var szUsersContainerPath = "LDAP://CN=Users," + ADDomain.distinguishedName;
+	var ADUsersContainer = GetObject(szUsersContainerPath);
+	
+	// Try to get the security group
+	var Group = GetSecurityGroup(szSecurityGroupName);
+	if (!Group)
+	{
+		// If we are in an undo, just return
+		if (bUndo == true)
+		{
+			return;
+		}
+	
+	
+		// The group does not exist, so create it
+
+		// Set the necessary flags
+		var flags = 0;
+		switch (szSecurityGroupType.toLowerCase())
+		{
+			case "domainglobal":
+			flags = ADS_GROUP_TYPE_GLOBAL_GROUP | ADS_GROUP_TYPE_SECURITY_ENABLED;
+			break;
+		
+			case "domainlocal":
+			flags = ADS_GROUP_TYPE_DOMAIN_LOCAL_GROUP | ADS_GROUP_TYPE_SECURITY_ENABLED;
+			break;
+
+			case "universal":
+			flags = ADS_GROUP_TYPE_UNIVERSAL_GROUP | ADS_GROUP_TYPE_SECURITY_ENABLED;
+			break;
+		}
+
+
+		if (flags == 0)
+		{
+			WScript.Echo("Group type '" + szSecurityGroupType + "' is not recognized. Group '" + szSecurityGroupName + "' was not created.");
+			return;
+		}
+
+		try
+		{
+			Group = ADUsersContainer.Create("group", "cn=" + szSecurityGroupName);
+			Group.Put("samAccountName", szSecurityGroupName);
+			Group.Put("groupType", flags);
+			
+			if (szDescription != null)
+			{
+				Group.Put("description", szDescription);
+			}
+
+			Group.SetInfo();
+						
+			WScript.Echo("\nCreated security group " + szSecurityGroupName);
+		}
+		catch (err)
+		{
+			WScript.Echo("\nAttempt to create security group " + szSecurityGroupName + " failed.");
+			WScript.Echo("The error was " + ErrCode(err.number) + " - " + err.description);
+			return;
+		}
+		
+	}
+		
+	// If this is an undo, delete the Group
+	if (bUndo == true)
+	{
+		try
+		{
+			Group.DeleteObject(0);
+			WScript.Echo("\nDeleted group " + szSecurityGroupName);
+		}
+		catch (err)
+		{
+			WScript.Echo("\nAttempt to delete group " + szSecurityGroupName + " failed.");
+			WScript.Echo("The error was " + ErrCode(err.number) + " - " + err.description);
+		}
+		
+		return;
+	}
+	
+	// See if we need to move the group
+	var szTemp, loc, szDesiredPath, TargetContainer;
+	if (Group.ADsPath.toLowerCase() != szObjectLDAPPath.toLowerCase())
+	{
+		// Move the group
+		szTemp = szGlobalLDAPPrefix + "/cn=" + szSecurityGroupName + ",";
+		loc = szTemp.length;
+		szDesiredPath = szGlobalLDAPPrefix + "/" + szObjectLDAPPath.slice(loc);
+		WScript.Echo("\nMoving group " + szSecurityGroupName + " to " + szDesiredPath);
+		
+		try
+		{
+			TargetContainer = GetObject(szDesiredPath);
+			Group = TargetContainer.MoveHere(Group.ADsPath, "cn=" + szSecurityGroupName);
+		}
+		catch(err)
+		{
+			WScript.Echo("\nError moving group " + szSecurityGroupName + " to container " + szDesiredPath);
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		}
+		
+	}
+
+	if (bAddMembers)
+	{
+		// For each Member node under the group node, add it to the security group
+		var Members = node.selectNodes("Member")
+		var szMemberName, Principal;
+		var e = new Enumerator(Members);
+		for (; !e.atEnd(); e.moveNext())
+		{
+			szMemberName = e.item().getAttribute("Name");
+			Principal = GetDSObject(szMemberName);
+			if (Principal)
+			{
+				AddObjectToGroup(Group.AdsPath, Principal.AdsPath);
+			}
+			else
+			{
+				WScript.Echo("\nError: Could not add member '" + szMemberName + "' to group '" + szSecurityGroupName + "'");
+				WScript.Echo("Verify the object exists.");
+			}
+		}
+	}
+}
+
+// Adds a DS object to the specified security group
+function AddObjectToGroup(szGroupPath, szObjectPath)
+{
+	var Group = GetObject(szGroupPath)
+	{
+		try
+		{
+			Group.Add(szObjectPath);
+			WScript.Echo("\nMember added to group '" + Group.sAMAccountName + "' : " + szObjectPath);
+		}
+		catch(err)
+		{
+			if (err.number == ERROR_OBJECT_ALREADY_EXISTS)
+			{
+				// Already part of the group, so just ignore it
+				return;
+			}
+			
+			WScript.Echo("\nError adding member to group.");
+			WScript.Echo("Group:\t" + szGroupPath);
+			WScript.Echo("Member:\t" + szObjectPath);
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+			return;
+		}
+	}
+}
+
+// Creates a WMI filter in the specified domain, with the specified queries.
+//
+// szDomain is the DNS style domain name. It can be left blank to use the
+// current domain.
+//
+// aQueryList is an array of query strings in the following format:
+//	<Namespace>;<Query>
+//
+// Example of a valid query string:
+//	root\cimv2;Select * from Win32_NetworkAdapterConfiguration where IPSubnet = "256.257.258.000"
+//
+function CreateWMIFilter(szFilterName, szFilterDescription, szDomain, aQueryList)
+{
+	var szFilterClass = "MSFT_SomFilter";
+	var szRuleClass = "MSFT_Rule";
+
+	// Create WbemLocator object we will use to connect
+	var locator = new ActiveXObject("WbemScripting.SWbemLocator");
+
+	// Connect to the local root\policy namespace
+	var WBEMServices = locator.ConnectServer("", "root\\policy");
+	
+	// Get instances of the MSFT_SomFilter and MSFT_Rule classes we will work with
+	var FilterClass = WBEMServices.Get(szFilterClass);
+	var RuleClass = WBEMServices.Get(szRuleClass);
+	
+	// Create a new instance of a filter
+	var WMIFilter = FilterClass.SpawnInstance_();
+
+	// Create an array of MSFT_Rule instances to add to the filter.
+	// Note that the array must be fixed length in order for this to
+	// work on Windows XP machines.
+	//
+	var aRules = new Array(aQueryList.length);
+	for (var i = 0; i < aQueryList.length; i++)
+	{
+		// Extract the namespace and WQL query
+		var aTemp = aQueryList[i].split(";");
+		var szNamespace = aTemp[0];
+		var szQuery = aTemp[1];
+		
+		// Create a new instance of a rule
+		var Rule = RuleClass.SpawnInstance_();
+
+		// Populate the rule with the correct data
+		Rule.TargetNamespace = szNamespace;
+		Rule.Query = szQuery;
+		Rule.QueryLanguage = "WQL";
+
+		// Add the rule to our array
+		aRules[i] = Rule;
+	}
+
+	// Get the current user, to set as the author of the filter
+	var WSHNetwork = new ActiveXObject("WScript.Network");
+	var szAuthor = WSHNetwork.UserDomain + "\\" + WSHNetwork.UserName;
+
+	// Populate the filter with the correct data
+	WMIFilter.Name = szFilterName;
+	WMIFilter.Description = szFilterDescription;
+	WMIFilter.Author = szAuthor;
+	WMIFilter.Rules = aRules;
+	
+	if (szDomain != "")
+	{
+		WMIFilter.Domain = szDomain;
+	}
+
+	// Commit the WMI filter to the DS
+	try
+	{
+		var result = WMIFilter.Put_();
+	}
+	catch (err)
+	{
+		WScript.Echo("Error creating WMI filter.");
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		result = null;
+	}
+	
+	return result;
+}
+
+// Searches for the specified user object and returns it if found
+function GetUser(szUserName)
+{
+	// Define ADS related values - see IADS.h
+	var ADS_SCOPE_BASE			=	0;
+	var ADS_SCOPE_ONELEVEL			=	1;
+	var ADS_SCOPE_SUBTREE			=	2;
+	var ADSIPROP_CHASE_REFERRALS		=	0x9;
+	var ADS_CHASE_REFERRALS_NEVER		=	0;
+	var ADS_CHASE_REFERRALS_SUBORDINATE	=	0x20;
+	var ADS_CHASE_REFERRALS_EXTERNAL	=	0x40;
+	var ADS_CHASE_REFERRALS_ALWAYS		=	ADS_CHASE_REFERRALS_SUBORDINATE | ADS_CHASE_REFERRALS_EXTERNAL;
+	
+	var User;
+
+	// Create the ADO objects and open the connection
+	var ADOConnection = new ActiveXObject("ADODB.Connection");
+    	var ADOCommand =  new ActiveXObject("ADODB.Command");
+	ADOConnection.Provider = "ADsDSOObject";    
+	ADOConnection.Open("Active Directory Provider");    
+	ADOCommand.ActiveConnection = ADOConnection;
+	
+	// Build the query
+	var szDomainLDAPPath = szGlobalLDAPPrefix + "/" + GetLDAPSuffixFromDomainName(szDomainName);
+	var szSQL = "select AdsPath from '" + EscapeString(szDomainLDAPPath) + "'";
+	szSQL += " where objectCategory='user'";
+	szSQL += " AND sAMAccountName='" + szUserName + "'";
+
+	// Execute the search
+	ADOCommand.CommandText = szSQL;
+	ADOCommand.Properties("Page Size") = 1000;
+	ADOCommand.Properties("Timeout") = 500;
+	ADOCommand.Properties("SearchScope") = ADS_SCOPE_SUBTREE;
+	ADOCommand.Properties("Chase Referrals") = ADS_CHASE_REFERRALS_EXTERNAL; // Needed when querying a different domain
+	ADOCommand.Properties("Cache Results") = false;
+
+	try
+	{
+		var rs = ADOCommand.Execute();
+	}
+	catch (err)
+	{
+		WScript.Echo("\nThere was an error executing the DS query " + szSQL);
+		WScript.Echo("The error was:");
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		return false;
+	}
+
+	if (rs.eof != true && rs.bof != true)
+	{
+		try
+		{
+			User = GetObject(rs.Fields(0));
+		}
+		catch (err)
+		{
+			return false;
+		}
+	}
+
+	// Cleanup
+	ADOConnection.Close();
+
+	return User;
+}
+
+// Searches for the specified DS object and returns it if found
+function GetDSObject(szName)
+{
+	// Define ADS related values - see IADS.h
+	var ADS_SCOPE_BASE			=	0;
+	var ADS_SCOPE_ONELEVEL			=	1;
+	var ADS_SCOPE_SUBTREE			=	2;
+	var ADSIPROP_CHASE_REFERRALS		=	0x9;
+	var ADS_CHASE_REFERRALS_NEVER		=	0;
+	var ADS_CHASE_REFERRALS_SUBORDINATE	=	0x20;
+	var ADS_CHASE_REFERRALS_EXTERNAL	=	0x40;
+	var ADS_CHASE_REFERRALS_ALWAYS		=	ADS_CHASE_REFERRALS_SUBORDINATE | ADS_CHASE_REFERRALS_EXTERNAL;
+	
+	var User;
+
+	// Create the ADO objects and open the connection
+	var ADOConnection = new ActiveXObject("ADODB.Connection");
+    	var ADOCommand =  new ActiveXObject("ADODB.Command");
+	ADOConnection.Provider = "ADsDSOObject";    
+	ADOConnection.Open("Active Directory Provider");    
+	ADOCommand.ActiveConnection = ADOConnection;
+	
+	var szDomainLDAPPath = szGlobalLDAPPrefix + "/" + GetLDAPSuffixFromDomainName(szDomainName);
+	
+	// Build the query - LDAP syntax
+	var szQuery;
+	szQuery =  "<" + szDomainLDAPPath + ">;";
+	szQuery += "(&(|(objectCategory=user) (objectCategory=group) (objectCategory=computer)) (|(name=" + szName + ")(samAccountName=" + szName + ")))";
+	szQuery += ";AdsPath;subTree";
+
+	// Execute the search
+	ADOCommand.CommandText = szQuery;
+	try
+	{
+		var rs = ADOCommand.Execute();
+	}
+	catch (err)
+	{
+		WScript.Echo("\nThere was an error executing the DS query " + szQuery);
+		WScript.Echo("The error was:");
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		return false;
+	}
+
+	var result;
+	if (rs.eof != true && rs.bof != true)
+	{
+		try
+		{
+			result = GetObject(rs.Fields(0));
+			
+			// Make sure we got the desired object
+			var szObjectName = result.Name.slice(3, result.Name.length); // Remove CN=
+		}
+		catch (err)
+		{
+			return false;
+		}
+	}
+
+	// Cleanup
+	ADOConnection.Close();
+
+	return result;
+
+}
+
+// Searches for the specified computer object and returns it if found
+function GetComputer(szComputerName)
+{
+	// Define ADS related values - see IADS.h
+	var ADS_SCOPE_BASE			=	0;
+	var ADS_SCOPE_ONELEVEL			=	1;
+	var ADS_SCOPE_SUBTREE			=	2;
+	var ADSIPROP_CHASE_REFERRALS		=	0x9;
+	var ADS_CHASE_REFERRALS_NEVER		=	0;
+	var ADS_CHASE_REFERRALS_SUBORDINATE	=	0x20;
+	var ADS_CHASE_REFERRALS_EXTERNAL	=	0x40;
+	var ADS_CHASE_REFERRALS_ALWAYS		=	ADS_CHASE_REFERRALS_SUBORDINATE | ADS_CHASE_REFERRALS_EXTERNAL;
+	
+	var Computer;
+
+	// Create the ADO objects and open the connection
+	var ADOConnection = new ActiveXObject("ADODB.Connection");
+    	var ADOCommand =  new ActiveXObject("ADODB.Command");
+	ADOConnection.Provider = "ADsDSOObject";    
+	ADOConnection.Open("Active Directory Provider");    
+	ADOCommand.ActiveConnection = ADOConnection;
+	
+	// Build the query
+	var szDomainLDAPPath = szGlobalLDAPPrefix + "/" + GetLDAPSuffixFromDomainName(szDomainName);
+	var szSQL = "select AdsPath from '" + EscapeString(szDomainLDAPPath) + "'";
+	szSQL += " where objectCategory='computer'";
+	szSQL += " AND name='" + szComputerName + "'";
+
+	// Execute the search
+	ADOCommand.CommandText = szSQL;
+	ADOCommand.Properties("Page Size") = 1000;
+	ADOCommand.Properties("Timeout") = 500;
+	ADOCommand.Properties("SearchScope") = ADS_SCOPE_SUBTREE;
+	ADOCommand.Properties("Chase Referrals") = ADS_CHASE_REFERRALS_EXTERNAL; // Needed when querying a different domain
+	ADOCommand.Properties("Cache Results") = false;
+
+	try
+	{
+		var rs = ADOCommand.Execute();
+	}
+	catch (err)
+	{
+		WScript.Echo("\nThere was an error executing the DS query " + szSQL);
+		WScript.Echo("The error was:");
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		return false;
+	}
+
+	if (rs.eof != true && rs.bof != true)
+	{
+		try
+		{
+			Computer = GetObject(rs.Fields(0));
+		}
+		catch (err)
+		{
+			return false;
+		}
+	}
+
+	// Cleanup
+	ADOConnection.Close();
+
+	return Computer;
+
+}
+
+
+// Searches for the specified security group and returns it if found
+function GetSecurityGroup(szGroupName)
+{
+	// Define ADS related values - see IADS.h
+	var ADS_SCOPE_BASE			=	0;
+	var ADS_SCOPE_ONELEVEL			=	1;
+	var ADS_SCOPE_SUBTREE			=	2;
+	var ADSIPROP_CHASE_REFERRALS		=	0x9;
+	var ADS_CHASE_REFERRALS_NEVER		=	0;
+	var ADS_CHASE_REFERRALS_SUBORDINATE	=	0x20;
+	var ADS_CHASE_REFERRALS_EXTERNAL	=	0x40;
+	var ADS_CHASE_REFERRALS_ALWAYS		=	ADS_CHASE_REFERRALS_SUBORDINATE | ADS_CHASE_REFERRALS_EXTERNAL;
+	var ADS_GROUP_TYPE_GLOBAL_GROUP		=	0x2;
+	var ADS_GROUP_TYPE_DOMAIN_LOCAL_GROUP	=	0x4;
+	var ADS_GROUP_TYPE_LOCAL_GROUP		=	0x4;
+	var ADS_GROUP_TYPE_UNIVERSAL_GROUP	=	0x8;
+	var ADS_GROUP_TYPE_SECURITY_ENABLED	=	0x80000000;
+
+	var Group;
+
+	// Create the ADO objects and open the connection
+	var ADOConnection = new ActiveXObject("ADODB.Connection");
+    	var ADOCommand =  new ActiveXObject("ADODB.Command");
+	ADOConnection.Provider = "ADsDSOObject";    
+	ADOConnection.Open("Active Directory Provider");    
+	ADOCommand.ActiveConnection = ADOConnection;
+	
+	// Build the query
+	var szDomainLDAPPath = szGlobalLDAPPrefix + "/" + GetLDAPSuffixFromDomainName(szDomainName);
+	var szSQL = "select AdsPath from '" + EscapeString(szDomainLDAPPath) + "'";
+	szSQL += " where objectCategory='group'";
+	szSQL += " AND Name='" + szGroupName + "'";
+
+	// Execute the search
+	ADOCommand.CommandText = szSQL;
+	ADOCommand.Properties("Page Size") = 1000;
+	ADOCommand.Properties("Timeout") = 500;
+	ADOCommand.Properties("SearchScope") = ADS_SCOPE_SUBTREE;
+	ADOCommand.Properties("Chase Referrals") = ADS_CHASE_REFERRALS_EXTERNAL; // Needed when querying a different domain
+	ADOCommand.Properties("Cache Results") = false;
+
+	try
+	{
+		var rs = ADOCommand.Execute();
+	}
+	catch (err)
+	{
+		WScript.Echo("\nThere was an error executing the DS query " + szSQL);
+		WScript.Echo("The error was:");
+		WScript.Echo(ErrCode(err.number) + " - " + err.description);
+		return false;
+	}
+
+	if (rs.eof != true && rs.bof != true)
+	{
+		try
+		{
+			Group = GetObject(rs.Fields(0));
+		}
+		catch (err)
+		{
+			return false;
+		}
+	}
+
+	// Cleanup
+	ADOConnection.Close();
+
+	return Group;
+}
+
+// Given a GPO GUID or Name, returns that GPO
+function GetGPO(szName)
+{
+	try
+	{
+		GPO = GPMDomain.GetGPO(szName);
+	}
+	catch (err)
+	{
+		// Probably passed in by friendly name, so fetch it by name
+		try
+		{
+			GPO = GetGPOByName(szName);
+		}
+		catch (err)
+		{
+			WScript.Echo("Could not find GPO " + szName);
+			WScript.Echo(ErrCode(err.number) + " - " + err.description);
+			GPO = null;
+		}
+	}
+	
+	return GPO;
+}
+
+// Retrieves the WMI filter with the specified name
+function GetWMIFilter(szWMIFilterName, GPMDomain)
+{
+	var GPMSearchCriteria = GPM.CreateSearchCriteria();
+	var FilterList = GPMDomain.SearchWMIFilters(GPMSearchCriteria);
+	var e = new Enumerator(FilterList);
+	var WMIFilter;
+
+	for (; !e.atEnd(); e.moveNext())
+	{
+		WMIFilter = e.item();
+		if (WMIFilter.Name.toLowerCase() == szWMIFilterName.toLowerCase())
+		{
+			return WMIFilter;
+		}
+	}
+
+	return false;
+}
+
+// Gets the path to a node using the 'name' value for each node
+function GetNodePath(node)
+{
+	szNodeString += node.getAttribute('Name');
+ 
+	//Call the recursive function
+	ReturnParentNode(node);
+  
+	//return the name attribute path for this node
+	var szTemp = szNodeString;
+	szNodeString = "";
+	return szTemp;
+
+}
+
+// Recursively walks the node tree backward 
+// to build the string of parent nodes
+function ReturnParentNode(node)
+{
+
+	//If we have not reached the top node, append the parent node
+	if (node.parentNode.parentNode)
+	{
+		var newNode = node.parentNode;
+		szTemp = newNode.getAttribute('Name');
+
+		// Bail out if we reach a non-named node
+		if (szTemp == null)
+			return;
+
+		szTemp += "\\" + szNodeString;
+		szNodeString = szTemp;
+		ReturnParentNode(newNode);
+	}
+
+}
+
+// Uses the GPMC to determine the LDAP suffix for a domain name
+function GetLDAPSuffixFromDomainName(szDomainName)
+{
+	var GPMDomain = GPM.GetDomain(szDomainName, "", Constants.UseAnyDC);
+
+	// Get a SOM object represeting the domain
+	var SOM = GPMDomain.GetSOM("");
+	
+	// Now return the LDAP path
+	return SOM.Path;	
+}
+
+// Escapes certain characters in a string so they will work with SQL statements
+function EscapeString(str)
+{
+	var result;
+
+	// Handle single quotes
+	var re = new RegExp("'");
+	result = str.replace(re, "''");
+	return result;
+}
+
+
+// Check if the forest has the Windows Server 2003 schema
+function IsForestW2k(szDomainName)
+{
+	var szContainerToLookFor = "CN=Windows2003Update,CN=ForestUpdates";
+	var szForestLDAPName = GetForestConfigurationContainerPath(szDomainName);
+	var szPathToCheck = "LDAP://" + szContainerToLookFor + "," + szForestLDAPName;
+
+	try
+	{
+		var Container = GetObject(szPathToCheck);
+	}
+	catch (err)
+	{
+		// Could not get the container, so return false
+		return true;
+	}
+
+	// If we were able to get the container, return false
+	return false;
+}
+
+// Use ADSI to check if the domain does not have the Win2k3 domain updates.
+// If it does not, we assume it's a Win2k domain.
+//
+function IsDomainW2k(szDomainName)
+{
+	var szContainerToLookFor = "CN=Windows2003Update,CN=DomainUpdates,CN=System";
+	var szDomainLDAPName = GetLDAPSuffixFromDomainName(szDomainName);
+	var szPathToCheck = "LDAP://" + szContainerToLookFor + "," + szDomainLDAPName;
+	try
+	{
+		var Container = GetObject(szPathToCheck);
+	}
+	catch (err)
+	{
+		// Could not get the container, so this is a W2k domain
+		return true;
+	}
+
+	// If we were able to get the container, this is a W2k3 or later domain
+	return false;
+}
+
+// Use ADSI to get the configuration container for the forest
+function GetForestConfigurationContainerPath(szDomainName)
+{
+	// Get the RootDSE naming context for the specified domain
+	var RootDSE = GetObject("LDAP://" + szDomainName + "/RootDSE");
+
+	// Initialize the property cache
+	RootDSE.GetInfo();
+
+	// Now get the configuration container
+	var szConfigurationContainer = RootDSE.configurationNamingContext;
+	
+	return szConfigurationContainer;
+}
+
+// Use ADSI to get the LDAP-style forest name of a given domain
+//
+function GetForestLDAPPath(szDomainName)
+{
+	// Get the RootDSE naming context for the specified domain
+	var RootDSE = GetObject("LDAP://" + szDomainName + "/RootDSE");
+
+	// Initialize the property cache
+	RootDSE.GetInfo();
+
+	// Now get the forest name
+	var szForestName = RootDSE.rootDomainNamingContext;
+	
+	return szForestName;
+}
+
+
+// Use ADSI to get the forest name of a given domain
+function GetForestDNSName(szDomainName)
+{
+	var ADS_NAME_INITTYPE_DOMAIN = 1;
+	var ADS_NAME_INITTYPE_SERVER = 2;
+	var ADS_NAME_INITTYPE_GC = 3;
+ 
+	var ADS_NAME_TYPE_1779 = 1;                      // "CN=Jane Doe,CN=users, DC=Microsoft, DC=com"
+	var ADS_NAME_TYPE_CANONICAL = 2;                 // "Microsoft.com/Users/Jane Doe".
+	var ADS_NAME_TYPE_NT4 = 3;                       // "Microsoft\JaneDoe"
+	var ADS_NAME_TYPE_DISPLAY = 4;                   // "Jane Doe"
+	var ADS_NAME_TYPE_DOMAIN_SIMPLE = 5;             // "JaneDoe@Microsoft.com"
+	var ADS_NAME_TYPE_ENTERPRISE_SIMPLE = 6;         // "JaneDoe@Microsoft.com"
+	var ADS_NAME_TYPE_GUID = 7;                      // {95ee9fff-3436-11d1-b2b0-d15ae3ac8436}
+	var ADS_NAME_TYPE_UNKNOWN = 8;                   // The system will try to make the best guess
+	var ADS_NAME_TYPE_USER_PRINCIPAL_NAME = 9;       // "JaneDoe@Fabrikam.com"
+	var ADS_NAME_TYPE_CANONICAL_EX = 10;             // "Microsoft.com/Users Jane Doe"
+	var ADS_NAME_TYPE_SERVICE_PRINCIPAL_NAME = 11;   // "www/www.microsoft.com@microsoft.com"
+	var ADS_NAME_TYPE_SID_OR_SID_HISTORY_NAME = 12;  // "O:AOG:DAD:(A;;RPWPCCDCLCSWRCWDWOGA;;;S-1-0-0)"
+
+
+	// Get the RootDSE naming context for the specified domain
+	var RootDSE = GetObject("LDAP://" + szDomainName + "/RootDSE");
+
+	// Initialize the property cache
+	RootDSE.GetInfo();
+
+	// Now get the forest name
+	var szForestName = RootDSE.rootDomainNamingContext;
+
+	// Translate it to DNS style
+	var objectNameTranslate = new ActiveXObject("NameTranslate");
+	objectNameTranslate.Init(ADS_NAME_INITTYPE_DOMAIN, szDomainName);
+	objectNameTranslate.Set(ADS_NAME_TYPE_1779, szForestName);
+
+	var szTranslatedName = objectNameTranslate.Get(ADS_NAME_TYPE_CANONICAL);
+	
+	return szTranslatedName.slice(0,-1);
+}
+
+// Returns the DNS domain name for the current user, using ADSI
+function GetDNSDomainForCurrentUser()
+{
+
+	var ADS_NAME_INITTYPE_DOMAIN = 1;
+	var ADS_NAME_INITTYPE_SERVER = 2;
+	var ADS_NAME_INITTYPE_GC = 3;
+ 
+	var ADS_NAME_TYPE_1779 = 1;                      // "CN=Jane Doe,CN=users, DC=Microsoft, DC=com"
+	var ADS_NAME_TYPE_CANONICAL = 2;                 // "Microsoft.com/Users/Jane Doe".
+	var ADS_NAME_TYPE_NT4 = 3;                       // "Microsoft\JaneDoe"
+	var ADS_NAME_TYPE_DISPLAY = 4;                   // "Jane Doe"
+	var ADS_NAME_TYPE_DOMAIN_SIMPLE = 5;             // "JaneDoe@Microsoft.com"
+	var ADS_NAME_TYPE_ENTERPRISE_SIMPLE = 6;         // "JaneDoe@Microsoft.com"
+	var ADS_NAME_TYPE_GUID = 7;                      // {95ee9fff-3436-11d1-b2b0-d15ae3ac8436}
+	var ADS_NAME_TYPE_UNKNOWN = 8;                   // The system will try to make the best guess
+	var ADS_NAME_TYPE_USER_PRINCIPAL_NAME = 9;       // "JaneDoe@Fabrikam.com"
+	var ADS_NAME_TYPE_CANONICAL_EX = 10;             // "Microsoft.com/Users Jane Doe"
+	var ADS_NAME_TYPE_SERVICE_PRINCIPAL_NAME = 11;   // "www/www.microsoft.com@microsoft.com"
+	var ADS_NAME_TYPE_SID_OR_SID_HISTORY_NAME = 12;  // "O:AOG:DAD:(A;;RPWPCCDCLCSWRCWDWOGA;;;S-1-0-0)"
+ 
+
+	var objWshNetwork = new ActiveXObject("Wscript.Network");
+	var objectNameTranslate = new ActiveXObject("NameTranslate");
+	var arrNamePart;
+	var strNTPath = "";
+	var strTranslatedName = "";
+	var strResult = "";
+
+	strUser = objWshNetwork.UserName;
+	strDomain = objWshNetwork.UserDomain;
+	strNTPath = strDomain + "\\" + strUser;
+
+	objectNameTranslate.Init(ADS_NAME_INITTYPE_DOMAIN, strDomain);
+	objectNameTranslate.Set(ADS_NAME_TYPE_NT4, strNTPath);
+	strTranslatedName = objectNameTranslate.Get(ADS_NAME_TYPE_CANONICAL);
+
+	arrNamePart = strTranslatedName.split("/");
+	strResult = arrNamePart[0];
+
+	return strResult;
+}
+
+// Prints any status messages for a GPO operation, such as backup or import
+function PrintStatusMessages(GPMResult)
+{
+	var GPMStatus = GPMResult.Status;
+
+	if (GPMStatus.Count == 0)
+	{
+		// No messages, so just return
+		return;
+	}
+
+	WScript.Echo("");
+	var e = new Enumerator(GPMStatus);
+	for (; !e.atEnd(); e.moveNext())
+	{
+		WScript.Echo(e.item().Message);
+	}
+}
+
+// Checks if the specified file system path is valid.
+// Returns true if the path is found, false otherwise.
+//
+function ValidatePath(szPath)
+{
+	var fso = new ActiveXObject("Scripting.FileSystemObject");
+	try
+	{
+		var Path = fso.GetFolder(szPath);
+	}
+	catch (err)
+	{
+		return false;
+	}
+	
+	return true;
+}
+
+// Prompts the user for a password at the command line
+function GetPassword()
+{
+	var szPassword, szPassword2;
+	var oPassword = new ActiveXObject("ScriptPW.Password");
+	var bMatch = false;
+
+	while (bMatch != true)
+	{
+		WScript.StdOut.WriteLine("\nEnter the password");
+		szPassword = oPassword.GetPassword();
+	
+		WScript.StdOut.WriteLine("\nPlease confirm the password");
+		szPassword2 = oPassword.GetPassword();
+
+		if (szPassword == szPassword2)
+		{
+			bMatch = true;
+		}
+		else
+		{
+			WScript.StdOut.WriteLine("\nThe passwords did not match.");
+		}
+	}
+
+	return szPassword;
+}
+
+// Returns the hexadecimal string for a number, converting negative decimal
+// values to the appropriate winerror style hex values
+//
+function ErrCode(i)
+{
+	var result;
+
+	if (i < 0)
+	{
+		// Get the winerror-style representation of the hex value
+		result = 0xFFFFFFFF + i + 1;
+	}
+	else
+	{
+		result = i;
+	}
+
+	return "0x" + result.toString(16); // base 16
+}
+
+// Takes a WScript.Arguments object and returns a dictionary object
+// containing the named arguments and values that were passed in
+//
+function ProcessCommandLineArguments(Arguments)
+{
+	var szDCName = "";
+	var szXMLFileName = "";
+	var bUndo = false;
+	var bExcludeSettings = false;
+	var bExcludePermissions = false;	
+	var szMigrationTable = "";
+	var szDomainName = "";
+	var szPasswordForUsers = "";
+	var bQuietMode = false;
+	var bCreateUsersEnabled = false;
+	var bImportDefaultGPOs = false;
+
+	// Check if this is cscript. If not, print an error and bail out
+	if (WScript.FullName.toLowerCase().search("wscript") > 0)
+	{
+		WScript.Echo("You must use cscript.exe to execute this script.");
+		WScript.Quit();
+	}
+
+	if (Arguments.Length == 0)
+	{
+		Arguments.ShowUsage();
+		WScript.Quit();
+	}
+	
+	var Result = new ActiveXObject("Scripting.Dictionary");
+
+	if (! Arguments.Named.Exists("XML") )
+	{
+		Arguments.ShowUsage();
+		WScript.Quit();
+	}
+
+	szXMLFileName = Arguments.Named("XML");
+
+	if ( Arguments.Named.Exists("Undo") )
+	{
+		bUndo = true;
+	}
+
+	if ( Arguments.Named.Exists("dc") )
+	{
+		szDCName = Arguments.Named("dc");
+	}
+
+	if ( Arguments.Named.Exists("ExcludeSettings") )
+	{
+		bExcludeSettings = true;
+	}
+
+	if ( Arguments.Named.Exists("ExcludePermissions") )
+	{
+		bExcludePermissions = true;
+	}
+
+	if ( Arguments.Named.Exists("MigrationTable") )
+	{
+		szMigrationTable = Arguments.Named("MigrationTable");
+	}
+
+	if ( Arguments.Named.Exists("Q") )
+	{
+		bQuietMode = true;
+	}
+
+	if ( Arguments.Named.Exists("CreateUsersEnabled") )
+	{
+		bCreateUsersEnabled = true;
+	}
+
+	if ( Arguments.Named.Exists("ImportDefaultGPOs") )
+	{
+		bImportDefaultGPOs = true;
+	}
+
+	if ( Arguments.Named.Exists("PasswordForUsers") )
+	{
+		szPasswordForUsers = Arguments.Named("PasswordForUsers");
+	}
+
+	if (Arguments.Named.Exists("Domain"))
+	{
+		szDomainName = Arguments.Named("Domain");
+	}
+
+	// Get the current domain if none was specified
+	if (szDomainName == "")
+	{
+		szDomainName = GetDNSDomainForCurrentUser();
+	}
+
+	Result.add("XML", szXMLFileName);
+	Result.add("Undo", bUndo);
+	Result.add("ExcludeSettings", bExcludeSettings);
+	Result.add("ExcludePermissions", bExcludePermissions);
+	Result.add("MigrationTable", szMigrationTable);
+	Result.add("QuietMode", bQuietMode);
+	Result.add("Domain", szDomainName);
+	Result.add("DCName", szDCName);
+	Result.add("CreateUsersEnabled", bCreateUsersEnabled);
+	Result.add("PasswordForUsers", szPasswordForUsers);
+	Result.add("ImportDefaultGPOs", bImportDefaultGPOs);
+	return Result;
+}
+
+</script>
+
+<!-- Usage and command line argument information -->
+<runtime>
+
+<description>
+Takes an XML file that defines a policy environment and creates or deletes that environment.
+</description>
+
+<named name="XML" helpstring="The XML file to Process" type="string" required="true" />
+<named name="Undo" helpstring="Deletes the objects specified in the XML instead of creating them" type="simple" required="false" />
+<named name="Domain" helpstring="DNS name of domain" type="string" required="false" />
+<named name="DC" helpstring="Domain Controller to perform all operations on" type="string" required="false" />
+<named name="ExcludeSettings" helpstring="Does not import GPO settings from templates specified in the XML" type="simple" required="false" />
+<named name="ExcludePermissions" helpstring="Ignore any permissions specified for GPOs and SOMs" type="simple" required="false" />
+<named name="CreateUsersEnabled" helpstring="Creates any user objects as enabled, instead of disabled" type="simple" required="false" />
+<named name="PasswordForUsers" helpstring="The password to use for any user objects that do not have passwords in the XML" type="string" required="false" />
+<named name="MigrationTable" helpstring="Migration table to use when mapping security principals and paths cross-domain" type="string" required="false" />
+<named name="ImportDefaultGPOs" helpstring="Imports settings into the default domain GPOs if specified in the XML" type="simple" required="false" />
+<named name="Q" helpstring="Quiet mode - no confirmation warning will be displayed" type="simple" required="false" />
+
+<example>
+CreateEnvironmentFromXML.wsf /xml:TestDomain.xml
+CreateEnvironmentFromXML.wsf /xml:TestDomain.xml /domain:testdomain.mycompany.com /dc:testdomaindc-1
+CreateEnvironmentFromXML.wsf /xml:TestDomain.xml /CreateUsersEnabled /PasswordForUsers:"MyPassword!" /MigrationTable:MyTable.migtable
+</example>
+
+</runtime>
+
+</job>

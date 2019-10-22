@@ -1,0 +1,16 @@
+	<section class="full-reading-list">
+		<ul class="list-links">
+			{% for post in site.pages.reading.posts %}
+        
+        <li><h3><a href="{{post.meta['list_link']}}"><i class="ss-icon ss-social-regular">link</i> {{post.title}}</a></h3></li>
+          {{post.body}}
+         
+
+          {% unless forloop.last %}
+          	<hr>
+          {% endunless %}
+
+      {% endfor %}
+    </ul>
+
+	</section>

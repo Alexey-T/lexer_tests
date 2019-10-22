@@ -1,0 +1,129 @@
+Eric Etheridge
+2009 05 18
+ExampleSectionsTry.txt
+
+This file contains the simple examples from the first six sections that are meant to be typed at a prompt, either GHCi or Hugs.  Any example in this file that is given with "Prelude>" as the prompt will also work with any other prompt, i.e. with any file loaded.
+
+To load the file of examples in the first five sections:
+	Prelude> :l exListCode.hs
+	[1 of 1] Compiling Main             ( exListCode.hs, interpreted )
+	Ok, modules loaded: Main.
+	*Main>
+
+To reload currently loaded files, use ':r'.  To load no files and have only the Prelude available again, use ':l', although that's not really necessary here.
+
+
+If you're going to try all of these examples, go ahead and load that file to save yourself some time.  There are a lot of examples in that file which aren't listed here, so be sure to look through that file, too.
+
+
+## section1.html
+
+List comprehension examples:
+	Prelude> let nums = [ 4, 2, 6, 8, 5, 11 ]
+	Prelude> [ x + 1 | x <- nums ]
+	[5,3,7,9,6,12]
+	Prelude> [ x * x | x <- nums, x < 7 ]
+	[16,4,36,25]
+	Prelude> [ 2 * x | x <- 9 : 1 : nums ]
+	[18,2,8,4,12,16,10,22]
+	Prelude> [ "String" | x <- nums, x < 5 ]
+	["String","String"]
+	Prelude> 
+
+
+Querying types at an interactive prompt, using 'fibs' from the example file:
+	*Main> :t zip fibs (tail fibs)
+	zip fibs (tail fibs) :: [(Int, Int)]
+	*Main>
+
+
+Zip function example:
+	Prelude> zip [ 1, 3, 6, 2 ] [ "duck", "duck", "duck", "goose" ]
+	[(1,"duck"),(3,"duck"),(6,"duck"),(2,"goose")]
+	Prelude> 
+
+
+Tail function example:
+	Prelude> tail [ 10, 20, 30, 40, 50 ]
+	[20,30,40,50]
+	Prelude> 
+
+
+## section2.html
+
+The type of '4':
+	Prelude> :t 4
+	4 :: (Num t) => t
+	Prelude>
+
+Map function example, using 'fooList' and 'bar' from the example file:
+	*Main> map bar fooList
+	[1,-1,3,2]
+	*Main> 
+
+Type of (10 -):
+	*Main> :t (10 -)
+	(10 -) :: (Num t) => t -> t
+	*Main> 
+
+Type of map (10 -):
+	*Main> :t map (10 -)
+	map (10 -) :: (Num t) => [t] -> [t]
+	*Main> 
+
+Applying subEachFromTen:
+	*Main> subEachFromTen [4, 6, 7, 11]
+	[6,4,3,-1]
+	*Main> 
+
+
+## section3.html
+
+Lambda function example:
+	Prelude> map (\x -> "the " ++ show x) [1, 2, 3, 4, 5]
+	["the 1","the 2","the 3","the 4","the 5"]
+	Prelude> 
+
+Extra example, demonstrates 'showPet':
+	*Main> showPet Nothing
+	"none"
+	*Main> showPet (Just ("Fido", 3, "dog"))
+	"a dog named Fido, aged 3"
+	*Main> 
+
+
+## section4.html
+
+Physics example, using one of four sections that has 'calcMassesOverDists' from the example file:
+	*Main> calcMassesOverDists objs1
+	[1.0,1.0]
+	*Main> calcMassesOverDists objs2
+	[62.55917248957287,92.07316104204293,11.662286888301928,51.165570820315736]
+	*Main> calcMassesOverDists objs3
+	[6255.917248957288,9207.316104204292,1166.2286888301928,5116.5570820315725]
+	*Main> 
+
+Tree example, using 't1' and 'inOrderList' from the example file:
+	*Main> inOrderList t1
+	[2,3,4,5]
+	*Main> 
+
+Tree example, using 't2' and 'inOrderList' from the example file (don't print 't2', or use Ctrl-C to cancel):
+	*Main> let (Node a tLeft tRight) = t2
+	*Main> let (Node b tLeftB tRightB) = tLeft
+	*Main> let (Node c tLeftC tRightC) = tRight
+	*Main> a
+	0
+	*Main> b
+	-1
+	*Main> c
+	1
+	*Main> 
+
+
+## section5.html
+(nothing)
+
+## section6.html
+(nothing)
+

@@ -1,0 +1,128 @@
+/*
+ * Copyright (c) 2004-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
+namespace Nemerle.Collections
+{
+  /**
+   * Exception thrown when an element access operation is performed
+   * on an empty ICollection object.
+   */
+  public class EmptyCollection : System.Exception
+  {
+    public msg : string;
+    public this (msg : string) { this.msg = msg; }
+  }
+
+  public interface ICovariantEnumerator [+T] {
+    MoveNext () : bool;
+    Current : T { get; }
+    Reset () : void;
+  }
+  
+  public interface ICovariantEnumerable [+T] {
+    GetEnumerator () : ICovariantEnumerator [T];
+  }
+  
+  //[Nemerle.Utility.ExtensionPattern ( Nil() = (x when x.IsEmpty) )]
+  public interface ICovariantList [+T] {
+    IsEmpty : bool { get; }
+    Head : T { get; }
+    CovariantTail : ICovariantList [T] { get; }
+  }
+    
+  /**
+   * The collection interface.
+   */
+  public interface ICollection ['a] : System.Collections.Generic.ICollection ['a],
+                                      System.Collections.Generic.IEnumerable ['a]
+  {
+    /* -- PROPERTIES -------------------------------------------------------- */
+
+    /**
+     * Returns `true' if the collection is empty.
+     */
+    IsEmpty : bool { get; }
+
+    
+    /* -- METHODS ----------------------------------------------------------- */
+    
+    /**
+     * Returns the first of the collection elements, if there is one.
+     * Throws EmptyCollection exception otherwise.
+     */
+    First () : option ['a];
+    
+    /**
+     * Creates a shallow copy of this collection.
+     */
+    Clone () : ICollection ['a];
+
+    /**
+     * Folds the collection using the specified fold function and an initial
+     * value. Order in which the elements are folded is unspecified.
+     */
+    Fold ['b] (f : 'a * 'b -> 'b, x : 'b) : 'b;
+    
+    /**
+     * Maps the supplied function to the elements of this collection,
+     * creating a new collection.
+     */
+    Map ['b] (f : 'a -> 'b) : ICollection ['b];
+    
+    /**
+     * Calls the supplied function for all the elements of this collection.
+     */
+    Iter (f : 'a -> void) : void;
+
+    /**
+     * Checks if all the members of this collection satisfy the supplied
+     * predicate.
+     */
+    ForAll (f : 'a -> bool) : bool;
+    
+    /**
+     * Checks if there exists a member of collection that satisfies
+     * the supplied condition.
+     */
+    Exists (f : 'a -> bool) : bool;
+    
+    /**
+     * Filters the collection removing all elements that do not satisfy
+     * the supplied predicate.
+     */
+    Filter (f : 'a -> bool) : void;
+    
+    /** 
+     * Partitions collection into two collections: elements that satisfy
+     * and elements that do not satisfy the supplied predicate.
+     */
+    Partition (f : 'a -> bool) : ICollection ['a] * ICollection ['a];
+  }
+
+} /* namespace */

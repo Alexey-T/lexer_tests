@@ -1,0 +1,16 @@
+'A program to flash LED on PIN 13/PORTB5
+
+'Chip model
+#chip 16F886, 16
+
+'Main routine
+Start:
+ 'Turn one LED on, the other off
+ 		SET PORTB.5 ON
+    wait 1 sec
+ 'Now toggle the LEDs
+ 		SET PORTB.5 OFF
+    wait 1 sec
+ 'Jump back to the start of the program
+goto Start
+

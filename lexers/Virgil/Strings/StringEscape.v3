@@ -1,0 +1,2 @@
+// newline, tab, carriage-return, backslash, single-quote and double-quote
+var a: string = "\n\t\r\\\'\"";

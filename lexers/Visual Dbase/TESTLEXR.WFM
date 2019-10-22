@@ -1,0 +1,98 @@
+** END HEADER -- *
+parameter bModal
+local f
+f = new Test1()
+if (bModal)
+   f.mdi = .F.
+   f.ReadModal()
+   f.Release()
+else
+   f.Open()
+endif
+CLASS Test1 OF FORM
+   this.Text = "TestLexer"
+   this.Height = 18.8232
+   this.Left = 120
+   this.Top = 0
+   this.Width = 80
+
+   DEFINE RECTANGLE RECTANGLE1 OF THIS;
+       PROPERTY;
+         FontBold .F.,;
+         Text "Rectangle1",;
+         Height 18.3525,;
+         Left 1,;
+         Width 78
+
+   DEFINE ENTRYFIELD ENTRYFIELD1 OF THIS;
+       PROPERTY;
+         FontBold .F.,;
+         Height 1,;
+         Left 10,;
+         Top 1.8818,;
+         Value "EntryField1",;
+         Width 9.833
+
+   DEFINE TEXT TEXT1 OF THIS;
+       PROPERTY;
+         FontBold .F.,;
+         Text "Text1",;
+         Height 0.7646,;
+         Left 4,;
+         Top 1.8818,;
+         Width 4.5
+
+   Procedure Init
+      this.b_ok=.f.
+
+
+   Procedure WasteMyTime
+      local n, n2, o_test2
+      n2=0
+      for n=1 to 1000
+         n2=n2+1
+      next
+      do while n2>0
+         n2=n2-1
+      enddo
+      do
+         ? 'How do yo do'
+      until time()>'10:00:00'
+      o_test2=new Test2()
+      o_test2.DoSomethingStupid()
+      o_test2.Release()
+      && Two different kind of calls:
+      CountToN(1000)
+      do CountToN with 10
+      return && Not necessary
+
+ENDCLASS
+
+CLASS Test2
+   class::Init()
+
+   Procedure Init
+      this.b_ok=.f.
+      this.a=new Array()
+
+
+   Procedure Release
+      release object this.a
+      release object this
+
+   Procedure DoSomethingStupid
+      local n
+      for n=1 to 1000
+         this.a[n]='la'
+      next
+      for n=1 to a.Size
+         ? a[n]
+      next
+
+ENDCLASS
+
+Procedure CountToN(n_max)
+   local n
+   for n=1 to n_max
+      ? n
+   next

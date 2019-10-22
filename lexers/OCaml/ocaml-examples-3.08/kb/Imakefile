@@ -1,0 +1,2 @@
+CamlProg(kb,prelude.cmo terms.cmo equation.cmo order.cmo kb.cmo go.cmo,)
+CamlProgOpt(kb,prelude.cmx terms.cmx equation.cmx order.cmx kb.cmx go.cmx,)

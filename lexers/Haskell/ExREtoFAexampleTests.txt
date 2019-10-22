@@ -1,0 +1,67 @@
+Eric Etheridge
+2009 05 18
+ExREtoFAexampleTests.txt
+
+Example Regular Expressions accepted by this program, and tests against them:
+
+
+a|bb|ccc
+some tests:
+a
+aa
+b
+bb
+c
+cc
+ccc
+[the empty string]
+
+[a-e]*[f-h]*
+some tests:
+abcdefgh
+ah
+ha
+abcde
+fgh
+edcbahgf
+[the empty string]
+
+[a-e]{2,5}q
+some tests:
+abcdeq
+abcde
+aq
+edq
+bbqb
+
+([a-c]|[x-z]{3,5})+
+some tests:
+[the empty string]
+a
+aac
+xxaxxaxxa
+bzyx
+yyy
+
+.z\\
+some tests (you have to give 'abz\\' as the list of valid characters to try these):
+az\
+bz\\
+zz
+
+[^a-ch-j]?[a-j]
+some tests:
+a
+aa
+af
+fa
+fff
+[the empty string]
+
+[.a-e]{1,2}.
+some tests:
+...
+..a
+aa.
+aaa
+

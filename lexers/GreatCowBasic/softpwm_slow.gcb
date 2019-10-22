@@ -1,0 +1,21 @@
+'SoftPWM_slow.gcb
+'A program to brighten and dim the LED on PIN 13/PORTB5 slowly
+
+'Chip model
+#chip 16F886, 16
+#include <chipino.h> ' Defines all the CHIPINO connections
+#define PWM_out1 D13	' define the PWMout 1 pin.
+
+'Main routine
+Start:
+ 'Turn one LED on, the other off
+do
+for cnt = 10 to 250 step 10	'Change duty cycle brighter
+    PWMOut(1, cnt, 100)    'slowly get brighter, 100 value sets spped
+next
+for cnt = 250 to 10 step -10 'change duty cycle dimmer
+    PWMOut (1, cnt, 100)   'slowly dim, 100 value sets speed
+next
+    loop		' Continuous loop
+
+

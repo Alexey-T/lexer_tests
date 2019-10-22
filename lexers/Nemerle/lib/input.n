@@ -1,0 +1,154 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using System;
+using System.IO;
+
+namespace Nemerle
+{
+  /**
+   * Helper functions for handling the standard input stream
+   */
+  public module IO
+  {
+    public class InvalidInput : Exception
+    { }
+
+    public ConsumeWhiteSpace (input : TextReader) : void
+    {
+      mutable ch = 0;
+      while ({ ch = input.Peek ();
+        ch >= 0 && Char.IsWhiteSpace (Convert.ToChar (ch)) }) 
+      {
+        ignore (input.Read ())
+      }
+    }
+
+    /// Read digital characters returning integer value of read string
+    public ReadIntDigits (input : TextReader) : string
+    {
+      def first = input.Read ();
+      if (first >= 0)
+      {
+        def firstc = Convert.ToChar (first);
+          
+        if (Char.IsDigit (firstc) || firstc == '-' || firstc == '+')
+        {
+          def buf = System.Text.StringBuilder();
+          _ = buf.Append (firstc);
+            
+          while ({ def ch = input.Peek (); ch >= 0 && Char.IsDigit (Convert.ToChar (ch))}) 
+            _ = buf.Append (Convert.ToChar (input.Read ()));
+              
+          buf.ToString ()
+        }
+        else throw InvalidInput ()
+      }
+      else throw InvalidInput ()
+    }
+
+    /**
+     * Read digital characters returning real value of read string
+     */
+/*
+    public ReadRealDigits (input : TextReader) : string
+    {
+      def first = input.Read ();
+      if (first >= 0) {
+        def firstc = Convert.ToChar (first);
+          
+        if (Char.IsDigit (firstc) || firstc == '-' || firstc == '+' || firstc == '.') {
+          mutable buf = System.Text.StringBuilder();
+          buf = buf.Append (firstc);
+            
+          while ({ def ch = input.Peek (); ch >= 0 && 
+            Char.IsDigit (Convert.ToChar (ch))}) {
+                 buf = buf.Append (Convert.ToChar (input.Read ()))
+          }
+              
+          buf.ToString ()
+        }
+        else throw InvalidInput ()
+      }
+      else throw InvalidInput ()
+    }
+  */  
+    /**
+     * Reads characters up to first occurence of whitespace and returns 
+     * read string
+     */
+    public ReadString (input : TextReader) : string
+    {
+      def buf = Text.StringBuilder();
+            
+      while ( { def ch = input.Peek (); ch >= 0 && 
+        !Char.IsWhiteSpace (Convert.ToChar (ch)) })
+      {
+        ignore (buf.Append (Convert.ToChar (input.Read ())))
+      }
+
+      buf.ToString ()
+    }
+
+    public ReadChar (input : TextReader) : int
+    {
+      def c = input.Read ();
+      if (c >= 0) c else throw InvalidInput ();
+    }
+    
+    /**
+     * Checks if input consist exactly of given string (all consecutive 
+     * sequences of whitespaces in string and input are treated as single 
+     * whitespace character, thus they match each other)
+     */
+    public CheckInput (str : string, input : TextReader) : void
+    {
+      def n = str.Length;
+      mutable i = 0;
+
+      while (i < n)
+      {
+        if (Char.IsWhiteSpace (str [i]))
+        {
+          ConsumeWhiteSpace (input);
+          
+          while (i < n && Char.IsWhiteSpace (str [i]))
+            ++i
+        } 
+        else
+        {
+          def inp = input.Read ();
+
+          unless (inp >= 0 && Convert.ToChar (inp) == str [i])
+            throw InvalidInput ();
+          ++i;
+        }
+      }
+    }
+  }
+}

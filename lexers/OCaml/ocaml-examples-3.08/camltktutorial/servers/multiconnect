@@ -1,0 +1,18 @@
+#!/bin/sh
+
+mknod fifo p
+L="$1"
+shift
+for CMD in "$@"; do L="$L | $CMD"; done
+sh -c "< fifo $L > fifo &"
+rm -f fifo
+
+# exemple:
+# multiconnect compute 'tee /dev/tty'  gui 'tee /dev/tty'
+# multiconnect compute 'tee /dev/tty'  gui
+# multiconnect gui 'tee /dev/tty'  compute
+
+# How to count in shell and waiste your CPU time!
+# multiconnect '(echo 1; while read X; do expr $X + 1; done)' 'tee /dev/tty'
+
+# type in command tty to get your tty name.

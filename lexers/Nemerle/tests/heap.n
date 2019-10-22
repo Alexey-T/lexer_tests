@@ -1,0 +1,155 @@
+
+using Nemerle.Collections;
+using Nemerle.Collections.NList;
+using Nemerle.IO;
+using SCG = System.Collections.Generic;
+
+#if NUNIT
+using NUnit.Framework;
+
+[TestFixture]
+public class HeapTest : Assertion
+{
+  mutable heap : Heap [int];
+  
+  [SetUp]
+  public Init () : void {
+    heap = Heap (0);
+  }
+  
+  [Test]
+  public Clear () : void
+  {
+    heap.Add (4);
+    heap.Add (1);
+    heap.Add (10);
+    AssertEquals (3, heap.Count);
+    Assert.IsFalse (heap.IsEmpty);
+    heap.Clear ();
+    AssertEquals (0, heap.Count);
+    Assert (heap.IsEmpty);
+  }
+  
+  [Test]
+  public EnumerableInit () : void
+  {
+    heap = Heap ([4, 1, 10]);
+    AssertEquals (3, heap.Count);
+    AssertEquals (10, heap.Top());
+  }
+  
+  [Test]
+  public Enumerable () : void
+  {
+    def li = SCG.List ();
+    heap = Heap ([6,2,7,31,1]);
+    foreach (x in heap) 
+      li.Add (x);
+    AssertEquals (5, li.Count);
+    Assert (li.Contains (31));
+    Assert (li.Contains (7));
+    Assert (li.Contains (6));
+  }
+  
+  [Test] [ExpectedException (typeof(System.NotSupportedException))]
+  public RemoveNotSupported () : void {
+    heap.Add (1);
+    _ = (heap : SCG.ICollection [int]).Remove (1);
+  }
+}
+#else
+public class M {
+  private static abs(n : int) : int
+  {
+    if ( n < 0 ) 
+      - n
+    else
+      n
+  }
+
+  private static cmp(a : int,b : int) : int
+  { 
+    b - a;
+  }
+
+  public static Main () : void
+  {
+    /* test ordinar inserting and extracting */
+    def h = Heap(10);
+    def r = System.Random();
+    mutable l = [];
+
+    if ( h.IsEmpty )
+      printf("[empty]")
+    else
+      printf("[not empty]");
+
+    for ( mutable i = 1; i < 50; i = i + 1 ) {
+      def k = r.Next(1000);
+      l = k::l;
+      h.Insert(k);
+    }
+
+    if ( h.IsEmpty )
+      printf("[empty]")
+    else
+      printf("[not empty]");
+    
+    l = Sort(l, cmp);
+    mutable errors = 0;
+
+    while ( ! NList.IsEmpty(l) ) {
+      if ( Head(l) - h.ExtractFirst () != 0 ) 
+        errors = errors + 1
+      else
+        ();
+      l = Tail(l)
+    }
+
+    printf("[%d errors]",errors);
+
+    if ( h.IsEmpty )
+      printf("[empty]\n")
+    else
+      printf("[not empty]\n");
+
+
+    /* test constructing from array */
+    def a = array[1,6,3,5,2,8,7,4,0,9];
+    def h = Heap(a);
+    while ( ! h.IsEmpty )
+      printf("%d ",h.ExtractFirst());
+    printf("\n");  
+
+    /* test map & fold */
+    def a = array[1,6,3,5,2,8,7,4,0,9];
+    def h = Heap(a);
+    printf("%d\n",h.Map( fun ( n : int ) : int { 2 * n } ).Fold( fun ( a : int, b : int ) : int { a + b }, 0 ));
+
+    /* test iter and check if map's result is correct heap */
+    def h = Heap(a).Map( fun ( n : int ) : int { 20 - n } );
+    l = [];
+    errors = 0;
+
+    h.Iter( fun ( n : int ) : void { l = n::l; } );
+    l = Sort(l, cmp);
+    while ( ! NList.IsEmpty(l) ) {
+      if ( Head(l) - h.ExtractFirst() != 0 )
+        errors = errors + 1
+      else
+        ();
+      l = Tail(l)
+    }
+    printf("[%d errors]\n",errors);
+  }
+}
+#endif
+
+/*
+BEGIN-OUTPUT
+[empty][not empty][0 errors][empty]  
+9 8 7 6 5 4 3 2 1 0
+90
+[0 errors]
+END-OUTPUT
+*/

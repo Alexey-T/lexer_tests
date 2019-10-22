@@ -1,0 +1,1754 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using Nemerle.Collections;
+using Nemerle.Collections.NList;
+using Nemerle.Assertions;
+
+using System;
+using System.Diagnostics;
+
+
+using NCL = Nemerle.Collections.NList;
+using SCG = System.Collections.Generic;
+
+namespace Nemerle.Core
+{
+  /** The core datastructure allowing easy manipulating of small
+      and medium sized collections of elements.
+
+      It has a builtin syntax [] for empty list, x :: xs for creating list
+      from head element and tail.
+   */
+  [System.Serializable]
+  [Nemerle.MarkOptions (System.Serializable)]
+  [Nemerle.MarkOptions (DebuggerNonUserCode)]
+  [System.Runtime.InteropServices.ComVisible(false)]
+  [DebuggerDisplay("Length = {Length}: {ToString()}"), DebuggerNonUserCode]
+  public variant list[T] :
+    SCG.IEnumerable[T],
+    Nemerle.Collections.ICovariantList[T],
+    System.IEquatable[list[T]]
+    // , Nemerle.Collections.ICovariantEnumerable [T] //unfortunately this is prevented by MS.NET bug
+  {
+    | Cons
+      {
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        hd : T;
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        [Nemerle.Extensions.CompilerMutable]
+        tl : list [T];
+
+        // For debugging purpose.
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        AsArray2 : array [T] { get { _ = NToArray; ToArray () } }
+      }
+
+    | Nil { public override ToString () : string { "[]" } }
+
+    public override ToString () : string { "[" + ToString(", ") + "]" }
+
+    public ToString (separator : string) : string
+    {
+      $"..$(this; separator)"
+    }
+
+    public CovariantTail : Nemerle.Collections.ICovariantList [T]
+    {
+      get { Tail }
+    }
+
+    public static @== (x : list [T], y : list [T]) : bool
+    {
+      if(ReferenceEquals(null, x))
+        ReferenceEquals(x, y)
+      else
+        x.Equals(y)
+    }
+
+    public static @!= (x : list [T], y : list [T]) : bool
+    {
+      if(ReferenceEquals(null, x))
+        !ReferenceEquals(x, y)
+      else
+        !x.Equals(y)
+    }
+
+    [Nemerle.OverrideObjectEquals]
+    public Equals (other : list [T]) : bool
+      implements System.IEquatable[list[T]].Equals
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop (a, b) {
+        if(ReferenceEquals(a, b))
+          true
+        else
+          match(a) {
+            | x :: xs =>
+              match(b) {
+                | y :: ys when comparer.Equals(x, y) => loop(xs, ys)
+                | _ => false
+              }
+            | [] =>
+              match(b) {
+                | [] => true
+                | _ => false
+              }
+            | null => ReferenceEquals(null, b)
+          }
+      }
+      loop(this, other);
+    }
+
+    public Equals[TSecond] (lst2 : list [TSecond], compare : T * TSecond -> bool) : bool
+    {
+      NCL.Equals (this, lst2, compare)
+    }
+
+    public override GetHashCode () : int
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop (a, acc) {
+        match(a) {
+          | x :: xs => loop(xs, unchecked(757927 * acc + comparer.GetHashCode(x)))
+          | _ => acc
+        }
+      }
+      loop(this, 842801)
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public Length : int
+    {
+      get {
+        NCL.Length (this)
+      }
+    }
+
+    public GetElementType () : System.Type {
+      _ = this; // suppress warning
+      typeof (T)
+    }
+
+    /**
+     * Returns true if the given list is empty.
+     */
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public IsEmpty : bool
+    {
+      get { NCL.IsEmpty(this) }
+    }
+
+    /**
+     * Returns head (first element) of list.
+     * Given empty list throws System.ArgumentException.
+     */
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public Head : T
+    {
+      get
+      {
+        match (this)
+        {
+          | x :: _ => x
+          | [] => throw System.ArgumentException("NList.Head called with empty list");
+        }
+      }
+    }
+
+    /**
+     * Returns tail (all elements except the first one) of list.
+     */
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public Tail : list [T] {
+      get {
+        match (this) {
+          | _ :: tl => tl
+          | [] => throw System.ArgumentException ("NList.Tail called for empty list")
+        }
+      }
+    }
+
+    /**
+     * Returns last element of list.
+     * Given empty list throws InvalidArgument exception.
+     * Works in time O(n) and memory O(1).
+     */
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public Last : T {
+      get {
+        NCL.Last (this)
+      }
+    }
+
+
+    /* -- ENUMERATION SUPPORT   -------------------------------------------- */
+
+    /**
+     * Creates enumerator for elements of list.
+     */
+    public GetEnumerator () : Nemerle.Collections.ListEnumerator[T]
+    {
+      Nemerle.Collections.ListEnumerator(this)
+    }
+
+    public static @+ (x : list [T], y : list [T]) : list [T]
+    {
+      NCL.Append (x, y)
+    }
+
+
+    /**
+     * Returns first n elements of the list.
+     * Works in time and memory O(n).
+     */
+    public FirstN (n : int) : list [T]
+    {
+      def loop (k, acc, lst) {
+        if (k == 0) Rev (acc)
+        else
+          match (lst) {
+            | x :: xs => loop (k - 1, x :: acc, xs)
+            | [] =>
+              throw System.ArgumentException ("NList.FirstN called for too short list")
+          }
+      }
+
+      loop (n, [], this)
+    }
+
+
+    /** Return [this] without first [n] elements. Works in time O(n)
+        and constant memory. Throws ArgumentException when called on
+        too short list.  */
+    public ChopFirstN (n : int) : list [T]
+    {
+      def loop (n, l) {
+        if (n == 0) l
+        else
+          match (l) {
+            | _ :: xs => loop (n - 1, xs)
+            | [] =>
+              throw System.ArgumentException ("NList.ChopFirstN called for too short list")
+          }
+      }
+      loop (n, this)
+    }
+
+
+    public LastN (n : int) : list [T]
+    {
+      def len = Length;
+      if (n > len)
+        throw System.ArgumentException ("NList.LastN called for too short list")
+      else
+        ChopFirstN (len - n)
+    }
+
+    public Nth (n : int) : T { NCL.Nth (this, n) }
+
+
+    /**
+     * Returns reversed list, i.e. [1,2,3].Reverse().Equals ([3,2,1]).
+     * Works in time and memory O(n).
+     */
+    public Reverse () : list [T] { NCL.Rev (this) }
+
+    /**
+     * Returns list made from appending list y at end of list x.
+     * Original list are not modified.
+     * Works in time and memory O(length(x)).
+     */
+    public Append (y : list [T]) : list [T] { NCL.RevAppend (Reverse (), y) }
+
+    /**
+     * Equivalent to Reverse().Append(y), but faster.
+     */
+    public RevAppend (y : list [T]) : list [T] {
+      NCL.RevAppend(this, y)
+    }
+
+
+    /**
+     * Returns current list without elements equal to x.
+     * Equals method is used to compare elements.
+     */
+    public Remove (x : T) : list[T]
+    {
+      NCL.Remove (this, x)
+    }
+
+
+    /**
+     * Returns a list without its last element and the list's last element
+     */
+    public DivideLast () : list [T] * T
+    {
+      NCL.DivideLast (this)
+    }
+
+
+    /* -- ITERATORS -------------------------------------------------------- */
+
+    public Iter (f : T -> void) : void {
+      NCL.Iter (this, f)
+    }
+
+    public IterI (mutable acc : int, f : int * T -> void) : void {
+      foreach (x in this) {
+        f (acc, x);
+        acc++
+      }
+    }
+
+    public Map[TOut] (convert : T -> TOut) : list [TOut]
+    {
+      NCL.Map (this, convert)
+    }
+
+    public MapIRev[TOut](convert : int * T -> TOut) : list[TOut]
+    {
+      def loop(src, res, index)
+      {
+        match (src)
+        {
+          | []           => res
+          | item :: tail => loop(tail, convert(index, item) :: res, index + 1)
+        }
+      }
+      loop(this, [], 0)
+    }
+
+    public MapI[TOut](convert : int * T -> TOut) : list[TOut]
+    {
+      MapIRev(convert).Reverse()
+    }
+
+    public Zip[TSecond](second : list[TSecond]) : list [T * TSecond]
+    {
+      match (this, second)
+      {
+        | (x :: xs, y :: ys) => (x, y) :: xs.Zip(ys)
+        | ([], []) => []
+        | (null, _) => throw System.ArgumentNullException("this")
+        | (_, null) => throw System.ArgumentNullException("second")
+        | (_, _) => throw System.ArgumentException("list[T].Zip(): Collections mast have same", "second")
+      }
+    }
+
+    public MapFiltered[TOut] (predicate : T -> bool, convert : T -> TOut) : list [TOut] {
+      NCL.MapFiltered (this, predicate, convert)
+    }
+
+    public RevMap[TOut] (f : T -> TOut) : list [TOut] {
+      NCL.RevMap (this, f)
+    }
+
+    public FoldLeft[TOut] (acc : TOut, f : T * TOut -> TOut) : TOut {
+      NCL.FoldLeft (this, acc, f)
+    }
+
+    public FoldRight[TOut] (acc : TOut, f : T * TOut -> TOut) : TOut {
+      NCL.FoldRight (this, acc, f)
+    }
+
+    public Group (cmp : T * T -> int) : list [list [T]] {
+      NCL.Group (this, cmp)
+    }
+
+    /* -- LIST SCANNING ----------------------------------------------------- */
+
+    /**
+     * Returns 'true' if all of the 'l' list's elements satisfy
+     * the condition 'f'.
+     *
+     * Example of use:
+     *
+     *   NList.ForAll ([2, 4, 6, 8], fun (x) { x % 2 == 0 })
+     *
+     * evaluates to 'true' as all the list's elements are even.
+     */
+    public ForAll (f : T -> bool) : bool
+    {
+      NCL.ForAll (this, f)
+    }
+
+    public ForAll2[TSecond] (lst2 : list [TSecond], predicate : T * TSecond -> bool) : bool
+    {
+      NCL.ForAll2 (this, lst2, predicate)
+    }
+
+    /**
+     * Returns 'true' if at least one of the 'l' list's elements
+     * satisfies the condition 'f'.
+     *
+     * Example of use:
+     *
+     *   NList.Exists (["a", "b", "abc", "d", "e"], fun (x) { x.Length > 2 })
+     *
+     * evaluates to 'true' as there is one string of length 3 on the list.
+     */
+    public Exists (f : T -> bool) : bool
+    {
+      NCL.Exists (this, f)
+    }
+
+    /**
+     * NList membership test, using the `Equals' method to compare objects.
+     */
+    public Contains (a : T) : bool
+    {
+      NCL.Member (this, a)
+    }
+
+
+    /* -- LIST SEARCHING --------------------------------------------------- */
+
+    /**
+     * Finds the first elements for which a predicate is true.
+     */
+    public Find (pred : T -> bool) : option [T]
+    {
+      NCL.Find (this, pred)
+    }
+
+    /**
+     * Finds the first elements for which a predicate is true.
+     */
+    public FindWithDefault (default : T, pred : T -> bool) : T
+    {
+      def loop (l) {
+        | h :: t =>
+          if (pred (h)) h else loop (t)
+        | [] => default
+      }
+      loop (this)
+    }
+
+
+
+    /**
+     * Returns the number of elements for which a predicate is true.
+     */
+    public FilteredLength (f : T -> bool) : int
+    {
+      NCL.FilteredLength (this, f)
+    }
+
+
+    /**
+     * Removes elements for which predicate is false
+     */
+    public Filter (f : T -> bool) : list [T]
+    {
+      NCL.Filter (this, f)
+    }
+
+
+    /**
+     * Removes elements for which predicate is false.
+     * The resulting list is reversed (operation is faster this way).
+     */
+    public RevFilter (f : T -> bool) : list [T]
+    {
+      NCL.RevFilter (this, f)
+    }
+
+
+    /**
+     * Return list, reversed or not, with elements not fulfilling [f] removed.
+     * Avoid allocation if possible.
+     */
+    public RevFilterWhenNeeded (f : T -> bool) : list [T]
+    {
+      if (NCL.ForAll (this, f)) this
+      else NCL.RevFilter (this, f)
+    }
+
+    /**
+     * This is an alias for ``Filter''
+     */
+    public FindAll (f : T -> bool) : list [T]
+    {
+      Filter (f)
+    }
+
+
+    /**
+     * Partitions a list into two sublists according to a predicate.
+     */
+    public Partition (pred : T -> bool) : list [T] * list [T]
+    {
+      NCL.Partition (this, pred)
+    }
+
+    public Singletons()
+                  : list [list [T]]
+    {
+        NList.Singletons(this)
+    }
+
+
+    /**
+     * Return list of all possible [n]-element subsets of set [list].
+     */
+    public SizeSubsets
+        (
+         n    : int
+        )
+        : list [list [T]]
+    {
+        NList.SizeSubsets(this, n)
+    }
+
+    /** Return list consisting of [count] references to [elem].  */
+    public static Repeat(elem : T, count : int) : list [T]
+    {
+      def loop (acc, n) {
+        if (n <= 0) acc
+        else loop (elem :: acc, n - 1)
+      }
+      loop ([], count)
+    }
+
+    /** Return a list of integers from 0 to [end], excluding [end]. */
+    public static Range (end : int) : list [int] {
+      Range (0, end)
+    }
+
+    /**
+     * Return a list of values incremented by [step], beginning
+     * with [beg], up/down to [end], excluding [end] itself.
+     */
+    public static Range (beg : int, end : int, step = 1) : list [int]
+    {
+      NList.Range(beg, end, step)
+    }
+
+    /** Return a list of characters from 'a' to [end], excluding [end]. */
+    public static Range (end : char) : list [char]
+    {
+      NList.Range(end)
+    }
+
+    /**
+     * Return a list of characters, which values are incremented by [step],
+     * beginning with [beg], up/down to [end], excluding [end] itself.
+     */
+    public static Range (b : char, e : char, step = 1) : list [char]
+    {
+      NList.Range(b, e, step)
+    }
+    
+    /**
+     * Returns reversed list, i.e. Rev([1,2,3]) = [3,2,1].
+     * Works in time and memory O(n).
+     */
+    public Rev () : list [T]
+    {
+      NCL.Rev (this)
+    }
+
+
+    /* -- SORTING ---------------------------------------------------------- */
+
+    public Sort (cmp : T * T -> int) : list [T]
+    {
+      NCL.Sort (this, cmp)
+    }
+
+    public static IsOrdered[TSecond] (this lst : list[TSecond], great : TSecond * TSecond -> bool) : bool
+    {
+      match (lst)
+      {
+        | first :: ((second :: _) as tail) =>
+          if (great (first, second)) false else IsOrdered (tail, great)
+
+        | [_] | [] | null => true
+      }
+    }
+
+    public static IsOrdered[TSecond](this lst : list[TSecond]) : bool
+      where TSecond: System.IComparable[TSecond]
+    {
+      IsOrdered(lst, (x, y) => x.CompareTo(y) > 0)
+    }
+
+
+    public RemoveDuplicates () : list [T]
+    {
+      NCL.RemoveDuplicates (this)
+    }
+
+
+    // For debugging purpose.
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    protected NToArray : array [T]
+    {
+      get { ToArray () }
+    }
+
+    public ToArray () : array [T]
+    {
+      def result = array (Length);
+      CopyTo (result);
+      result
+    }
+
+    /**
+     * Copies first [len] elements from current list to specified array beginning with index 0
+     */
+    public CopyTo (dest : array [T], len : int) : void
+    {
+      mutable i = 0;
+      foreach (el in this) {
+        when (i >= len) Nemerle.Imperative.Break ();
+        dest [i] = el;
+        i++;
+      }
+      when (i < len)
+        throw System.ArgumentException ($"insufficient amount of elements in current list: expected $len, has $i");
+    }
+
+    /**
+     * Copies all elements from current list to specified array beginning with index 0
+     */
+    public CopyTo (dest : array [T]) : void
+    {
+      mutable i = 0;
+      foreach (el in this) {
+        dest [i] = el;
+        i++;
+      }
+    }
+    
+    public MapToArray [TOut] (f : T -> TOut) : array [TOut]
+    {
+      def result = array (Length);
+      mutable i = 0;
+      foreach (x in this) {
+        result [i] = f (x);
+        i++;
+      }
+      result
+    }
+
+    public Flatten[TOut](selector : T * SCG.List[TOut] -> void) : list[TOut]
+    {
+      def result = SCG.List();
+
+      foreach (elem in this)
+        selector(elem, result);
+
+      result.NToList()
+    }
+
+    public Flatten[TOut](selector : T -> SCG.IEnumerable[TOut]) : list[TOut]
+    {
+      def result = SCG.List();
+
+      foreach (elem in this)
+        result.AddRange(selector(elem));
+
+      result.NToList()
+    }
+
+    public Filter2[T2, Result](list2 : list[T2], convert : T * T2 -> bool * Result) : list[Result]
+    {
+      NCL.Filter2(this, list2, convert)
+    }
+    
+    public OfTypeRevert[TResult]() : list[TResult]
+    {
+      mutable res = [];
+      
+      foreach (x is TResult in this)
+        res ::= x;
+        
+      res
+    }
+
+    public OfType[TResult]() : list[TResult]
+    {
+      def res = SCG.List(Length);
+      
+      foreach (x is TResult in this)
+        res.Add(x);
+        
+      res.NToList();
+    }
+  }
+}
+
+namespace Nemerle.Collections
+{
+  [DebuggerNonUserCode]
+  public module NList
+  {
+    /// Tests equality of two lists.  Uses Equal method of
+    /// objects to test wether they are the same.
+    public Equals[T] (x : list [T], y : list [T]) : bool
+    {
+      x == y
+    }
+
+
+    /// Compare two lists lexicographically over the order defined on
+    /// their elements with function [cmp].  Returns [-1] if [l1] is smaller,
+    /// [1] if [l2] is smaller, and [0] if they equal.
+    public static Compare [T] (l1 : list [T], l2 : list [T], cmp : T * T -> int) : int
+    {
+      match ((l1, l2))
+      {
+        | ([], []) => 0
+        | ([], _) => -1
+        | (_, []) => 1
+        | (x :: xs, y :: ys) =>
+          def ret = cmp (x, y);
+
+          if (ret == 0) Compare (xs, ys, cmp)
+          else          ret
+        | _ =>  throw System.ArgumentException ("NList.Compare called for null list");
+      }
+    }
+
+
+    /**
+     * Compare two lists lexicographically over the order defined on
+     * their elements.  Returns [-1] if [l1] is smaller, [1] if [l2]
+     * is smaller, and [0] if they equal.
+     */
+    public static Compare [T] (l1 : list [T], l2 : list [T]) : int
+      where T : System.IComparable [T]
+    {
+      def cmp (x, y){
+        x.CompareTo (y)
+      }
+
+      Compare (l1, l2, cmp)
+    }
+
+
+    /**
+     * Returns [l] with duplicates removed with respect to Equals method
+     * It is assumed that equal elements of [l] are next to each other,
+     * or that the list is sorted.
+     *
+     * Example:
+     *
+     * def result = RemoveDuplicates ([1, 2, 2, 3, 4, 4]);
+     *     // result = [1, 2, 3, 4]
+     */
+    public static RemoveDuplicates [T] ([NotNull] lst : list [T]) : list [T]
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop (lst, acc)
+      {
+        match (lst)
+        {
+          | [] => acc.Reverse ();
+          | [x] => (x :: acc).Reverse ();
+          | x :: ((y :: _) as xs) =>
+            if (comparer.Equals(x, y)) loop (xs, acc)
+            else                     loop (xs, x :: acc)
+        }
+      }
+
+      loop (lst, [])
+    }
+
+
+    /* -- CONVERSION OPERATIONS -------------------------------------------- */
+
+    /**
+     * Converts an array into a list.
+     */
+    public FromArray [T] ([NotNull] source : array [T]) : list [T] {
+      def loop(index, acc) : list[T]
+      {
+        if (index >= 0)
+          loop(index - 1, source[index] :: acc)
+        else
+          acc
+      }
+
+      loop(source.Length - 1, [])
+    }
+
+    public ToListRev[T] ([NotNull] this seq : SCG.IEnumerable [T]) : list [T]
+    {
+      mutable lst = [];
+
+      foreach (elem in seq)
+        lst ::= elem;
+
+      lst;
+    }
+
+    public ToListRev [T] ([NotNull] this seq : SCG.IEnumerable [T], filter : T -> bool) : list [T]
+    {
+      mutable lst = [];
+
+      foreach (elem in seq)
+        when (filter (elem))
+          lst ::= elem;
+
+      lst;
+    }
+
+    public ToList [T] ([NotNull] seq : SCG.IEnumerable [T]) : list [T]
+    {
+      ToListRev(seq).Rev()
+    }
+
+    public AsList [T] ([NotNull] this source : SCG.IList [T]) : list [T]
+    {
+      mutable lst = [];
+
+      for (mutable i = source.Count - 1; i >= 0; i--)
+        lst ::= source[i];
+
+      lst;
+    }
+
+    public ToList[T]([NotNull] source : SCG.IList[T], filter : T -> bool) : list [T]
+    {
+      mutable lst = [];
+
+      for (mutable i = source.Count - 1; i >= 0; i--)
+      {
+        def elem = source[i];
+        when (filter (elem))
+          lst ::= elem;
+      }
+
+      lst;
+    }
+
+    public ToList[T]([NotNull] seq : Seq[T], filter : T -> bool) : list [T]
+    {
+      ToListRev(seq, filter).Rev()
+    }
+
+    /* -- BASIC LIST OPERATIONS -------------------------------------------- */
+
+    /// Returns true if the given list is empty of null.
+    public IsEmpty[T](lst : list [T]) : bool
+    {
+      | [] | null => true
+      | _         => false
+    }
+
+    /**
+     * Returns length of given list. Time O(n), Mem O(1).
+     */
+    public Length [T] (x : list [T]) : int {
+      def loop (acc : int, x : list [T]) : int {
+        match (x) {
+          | _ :: xs => loop (acc + 1, xs)
+          | _ => acc
+        }
+      }
+      loop (0, x)
+    }
+
+
+    /**
+     * Returns head (first element) of list.
+     * Given empty list throws System.ArgumentException.
+     */
+    public Head [T] ([NotNull] l : list [T]) : T { l.Head }
+
+    /// Alias for l.Head.
+    public Hd [T] ([NotNull] l : list [T]) : T { l.Head }
+
+    /**
+     * Returns tail (all elements except first one) of list.
+     */
+    public Tail[T] ([NotNull] l : list [T]) : list [T] {
+      l.Tail
+    }
+
+    /**
+     * Alias for Tail(l).
+     */
+    public Tl[T] ([NotNull] l : list [T]) : list [T] {
+      l.Tail
+    }
+
+    /**
+     * Returns n-th element of list, where 0-th is head.
+     * Throws InvalidArgument exception when given too short list.
+     * Works in time O(n) and memory O(1).
+     */
+    public Nth[T] ([NotNull] l : list [T], n : int) : T {
+      match (l) {
+        | h :: t =>
+          if ( n == 0 )
+            h
+          else
+            Nth(t, n-1)
+        | [] => throw System.ArgumentOutOfRangeException ("NList.Nth")
+      }
+    }
+
+    /**
+     * Returns last element of list.
+     * Given empty list throws InvalidArgument exception.
+     * Works in time O(n) and memory O(1).
+     */
+    public Last[T] ([NotNull] l : list [T]) : T {
+      match (l) {
+        | [x] => x
+        | _ :: xs => Last (xs)
+        | [] => throw System.ArgumentException ("NList.Last called for empty list")
+      }
+    }
+
+
+    /**
+     * Returns reversed list, i.e. Rev([1, 2, 3]) = [3, 2, 1].
+     * Works in time and memory O(n).
+     */
+    public Rev[T] ([NotNull] l : list [T]) : list [T] {
+      def loop (acc : list [T], l : list [T]) : list [T] {
+        match (l) {
+          | x :: xs => loop (x :: acc, xs)
+          | [] => acc
+        }
+      }
+      loop ([], l)
+    }
+
+    /**
+     * Returns list made from appending list y at end of list x.
+     * Original list are not modified.
+     * Works in time and memory O(length(x)).
+     */
+    public Append[T] ([NotNull] x : list [T], y : list [T]) : list [T]
+    {
+      NList.RevAppend (NList.Rev (x), y)
+    }
+
+    /**
+     * Equivalent to Append(Rev(x),y).
+     */
+    public RevAppend[T] ([NotNull] x : list [T], y : list [T]) : list [T] {
+      match (x) {
+        | h :: t => RevAppend(t, h :: y)
+        | [] => y
+      }
+    }
+
+    /// Makes list one level more flat, i.e. Concat([[1, 2], [3, 4]]) = [1, 2, 3, 4].
+    /// Does not work deeper, i.e. Concat([[[1, 2], [3]], [[4]]]) = [[1, 2], [3], [4]].
+    public Concat[T]([NotNull] this l : list [list [T]]) : list [T]
+    {
+      NList.Rev(ConcatRev(l))
+    }
+
+    /// Equivalent to Concat(Rev(l))
+    public ConcatRev[T]([NotNull] l : list[list[T]]) : list[T]
+    {
+      NList.FoldLeft(l, [], NList.FoldLeft(_, _, _ :: _))
+    }
+
+    /// Alias for Concat(l).
+    public Flatten[T]([NotNull] this l : list[list[T]]) : list[T]
+    {
+      Concat(l)
+    }
+
+    /**
+     * Returns list l without elements equal to x.
+     */
+    public Remove[T] ([NotNull] l : list[T], x : T) : list[T]
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop (acc : list [T], from : list[T]) : list[T]
+      {
+        match (from) {
+          | [] => NList.Rev(acc)
+          | y :: ys  => loop(if (comparer.Equals(y, x)) acc else y :: acc, ys)
+        }
+      }
+
+      loop ([], l)
+    }
+
+
+    /**
+     * Returns a list without its last element and the list's last element
+     */
+    public DivideLast [T] ([NotNull] l : list [T]) : list [T] * T
+    {
+      def loop (ls, acc) {
+        match (ls) {
+          | [x] => (NList.Rev (acc), x)
+          | x :: xs => loop (xs, x :: acc)
+          | _ =>
+            throw System.ArgumentException ("NList.DivideLast called for empty list")
+        }
+      }
+
+      loop (l, [])
+    }
+
+
+    /* -- ITERATORS -------------------------------------------------------- */
+
+    public Iter[T] ([NotNull] l : list [T], f : T -> void) : void {
+      match (l) {
+        | x :: xs => f (x); Iter (xs, f)
+        | [] => ()
+      }
+    }
+
+    public MapFiltered[T, TOut](lst : list[T], predicate : T -> bool, convert : T -> TOut) : list[TOut]
+    {
+      $[ convert(x) | x in lst, predicate (x) ]
+    }
+
+    public Map[T, TOut] (lst : list [T], convert : T -> TOut) : list [TOut]
+    {
+      $[ convert(x) | x in lst ]
+    }
+
+    public RevMap[T, TOut] ([NotNull] l : list [T], convert : T -> TOut) : list [TOut]
+    {
+      def loop (acc : list [TOut], x : list [T]) : list [TOut]
+      {
+        match (x)
+        {
+          | h :: t => loop(convert(h) :: acc, t)
+          | [] => acc
+        }
+      }
+
+      loop ([], l)
+    }
+
+    public RevMapFiltered[T, TOut] ([NotNull] l : list [T], predicate : T -> bool, convert : T -> TOut) : list [TOut] {
+      def loop (acc : list [TOut], x : list [T]) : list [TOut] {
+        match (x) {
+          | h :: t => if (predicate (h)) loop (convert (h) :: acc, t) else loop (acc, t)
+          | [] => acc
+        }
+      }
+      loop ([], l)
+    }
+
+    public FoldLeft[T, TOut] ([NotNull] l : list [T], mutable acc : TOut, f : T * TOut -> TOut) : TOut {
+      def loop (_) {
+        | [] => acc
+        | x :: xs =>
+          acc = f (x, acc);
+          loop (xs)
+      }
+      loop (l);
+    }
+
+    public FoldRight[T, TOut] ([NotNull] l : list [T], acc : TOut, f : T * TOut -> TOut) : TOut {
+      match (l) {
+        | [] => acc
+        | x :: xs => f (x, FoldRight (xs, acc, f))
+      }
+    }
+
+    public MapFromArray[T, TOut] ([NotNull] x : array [T], f : T -> TOut) : list [TOut]
+    {
+      $[ f (e) | e in x ]
+    }
+
+    /* -- ITERATORS ON TWO LISTS ------------------------------------------- */
+
+    public Iter2[T, TOut] ([NotNull] a : list [T], [NotNull] b : list [TOut], f : T  * TOut -> void) : void {
+      match ((a, b)) {
+        | ([], []) => ()
+        | (x :: xs, y :: ys) => f (x, y); Iter2 (xs, ys, f)
+        | _ => throw System.ArgumentException ("NList.Iter2")
+      }
+    }
+
+    public Map2[T, TSecond, TOut] ([NotNull] x : list [T], [NotNull] y : list [TSecond], f : T * TSecond -> TOut) : list [TOut] {
+      match ((x, y)) {
+        | ([], []) => []
+        | (x :: xs, y :: ys) => f (x, y) :: Map2 (xs, ys, f)
+        | _ => throw System.ArgumentException ("NList.Map2")
+      }
+    }
+
+    public RevMap2[T, TSecond, TOut] ([NotNull] x : list [T],[NotNull]  y : list [TSecond], f : T * TSecond -> TOut)
+    : list [TOut]
+    {
+      def loop (acc : list [TOut], x : list [T], y : list [TSecond]) : list [TOut] {
+        match ((x, y)) {
+          | ([], []) => acc
+          | (x :: xs, y :: ys) => loop (f (x, y) :: acc, xs, ys)
+          | _ => throw System.ArgumentException ("NList.RevMap2")
+        }
+      }
+      loop([], x, y)
+    }
+
+    public FoldLeft2[TFirst, TSecond, TOut] ([NotNull] this a : list [TFirst],
+                                  [NotNull] b : list [TSecond],
+                                  acc : TOut,
+                                  f : TFirst  * TSecond * TOut -> TOut) : TOut
+    {
+      match ((a, b)) {
+        | ([], []) => acc
+        | (x :: xs, y :: ys) => FoldLeft2 (xs, ys, f (x, y, acc), f)
+        | _ => throw System.ArgumentException ("NList.FoldLeft2")
+      }
+    }
+
+    public FoldRight2[TFirst, TSecond, TOut] ([NotNull] this a : list [TFirst],
+                                    [NotNull] b : list [TSecond],
+                                    c : TOut,
+                                    f : TFirst * TSecond  * TOut -> TOut) : TOut
+    {
+      match ((a, b)) {
+        | ([], []) => c
+        | (x :: xs, y :: ys) => f (x, y, FoldRight2 (xs, ys, c, f))
+        | _ => throw System.ArgumentException ("NList.FoldRight2")
+      }
+    }
+
+
+    /* -- LIST SCANNING ----------------------------------------------------- */
+
+    /**
+     * Returns 'true' if all of the 'l' list's elements satisfy
+     * the condition 'f'.
+     *
+     * Example of use:
+     *
+     *   NList.ForAll ([2, 4, 6, 8], fun (x) { x % 2 == 0 })
+     *
+     * evaluates to 'true' as all the list's elements are even.
+     */
+    public ForAll[T] ([NotNull] lst : list [T], predicate : T -> bool) : bool
+    {
+      match (lst) {
+        | x :: xs => predicate (x) && ForAll (xs, predicate)
+        | [] => true
+      }
+    }
+
+    public Equals[T1, TSecond] (lst1 : list [T1], lst2 : list [TSecond], compare : T1 * TSecond -> bool) : bool
+    {
+      match (lst1, lst2)
+      {
+        | (x1 :: xs1, x2 :: xs2) => compare (x1, x2) && Equals (xs1, xs2, compare)
+        | ([], []) => true
+        | _ => false
+      }
+    }
+
+    /**
+     * Returns 'true' if at least one of the 'l' list's elements
+     * satisfies the condition 'f'.
+     *
+     * Example of use:
+     *
+     *   NList.Exists (["a", "b", "abc", "d", "e"], fun (x) { x.Length > 2 })
+     *
+     * evaluates to 'true' as there is one string of length 3 on the list.
+     */
+    public Exists[T] ([NotNull] l : list [T], f : T -> bool) : bool
+    {
+      match (l)
+      {
+        | [] => false
+        | h :: t => f (h) || Exists (t, f)
+      }
+    }
+
+    public ForAll2[T, TSecond] (a : list [T], b : list [TSecond], f : T * TSecond -> bool) : bool {
+      match (a, b) {
+        | ([], []) => true
+        | (x :: xs, y :: ys) => f (x, y) && ForAll2 (xs, ys, f)
+        | _ => false
+      }
+    }
+
+    public Exists2[T, TSecond] ([NotNull] a : list [T], [NotNull] b : list [TSecond], f : T * TSecond -> bool) : bool {
+      match (a,b)
+      {
+        | ([], []) => false
+        | (x :: xs, y :: ys) => f(x,y) || Exists2(xs, ys, f)
+        | _ => throw System.ArgumentException ("NList.Exists2")
+      }
+    }
+
+    /// NList membership test, using the `Equals' method to compare objects.
+    public Member [T] (l : list [T], a : T) : bool
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop(l)
+      {
+        | h :: _ when comparer.Equals(h, a) => true
+        | _ :: t => loop(t)
+        | _ => false
+      }
+      loop(l)
+    }
+
+    /**
+     * NList membership test, using the reference equality.
+     *
+     * Returns true if and only if list [Collection] contains object with reference
+     * equal to [Obj] object
+     */
+    public ContainsRef [T] ([NotNull] Collection : list [T], Obj : T) : bool
+    where T : class
+    {
+      match (Collection) {
+        | h :: t  => (h : object) == Obj || ContainsRef (t, Obj)
+        | [] => false
+      }
+    }
+
+
+    /**
+     * NList membership test, using the `Equals' method to compare objects.
+     *
+     * This is an alias for the `Member' method.
+     */
+    public Contains [T] (l : list [T], a : T) : bool
+    {
+      Member (l, a)
+    }
+
+
+    /* -- LIST SEARCHING --------------------------------------------------- */
+
+    /**
+     * Finds the first elements for which a predicate is true.
+     */
+    public Find [T] ([NotNull] l : list [T], pred : T -> bool) : option [T]
+    {
+      match (l)
+      {
+        | h :: t =>
+          if (pred (h)) Some (h) else Find (t, pred)
+        | [] => None ()
+      }
+    }
+
+
+    /**
+     * Returns the number of elements for which a predicate is true.
+     */
+    public FilteredLength [T] ([NotNull] l : list [T], f : T -> bool) : int
+    {
+      def filtered_length (l, acc : int)
+      {
+        match (l) {
+          | [] => acc
+          | head :: tail =>
+            filtered_length (tail, if (f (head)) acc + 1 else acc)
+        }
+      }
+
+      filtered_length (l, 0)
+    }
+
+
+    /**
+     * Removes elements for which predicate is false
+     */
+    public Filter [T] (l : list [T], f : T -> bool) : list [T]
+    {
+      $[ x | x in l, f (x) ]
+    }
+
+
+    /**
+     * Removes elements for which predicate is false.
+     * The resulting list is reversed (operation is faster this way).
+     */
+    public RevFilter [T] ([NotNull] l : list [T], f : T -> bool) : list [T]
+    {
+      def loop (acc, l)
+      {
+        match (l) {
+          | x :: xs =>
+            if (f (x)) loop (x :: acc, xs)
+            else loop (acc, xs)
+          | [] => acc
+        }
+      }
+
+      loop ([], l)
+    }
+
+
+    /**
+     * This is an alias for ``Filter''
+     */
+    public FindAll [T] (l : list [T], f : T -> bool) : list [T]
+    {
+      Filter (l, f)
+    }
+
+
+    /**
+     * Partitions a list into two sublists according to a predicate.
+     */
+    public Partition[T] ([NotNull] l : list [T], pred : T -> bool) : list [T] * list [T]
+    {
+      def loop (l : list [T], sat : list [T], notsat : list [T])
+      {
+        match (l) {
+          | h :: t =>
+            if (pred (h))
+              loop (t, h :: sat, notsat)
+            else
+              loop (t, sat, h :: notsat)
+          | [] => (Rev (sat), Rev (notsat))
+        }
+      }
+      loop (l, [], [])
+    }
+
+
+    /**
+     * Groups equal element into lists
+     */
+    public Group [T] (l : list [T], cmp : T * T -> int) : list [list [T]]
+    {
+      def walk (l : list [T], acc : list [T]) : list [list [T]]
+      {
+        def h = NList.Head (acc);
+
+        match (l) {
+          | e :: rest =>
+            if (cmp (e, h) == 0)
+              walk (rest, e :: acc)
+            else
+              acc :: walk (rest, [e])
+          | [] => [acc]
+        }
+      }
+
+      if (NList.IsEmpty(l)) []
+      else {
+        def sorted = NList.Sort (l, cmp);
+
+        walk (NList.Tail (sorted), [NList.Head (sorted)])
+      }
+    }
+
+
+    /* -- ASSOCIATION LISTS ------------------------------------------------ */
+
+    public Assoc [T, TSecond] (l : list [T * TSecond], key : T) : option [TSecond]
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop(l)
+      {
+        | (k, v) :: _ when comparer.Equals(key, k) => Some (v)
+        | _ :: t => loop(t)
+        | _ => None()
+      }
+      loop(l)
+    }
+
+    public MemAssoc[T, TSecond] (l : list [T * TSecond], key : T) : bool
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop(l)
+      {
+        | (k, _) :: _ when comparer.Equals(key, k) => true
+        | _ :: t => loop(t)
+        | _ => false
+      }
+      loop(l)
+    }
+
+    public RemoveAssoc [T, TSecond] ([NotNull] l : list [T * TSecond], key : T) : list [T * TSecond]
+    {
+      def comparer = SCG.EqualityComparer.Default;
+      def loop (acc : list [T * TSecond], l : list [T * TSecond]) : list [T * TSecond]
+      {
+        match (l) {
+          | (k, v) :: t =>
+              if (comparer.Equals(key, k))
+                loop (acc, t)
+              else
+                loop ((k, v) :: acc, t)
+          | [] => Rev (acc)
+        }
+      }
+      loop ([], l)
+    }
+
+
+    /* -- LISTS OF PAIRS --------------------------------------------------- */
+
+
+    public Split[T, TSecond] ([NotNull] this l : list [T * TSecond]) : list [T] * list [TSecond] {
+      def loop (acc1 : list [T], acc2 : list [TSecond], l : list [T * TSecond])
+      {
+        match (l) {
+          | (a, b) :: t => loop (a :: acc1, b :: acc2, t)
+          | [] => (Rev (acc1), Rev (acc2))
+        }
+      }
+      loop([], [], l)
+    }
+
+    public Combine [T, TSecond] ([NotNull] this a : list [T], [NotNull] b : list [TSecond]) : list [T * TSecond] {
+      def loop (acc : list [T * TSecond], a : list [T], b : list [TSecond]) : list [T * TSecond]
+      {
+        match ((a, b)) {
+          | (x :: xs, y :: ys) => loop((x, y) :: acc, xs, ys)
+          | ([], []) => Rev (acc)
+          | _ => throw System.ArgumentException ("NList.Combine")
+        }
+      }
+      loop ([],a,b)
+    }
+
+    /* -- SORTING ---------------------------------------------------------- */
+
+    MergeSort[T] (cmp : (T * T) -> int, [NotNull] l : list [T]) : list [T] {
+      def split (l) {
+        def aux (l, acc, n) {
+          if (n == 0)
+            (NList.Rev (acc), l)
+          else
+            match (l) {
+              | x :: xs => aux (xs, x :: acc, (n - 1))
+              | [] => aux (l, acc, 0)
+            }
+        }
+        aux (l, [], (NList.Length (l) / 2))
+      }
+      def merge (cmp : (T * T) -> int, l1, l2) {
+        def aux (l1, l2, acc) {
+          match ((l1, l2)) {
+            | ([], _) => NList.RevAppend (acc, l2)
+            | (_, []) => NList.RevAppend (acc, l1)
+            | (x :: xs, y :: ys) =>
+              if (cmp (x, y) <= 0)
+                aux (xs, l2, x :: acc)
+              else
+                aux (l1, ys, y :: acc)
+          }
+        }
+        aux (l1, l2, [])
+      }
+
+      match (l) {
+        | []
+        | [_] => l
+        | _ =>
+          def (l1, l2) = split (l);
+          merge (cmp, MergeSort (cmp, l1), MergeSort (cmp, l2))
+      }
+    }
+
+    public Sort[T] ([NotNull] l : list [T], cmp : T * T -> int) : list [T]
+    {
+      MergeSort (cmp, l)
+    }
+
+    // what is it for?!
+    public Copy[T] ([NotNull] l : list [T]) : list [T]
+    {
+      def loop (acc : list[T], what : list[T]) {
+        match (what) {
+          | x::xs => loop (x::acc,xs)
+          | [] => Rev (acc)
+        }
+      }
+      loop ([],l)
+    }
+
+    /**
+     * Assumes that [prod] is a product of n - 1 lists, and extends
+     * product by adding every possible element of [x] to these lists.
+     */
+    private Product [T]
+        (
+         [NotNull] x    : list [T],
+         [NotNull] prod : list [list [T]]
+        )
+        : list [list [T]]
+    {
+        def extend (a, lst, result)
+        {
+            match (a){
+                | []      => result
+                | x :: xs => extend (xs, lst, (x :: lst) :: result)
+            }
+        }
+
+        def product (a, prod, result)
+        {
+            match (prod){
+                | []      => result
+                | x :: xs =>
+                  product (a, xs, extend (a, x, []) + result)
+            }
+        }
+
+        product (x, prod, [])
+    }
+
+    /**
+     * Returns a product of lists stored in list [list].  Elements of
+     * result are lists of the same length = NList.Length (list).
+     *
+     * E.g.:
+     *    Product ([[1, 2], [3, 4, 5]]) =
+     *        [[1, 3],
+     *         [1, 4],
+     *         [1, 5],
+     *         [2, 3],
+     *         [2, 4],
+     *         [2, 5]]
+     *
+     *    Product ([[1, 2], [3, 4, 5], []]) = []
+     */
+    public Product [T]
+        (
+         [NotNull] this list : list [list [T]]
+        )
+        : list [list [T]]
+    {
+        def product (list, result)
+        {
+            match (list){
+                | []      => result
+                | x :: xs => product (xs, Product (x, result))
+            }
+        }
+
+        def list =
+            match (list){
+                | []      => []
+                | x :: xs => product (xs, NList.Map (x, fun (a) { [a] }))
+            };
+
+        NList.Map (list, NList.Rev)
+    }
+
+
+    /**
+     * Return a list of all possible partitions of [set] into [count] subsets.
+     */
+    public SubsetsPartitions [T]
+        (
+         [NotNull] set   : list [T],
+         count : int
+        )
+        : list [list [list [T]]]
+    {
+        /* Generate a list of [n] empty lists. */
+        def gen_empty (result, n)
+        {
+            | (result, 0) => result
+            | (result, n) => gen_empty ([] :: result, n - 1)
+        }
+
+        /* Pushes an element [elem] to a partition consisting of
+           [left] and [list], by putting a variable exactly inbetween. */
+        def push (elem, list, left, result)
+        {
+            match (list){
+                | []      => result
+                | x :: xs =>
+                      push (elem, xs, x :: left,
+                            (left + [elem :: x] + xs) :: result)
+            }
+        }
+
+        /* Extends a partition stored in list [list] with an element [elem]. */
+        def extend (elem, list, result)
+        {
+            match (list){
+                | []      => result
+                | x :: xs =>
+                  extend (elem, xs, push (elem, x, [], []) + result)
+            }
+        }
+
+        /* Partitions elements stored in list [list] accross subsets,
+           by extending partition with one element at time. */
+        def partition (list, result)
+        {
+            match (list){
+                | []      => result
+                | x :: xs =>
+                  partition (xs, extend (x, result, []))
+            }
+        }
+
+        partition (set, [gen_empty ([], count)])
+    }
+
+
+    public Singletons [T] ([NotNull] list : list [T])
+                  : list [list [T]]
+    {
+        NList.RevMap (list, fun (a){ [a] })
+    }
+
+
+    /**
+     * Return list of all possible [n]-element subsets of set [list].
+     */
+    public SizeSubsets [T]
+        (
+         list : list [T],
+         n    : int
+        )
+        : list [list [T]]
+    {
+        /* Add [elem] to head of every element of [set]. */
+        def extend (elem, set, result)
+        {
+            match (set){
+                | []      => result
+                | x :: xs => extend (elem, xs, (elem :: x) :: result)
+            }
+        }
+
+        match ((list, n)){
+            | (_, 0)       => []
+            | ([], _)      => []
+            | (_, 1)       => Singletons (list)
+            | (x :: xs, n) =>
+              NList.RevAppend (extend (x, SizeSubsets (xs, n - 1), []),
+                              SizeSubsets (xs, n))
+        }
+    }
+
+    // NList creation
+
+    /** Return list consisting of [count] references to [elem].  */
+    public Repeat [T] (elem : T, count : int) : list [T]
+    {
+      def loop (acc, n) {
+        if (n <= 0) acc
+        else loop (elem :: acc, n - 1)
+      }
+      loop ([], count)
+    }
+
+    /** Return a list of integers from 0 to [end], excluding [end]. */
+    public Range (end : int) : list [int] {
+      Range (0, end)
+    }
+
+    /**
+     * Return a list of values incremented by [step], beginning
+     * with [beg], up/down to [end], excluding [end] itself.
+     */
+    public Range (beg : int, end : int, step = 1) : list [int]
+    {
+      when (step == 0)
+        throw System.ArgumentException ("Range () step argument must not be zero");
+
+      def loop (acc, i) {
+        if (i != beg)
+          loop (i :: acc, i - step)
+        else
+          i :: acc
+      }
+
+      if (beg < end && step < 0 || beg > end && step > 0 || beg == end)
+        []
+      else {
+        def last = if (end >= 0) end - 1 else end + 1;
+        loop ([], last - ((last - beg) % step))
+      }
+    }
+
+    /** Return a list of characters from 'a' to [end], excluding [end]. */
+    public Range (end : char) : list [char]
+    {
+      Range ('a', end)
+    }
+
+    /**
+     * Return a list of characters, which values are incremented by [step],
+     * beginning with [beg], up/down to [end], excluding [end] itself.
+     */
+    public Range (b : char, e : char, step = 1) : list [char]
+    {
+      when (step == 0)
+        throw System.ArgumentException ("Range () step argument must not be zero");
+
+      def (beg, end) = (b :> int, e :> int);
+
+      def loop (acc, i) {
+        if (i != beg)
+          loop ((i :> char) :: acc, i - step)
+        else
+          (i :> char) :: acc
+      }
+
+      if (beg < end && step < 0 || beg > end && step > 0 || beg == end)
+        []
+      else {
+        def last = if (step > 0) end - 1 else end + 1;
+        loop ([], last - ((last - beg) % step))
+      }
+    }
+    
+    public Filter2[T1, T2, Result](list1 : list[T1], list2 : list[T2], convert : T1 * T2 -> bool * Result) : list[Result]
+    {
+      def loop(list1 : list[T1], list2 : list[T2], result = SCG.List(list1?.Length), convert = convert)
+      {
+        match (list1, list2)
+        {
+          | (head1 :: tail1, head2 :: tail2) =>
+            match (convert(head1, head2))
+            {
+              | (true, value) => result.Add(value);
+              | _ => ()
+            }
+                  
+            loop(tail1, tail2, result)
+
+          | ([], []) => result.NToList()
+          | (null, null) => []
+          | _ => throw ArgumentException("The list1 and list2 has different Length")
+        }
+      }
+            
+      loop(list1, list2)
+    }
+  } /* end of module NList */
+} /* end of namespace Nemerle.Collections */
+

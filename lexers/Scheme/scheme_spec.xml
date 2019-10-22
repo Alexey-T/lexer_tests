@@ -1,0 +1,347 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="syntax.xslt"?>
+<XMLConfigSettings>
+  <FILEINFO author="Mikhail Mosienko" type="LangSpec"/>
+  <SYNTAX id="scheme" name="Scheme" inherit="def_source" inherit_url="defsource_spec.xml">
+    <SPECIFICATION>
+      <FilePattern mask="*.ss;*.scm"/>
+      <OpenClose>()[]""</OpenClose>
+      <Delimiters>()[]|'`,</Delimiters>
+      <Words>A-Za-z0-9$--_+*:#%~&lt;&gt;=/.!?@^&amp;</Words>
+      <Numbers>-+0-9.E</Numbers>
+      <EscapeChar>\</EscapeChar>
+      <Operators>()[]</Operators>
+      <Bars navigation="true"/>
+    </SPECIFICATION>
+    <SCOPES>
+      <Scope open="(" close=")"/>
+      <Scope open="[" close="]"/>
+    </SCOPES>
+    <LABELS>
+      <Label group="Define" match="\(\s*define\s+([\w\-_$\+\*:%~&lt;&gt;=/.!?@^&amp;]+)\s+\(\s*lambda\s+\(([^)]*\))" name="\1" descr="(\1 \2" scope="1" image="18"/>
+      <Label group="Define" match="\(\s*define\s+([\w\-_$\+\*:%~&lt;&gt;=/.!?@^&amp;]+)\s+\(\s*lambda\s+([\w\-_$\+\*:%~&lt;&gt;=/.!?@^&amp;]+)" name="\1" descr="(\1 . \2)" scope="1" image="18"/>
+      <Label group="Define" match="\(\s*define\s+\(\s*([\w\-_$\+\*:%~&lt;&gt;=/.!?@^&amp;]+)([^)]*\))" name="\1" descr="(\1 \2" scope="1" image="18"/>
+    </LABELS>
+    <STYLES>
+      <Style id="comment" name="Comments" text="1" bold="0" italic="1" underline="0" clr="Comments" bkclr="#FFFFFFFF">
+        <Blocks>
+          <Block open=";" close="\n"/>
+          <Block open="#|" close="|#"/>
+        </Blocks>
+        <Containers>
+          <Close id="normal"/>
+          <Close id="todo"/>
+        </Containers>
+      </Style>
+      <Style name="TODOs" id="todo" text="1" bold="1" italic="1" underline="0" clr="TODOs" bkclr="#FFFFFFFF" overview="1">
+        <Containers>
+          <Open id="comment"/>
+        </Containers>
+        <Blocks>
+          <Block open="TODO" close="\n"/>
+        </Blocks>
+      </Style>
+      <Style id="string" name="Strings" bold="0" italic="0" underline="0" clr="Strings" bkclr="#FFFFFFFF">
+        <Blocks>
+          <Block open="&quot;" close="&quot;"/>
+        </Blocks>
+      </Style>
+      <Style name="Escape Sequence" bold="1" italic="0" underline="0" clr="#FFFFFFFF" bkclr="#FFFFFFFF">
+        <Containers>
+          <Open id="string"/>
+        </Containers>
+        <Blocks>
+          <Block text="\\t"/>
+          <Block text="\\v"/>
+          <Block text="\\f"/>
+          <Block text="\\n"/>
+          <Block text="\\r"/>
+          <Block text="\\a"/>
+          <Block text="\\b"/>
+          <Block text="\\'"/>
+          <Block text="\\\\"/>
+          <Block text="\\&quot;"/>
+        </Blocks>
+      </Style>
+      <Style name="Char" bold="1" italic="0" underline="0" clr="Strings" bkclr="#FFFFFFFF">
+        <Blocks>
+          <Block open="#\\" close=""/>
+        </Blocks>
+      </Style>
+      <Style name="Special" bold="1" italic="0" underline="0" clr="Keyword3" bkclr="#FFFFFFFF">
+        <Blocks>
+          <Block open="#!" close=""/>
+        </Blocks>
+      </Style>
+      <Style name="Symbol" bold="0" italic="0" underline="0" clr="Window Text" bkclr="Highlight 4">
+        <Blocks>
+          <Block open="|" close="|"/>
+        </Blocks>
+      </Style>
+      <Style id="options" name="Options" bold="0" italic="0" underline="0" clr="Keyword3" bkclr="#FFFFFFFF">
+        <Blocks>
+          <Block open=":" close=""/>
+        </Blocks>
+      </Style>
+      <Style name="Constants" image="7" bold="0" italic="0" underline="0" clr="Keyword2" bkclr="#FFFFFFFF">
+        <Keywords>
+          <Keyword text="#f"/>
+          <Keyword text="#t"/>
+        </Keywords>
+      </Style>
+      <Style name="Quotes" bold="0" italic="0" underline="0" clr="Keyword3" bkclr="#FFFFFFFF">
+        <Blocks>
+          <Block open="'" close=""/>
+          <Block open="`" close=""/>
+          <Block open="," close=""/>
+          <Block open=",@" close=""/>
+        </Blocks>
+      </Style>
+      <Style name="Keywords" image="13" bold="0" italic="0" underline="0" clr="#F020CD" bkclr="#FFFFFFFF">
+        <Keywords>
+          <Keyword text="begin"/>
+          <Keyword text="case"/>
+          <Keyword text="cond"/>
+          <Keyword text="define"/>
+          <Keyword text="define-syntax"/>
+          <Keyword text="do"/>
+          <Keyword text="else"/>
+          <Keyword text="fluid-let"/>
+          <Keyword text="for-each"/>
+          <Keyword text="if"/>
+          <Keyword text="let"/>
+          <Keyword text="let*"/>
+          <Keyword text="let-syntax"/>
+          <Keyword text="letrec"/>
+          <Keyword text="letrec-syntax"/>
+          <Keyword text="load"/>
+          <Keyword text="set!"/>
+          <Keyword text="set-car!"/>
+          <Keyword text="set-cdr!"/>
+          <Keyword text="syntax-case"/>
+          <Keyword text="syntax-rules"/>
+        </Keywords>
+      </Style>
+      <Style name="Controls" image="9" bold="0" italic="0" underline="0" clr="Keyword5" bkclr="#FFFFFFFF">
+        <Keywords>
+          <Keyword text="apply"/>
+          <Keyword text="call-with-current-continuation"/>
+          <Keyword text="call-with-values"/>
+          <Keyword text="call/cc"/>
+          <Keyword text="dynamic-wind"/>
+          <Keyword text="lambda"/>
+          <Keyword text="values"/>
+        </Keywords>
+      </Style>
+      <Style name="Functions" image="9" bold="0" italic="0" underline="0" clr="Keyword" bkclr="#FFFFFFFF">
+        <Keywords>
+          <Keyword text="+"/>
+          <Keyword text="-"/>
+          <Keyword text="*"/>
+          <Keyword text="/"/>
+          <Keyword text="="/>
+          <Keyword text="&lt;"/>
+          <Keyword text="&gt;"/>
+          <Keyword text="&lt;="/>
+          <Keyword text="&gt;="/>
+          <Keyword text="=&gt;"/>
+          <Keyword text="abs"/>
+          <Keyword text="acos"/>
+          <Keyword text="and"/>
+          <Keyword text="angle"/>
+          <Keyword text="append"/>
+          <Keyword text="asin"/>
+          <Keyword text="assoc"/>
+          <Keyword text="assoc"/>
+          <Keyword text="assq"/>
+          <Keyword text="assv"/>
+          <Keyword text="atan"/>
+          <Keyword text="call-with-input-file"/>
+          <Keyword text="call-with-output-file"/>
+          <Keyword text="car"/>
+          <Keyword text="cdr"/>
+          <Keyword text="caar"/>
+          <Keyword text="cadr"/>
+          <Keyword text="cdar"/>
+          <Keyword text="cddr"/>
+          <Keyword text="caaar"/>
+          <Keyword text="caadr"/>
+          <Keyword text="cadar"/>
+          <Keyword text="caddr"/>
+          <Keyword text="cdaar"/>
+          <Keyword text="cdadr"/>
+          <Keyword text="cddar"/>
+          <Keyword text="cdddr"/>
+          <Keyword text="caaaar"/>
+          <Keyword text="caaadr"/>
+          <Keyword text="caadar"/>
+          <Keyword text="caaddr"/>
+          <Keyword text="cadaar"/>
+          <Keyword text="cadadr"/>
+          <Keyword text="caddar"/>
+          <Keyword text="cadddr"/>
+          <Keyword text="cdaaar"/>
+          <Keyword text="cdaadr"/>
+          <Keyword text="cdadar"/>
+          <Keyword text="cdaddr"/>
+          <Keyword text="cddaar"/>
+          <Keyword text="cddadr"/>
+          <Keyword text="cdddar"/>
+          <Keyword text="cddddr"/>
+          <Keyword text="ceiling"/>
+          <Keyword text="char-&gt;integer"/>
+          <Keyword text="char-downcase"/>
+          <Keyword text="char-upcase"/>
+          <Keyword text="close-input-port"/>
+          <Keyword text="close-output-port"/>
+          <Keyword text="cons"/>
+          <Keyword text="cos"/>
+          <Keyword text="current-input-port"/>
+          <Keyword text="current-output-port"/>
+          <Keyword text="delay"/>
+          <Keyword text="denominator"/>
+          <Keyword text="display"/>
+          <Keyword text="eval"/>
+          <Keyword text="exact-&gt;inexact"/>
+          <Keyword text="exp"/>
+          <Keyword text="expt"/>
+          <Keyword text="floor"/>
+          <Keyword text="force"/>
+          <Keyword text="gcd"/>
+          <Keyword text="imag-part"/>
+          <Keyword text="inexact-&gt;exact"/>
+          <Keyword text="integer-&gt;char"/>
+          <Keyword text="interaction-environment"/>
+          <Keyword text="lcm"/>
+          <Keyword text="length"/>
+          <Keyword text="list"/>
+          <Keyword text="list-&gt;string"/>
+          <Keyword text="list-&gt;vector"/>
+          <Keyword text="list-ref"/>
+          <Keyword text="list-tail"/>
+          <Keyword text="log"/>
+          <Keyword text="magnitude"/>
+          <Keyword text="make-polar"/>
+          <Keyword text="make-rectangular"/>
+          <Keyword text="make-string"/>
+          <Keyword text="make-vector"/>
+          <Keyword text="map"/>
+          <Keyword text="max"/>
+          <Keyword text="member"/>
+          <Keyword text="memq"/>
+          <Keyword text="memv"/>
+          <Keyword text="min"/>
+          <Keyword text="modulo"/>
+          <Keyword text="newline"/>
+          <Keyword text="not"/>
+          <Keyword text="null-environment"/>
+          <Keyword text="number-&gt;string"/>
+          <Keyword text="numerator"/>
+          <Keyword text="open-input-file"/>
+          <Keyword text="open-output-file"/>
+          <Keyword text="or"/>
+          <Keyword text="peek-char"/>
+          <Keyword text="quasiquote"/>
+          <Keyword text="quote"/>
+          <Keyword text="quotient"/>
+          <Keyword text="rational?"/>
+          <Keyword text="rationalize"/>
+          <Keyword text="read"/>
+          <Keyword text="read-char"/>
+          <Keyword text="real-part"/>
+          <Keyword text="remainder"/>
+          <Keyword text="reverse"/>
+          <Keyword text="round"/>
+          <Keyword text="scheme-report-environment"/>
+          <Keyword text="sin"/>
+          <Keyword text="sqrt"/>
+          <Keyword text="string"/>
+          <Keyword text="string-&gt;list"/>
+          <Keyword text="string-&gt;number"/>
+          <Keyword text="string-&gt;symbol"/>
+          <Keyword text="string-append"/>
+          <Keyword text="string-copy"/>
+          <Keyword text="string-fill!"/>
+          <Keyword text="string-length"/>
+          <Keyword text="string-ref"/>
+          <Keyword text="string-set!"/>
+          <Keyword text="substring"/>
+          <Keyword text="symbol-&gt;string"/>
+          <Keyword text="transcript-off"/>
+          <Keyword text="transcript-on"/>
+          <Keyword text="truncate"/>
+          <Keyword text="unquote"/>
+          <Keyword text="unquote-splicing"/>
+          <Keyword text="vector"/>
+          <Keyword text="vector-&gt;list"/>
+          <Keyword text="vector-fill!"/>
+          <Keyword text="vector-length"/>
+          <Keyword text="vector-ref"/>
+          <Keyword text="vector-set!"/>
+          <Keyword text="with-input-from-file"/>
+          <Keyword text="with-output-to-file"/>
+          <Keyword text="write"/>
+          <Keyword text="write-char"/>
+        </Keywords>
+      </Style>
+      <Style name="Predicates" image="9" bold="0" italic="0" underline="0" clr="#30DAED" bkclr="#FFFFFFFF">
+        <Keywords>
+          <Keyword text="boolean?"/>
+          <Keyword text="char-alphabetic?"/>
+          <Keyword text="char-ci&lt;=?"/>
+          <Keyword text="char-ci&lt;?"/>
+          <Keyword text="char-ci=?"/>
+          <Keyword text="char-ci&gt;=?"/>
+          <Keyword text="char-ci&gt;?"/>
+          <Keyword text="char-numeric?"/>
+          <Keyword text="char-ready?"/>
+          <Keyword text="char-upper-case?"/>
+          <Keyword text="char-whitespace?"/>
+          <Keyword text="char&lt;=?"/>
+          <Keyword text="char&lt;?"/>
+          <Keyword text="char=?"/>
+          <Keyword text="char&gt;=?"/>
+          <Keyword text="char&gt;?"/>
+          <Keyword text="char?"/>
+          <Keyword text="char-lower-case?"/>
+          <Keyword text="complex?"/>
+          <Keyword text="eof-object?"/>
+          <Keyword text="eq?"/>
+          <Keyword text="equal?"/>
+          <Keyword text="eqv?"/>
+          <Keyword text="even?"/>
+          <Keyword text="exact?"/>
+          <Keyword text="inexact?"/>
+          <Keyword text="input-port?"/>
+          <Keyword text="integer?"/>
+          <Keyword text="list?"/>
+          <Keyword text="negative?"/>
+          <Keyword text="number?"/>
+          <Keyword text="null?"/>
+          <Keyword text="odd?"/>
+          <Keyword text="output-port?"/>
+          <Keyword text="pair?"/>
+          <Keyword text="input-port?"/>
+          <Keyword text="output-port?"/>
+          <Keyword text="positive?"/>
+          <Keyword text="procedure?"/>
+          <Keyword text="real?"/>
+          <Keyword text="string-ci&lt;=?"/>
+          <Keyword text="string-ci&lt;?"/>
+          <Keyword text="string-ci=?"/>
+          <Keyword text="string-ci&gt;=?"/>
+          <Keyword text="string-ci&gt;?"/>
+          <Keyword text="string&lt;=?"/>
+          <Keyword text="string&lt;?"/>
+          <Keyword text="string=?"/>
+          <Keyword text="string&gt;=?"/>
+          <Keyword text="string&gt;?"/>
+          <Keyword text="string?"/>
+          <Keyword text="symbol?"/>
+          <Keyword text="vector?"/>
+          <Keyword text="zero?"/>
+        </Keywords>
+      </Style>
+    </STYLES>
+  </SYNTAX>
+</XMLConfigSettings>

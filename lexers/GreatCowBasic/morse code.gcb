@@ -1,0 +1,151 @@
+'Morse Code demonstration for Great Cow BASIC
+'(c) Hugh Considine 2006-2008
+
+'A program to accept messages from a standard PS/2 keyboard, then play
+'them as morse code using a speaker.
+
+'User Settings
+#define CodeFrequency 750	'Hz
+#define DotLength 5		'* 10 ms
+#define DotSpace 250		' ms
+#define BarLength 25		'* 10 ms
+#define BarSpace 50		' ms
+
+'Hardware settings
+#chip 16F877A, 20
+
+'LCD connection settings
+#define LCD_IO 8
+#define LCD_DATA_PORT PORTC
+#define LCD_RS PORTD.0 
+#define LCD_RW PORTD.1
+#define LCD_Enable PORTD.2
+
+'PS/2 keyboard connection settings
+#define PS2Clock PORTB.1
+#define PS2Data PORTB.2
+
+'Tone output pin
+#define SoundOut PORTD.3
+
+'Set port directions
+DIR PS2Clock IN
+DIR PS2Data IN
+DIR SoundOut OUT
+
+'Clear key buffer
+DIM KeyLog(32)
+DataCount = 0
+KeyLog(1) = 32 'Space character
+
+'Show opening message
+PRINT "GCBASIC Morse"
+locate 1,0
+PRINT "Code Transmitter"
+
+'Main routine
+Main:
+ 
+ 'Get a keypress
+ KeyIn = INKEY
+ if KeyIn = 0 then goto Main
+
+ 'Allow time for key to be released
+ wait 150 ms
+
+ 'if ENTER is pressed, then send message
+ if KeyIn = 13 then
+  MorseSend
+  goto Main
+ end if
+  
+ 'Escape - clear message buffer
+ if KeyIn = 27 then
+  DataCount = 0
+  for DataPos = 1 to 32
+   KeyLog(DataPos) = 32
+  next
+  goto DisplayData
+ end if
+
+ 'Backspace - delete last character
+ if KeyIn = 8 then
+  if DataCount = 0 then goto Main
+  KeyLog(DataCount) = 32
+  DataCount = DataCount - 1
+  goto DisplayData
+ end if
+
+ 'Otherwise, add the character to the buffer
+ DataCount = DataCount + 1
+ KeyLog(DataCount) = KeyIn 
+
+DisplayData:
+ 'Display key log
+ CLS
+ for DataPos = 1 to DataCount
+  if DataPos = 17 then locate 1,0
+  LCDWriteChar KeyLog(DataPos)
+ next
+
+goto Main
+
+sub MorseSend
+ for SendLetter = 1 to DataCount
+  Letter = KeyLog(SendLetter)
+  
+  'Numbers
+  if Letter = 48 then Bar: Bar: Bar: Bar: Bar '0
+  if Letter = 49 then Dot: Bar: Bar: Bar: Bar '1
+  if Letter = 50 then Dot: Dot: Bar: Bar: Bar '2
+  if Letter = 51 then Dot: Dot: Dot: Bar: Bar '3
+  if Letter = 52 then Dot: Dot: Dot: Dot: Bar '4
+  if Letter = 53 then Dot: Dot: Dot: Dot: Dot '5
+  if Letter = 54 then Bar: Dot: Dot: Dot: Dot '6
+  if Letter = 55 then Bar: Bar: Dot: Dot: Dot '7
+  if Letter = 56 then Bar: Bar: Bar: Dot: Dot '8
+  if Letter = 57 then Bar: Bar: Bar: Bar: Dot '9
+
+  'Letters
+  if Letter >= 97 and Letter <= 122 then Letter -= 32 'Convert to upper case
+  if Letter = 65 then Dot: Bar
+  if Letter = 66 then Bar: Dot: Dot: Dot
+  if Letter = 67 then Bar: Dot: Bar: Dot
+  if Letter = 68 then Bar: Dot: Dot
+  if Letter = 69 then Dot
+  if Letter = 70 then Dot: Dot: Bar: Dot
+  if Letter = 71 then Bar: Bar: Dot
+  if Letter = 72 then Dot: Dot: Dot: Dot
+  if Letter = 73 then Dot: Dot 	'I
+  if Letter = 74 then Dot: Bar: Bar: Bar 'J
+  if Letter = 75 then Bar: Dot: Bar 'K
+  if Letter = 76 then Dot: Bar: Dot: Dot 'L
+  if Letter = 77 then Bar: Bar 'M
+  if Letter = 78 then Bar: Dot 'N
+  if Letter = 79 then Bar: Bar: Bar 'O
+  if Letter = 80 then Dot: Bar: Bar: Dot 'P
+  if Letter = 81 then Bar: Bar: Dot: Bar 'Q
+  if Letter = 82 then Dot: Bar: Dot 'R
+  if Letter = 83 then Dot: Dot: Dot 'S
+  if Letter = 84 then Bar 'T
+  if Letter = 85 then Dot: Dot: Bar 'U
+  if Letter = 86 then Dot: Dot: Dot: Bar 'V
+  if Letter = 87 then Dot: Bar: Bar 'W
+  if Letter = 88 then Bar: Dot: Dot: Bar 'X
+  if Letter = 89 then Bar: Dot: Bar: Bar 'Y
+  if Letter = 90 then Bar: Bar: Dot: Dot 'Z
+
+  'Misc
+  if Letter = 32 then wait 300 ms 'Space
+ next
+end sub
+
+sub Dot
+ Tone CodeFrequency, DotLength
+ wait DotSpace ms
+end sub
+
+sub Bar
+ Tone CodeFrequency, BarLength
+ wait BarSpace ms
+end sub

@@ -1,0 +1,284 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//FR"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>Caml Examples</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#FFFFFF">
+
+<P>File created 2 February 2001.
+
+<H1 ALIGN=CENTER><IMG SRC="../../gifs/JoeCaml.gif" ALT="">Simple and basic programs</H1>
+
+<H2 ALIGN=LEFT>How to compile and run the programs</H2>
+
+<P>Calling the Caml compiler:
+
+<UL>
+<LI>to compile the file hello.ml to executable program a.out type<BR>
+    ocamlc hello.ml
+<LI>to compile the file hello.ml to executable program hello type<BR>
+    ocamlc -o hello hello.ml
+</UL>
+
+<P>To try interactively: call the Caml interactive system
+
+<PRE>
+        ocaml               # or better, ledit ocaml, if ledit is installed.
+</PRE>
+
+Then type in (don't forget the initial <CODE>#</CODE> sign, that
+indicates a directive)
+<PRE>
+        #use "loadall.ml";;
+</PRE>
+
+<H2 ALIGN=LEFT>Automatic recompilation</H2>
+
+<P>
+To compile: either type "make", or, by hand:
+<PRE>
+        ocamlc -o fib fib.ml
+        ocamlc -o wc wc.ml
+        ocamlc -o sieve sieve.ml
+</PRE>
+
+<P>To run, type:
+
+<PRE>
+        fib 10              # or some other number
+        wc fib.ml           # or some other files
+        sieve 1000          # or some other number
+</PRE>
+
+<P>To compile programs to native code: either "make opt", or, by hand:
+
+<PRE>
+        ocamlopt -o fib fib.ml
+        ocamlopt -o wc wc.ml
+        ocamlopt -o sieve sieve.ml
+</PRE>
+
+<P>As mentioned above, you can also try the programs interactively:
+
+<PRE>
+        ocaml               # or ledit ocaml if ledit is installed.
+        #use "loadall.ml";;
+</PRE>
+
+<H2 ALIGN=LEFT>Basic programs</H2>
+
+<P>This directory contains the following basic programs:
+
+<DL>
+<DT><STRONG>Hello</STRONG>: the source program is in file
+ <A HREF="hello.ml"><CODE>hello.ml</CODE></A>.</DT>
+  <DD>Just prints Hello world! followed by a newline.</DD>
+  <DD>Try<BR>
+       <CODE>hello</CODE>
+  </DD>
+
+<DT><STRONG>Greeting</STRONG>: source program is in file
+ <A HREF="greeting.ml"><CODE>greeting.ml</CODE></A>.</DT>
+  <DD>Ask the name of the user, reads the input from the keyboard, greets the
+  user and die.</DD>
+  <DD>Try<BR>
+       <CODE>greeting</CODE>
+  </DD>
+
+<DT><STRONG>Argcargv</STRONG>: source program is in file
+ <A HREF="argcargv.ml"><CODE>argcargv.ml</CODE></A>.</DT>
+  <DD>Prints the number of arguments passed to the program on the
+      command line, then prints them all.</DD>
+  <DD>Try<BR>
+       <CODE>argcargv 1 Camel</CODE>
+  </DD>
+
+<DT><STRONG>Square</STRONG>: source program is in file
+ <A HREF="square.ml"><CODE>square.ml</CODE></A>.</DT>
+  <DD>Reads an integer passed as argument to the program, then compute
+  and prints its square.</DD>
+  <DD>Try<BR>
+       <CODE>square 16</CODE>
+  </DD>
+
+<DT><STRONG>Fib</STRONG>: source program is in file
+ <A HREF="fib.ml"><CODE>fib.ml</CODE></A>.</DT>
+   <DD>Define the Fibonacci function as a simple recursive Caml function.</DD>
+  <DD>Try<BR>
+       <CODE>fib 10</CODE>
+  </DD>
+
+<DT><STRONG>Wc</STRONG>: the source program is in file
+ <A HREF="wc.ml"><CODE>wc.ml</CODE></A>.</DT>
+  <DD>A program that mimicks the Unix "wc" utility: it counts the number of
+  characters, words, and lines of a given file.</DD>
+  <DD>Try<BR>
+       <CODE>./wc wc.ml</CODE>
+  </DD>
+
+<DT><STRONG>Wc_unix</STRONG>: the source program is in file
+ <A HREF="wc_unix.ml"><CODE>wc_unix.ml</CODE></A>.</DT>
+  <DD>A Caml clone of the Unix "wc" utility.</DD>
+  <DD>Try<BR>
+       <CODE>./wc_unix *.ml</CODE>
+  </DD>
+
+<DT><STRONG>Reverse_stdin</STRONG>: the source program is in file
+ <A HREF="reverse_stdin.ml"><CODE>reverse_stdin.ml</CODE></A>.</DT>
+  <DD>Reverse the lines reads from stdin.
+  <BR>Vectors and imperative programming with loops.</DD>
+  <DD>Try<BR>
+       <CODE>reverse_stdin &lt; reverse_stdin.ml</CODE>
+  </DD>
+
+<DT><STRONG>Reverse_rec</STRONG>: the source program is in file
+ <A HREF="reverse_rec.ml"><CODE>reverse_rec.ml</CODE></A>.</DT>
+  <DD>Reverse the lines reads from stdin.
+  <BR>Elegant recursive imperative programming.</DD>
+  <DD>Try<BR>
+       <CODE>reverse_rec &lt; reverse_stdin.ml</CODE>
+  </DD>
+
+<DT><STRONG>Sieve</STRONG>: the source program is in file
+ <A HREF="sieve.ml"><CODE>sieve.ml</CODE></A>.</DT>
+  <DD>The Eratosthene's sieve: the program computes the set of prime
+  numbers lesser than a given integer argument.
+  <BR>Uses lists.</DD>
+  <DD>Try<BR>
+       <CODE>sieve 1000</CODE>
+  </DD>
+
+<DT><STRONG>Sieve_vect</STRONG>: the source program is in file
+ <A HREF="sieve_vect.ml"><CODE>sieve_vect.ml</CODE></A>.</DT>
+  <DD>The Eratosthene's sieve in an imperative way, using a vector:
+  the program computes the number of prime numbers lesser than a given
+  integer argument. 
+  <BR>Uses and manipulates vectors.</DD>
+  <DD>Try<BR>
+       <CODE>sieve_vect 1000</CODE>
+  </DD>
+  <DD><STRONG>Note</STRONG>: the C correspondant of
+  <CODE>sieve_vect.ml</CODE> is in file
+  <A HREF="sieve_vect.c"><CODE>sieve_vect.c</CODE></A>.
+  The Caml correspondant with maximum speed is in
+  <A HREF="sieve_vect_unsafe.ml"><CODE>sieve_vect_unsafe.ml</CODE></A>
+  (no array bound checks).
+  </DD>
+
+
+<DT><STRONG>Qeens</STRONG>: the source program is in file
+ <A HREF="queens.ml"><CODE>queens.ml</CODE></A>.</DT>
+  <DD>Lists manipulation: prints the solution to the 8 queens problem.</DD>
+  <DD>How to set n queens on a chessboard of size n such that none
+  can catch one each other.
+  <BR>Higher-order list manipulation.</DD>
+  <DD>Try<BR>
+       <CODE>queens 8</CODE>
+  </DD>
+
+<DT><STRONG>Soli</STRONG>: the source program is in file
+<A HREF="soli.ml"><CODE>soli.ml</CODE></A>.</DT>
+  <DD>Prints the solution to the famous ``solitaire'' game.
+  <BR>Vectors and data types definitions and manipulation.</DD>
+  <DD>Try<BR>
+       <CODE>soli</CODE>
+  </DD>
+</DL>
+
+<H2 ALIGN=LEFT>Simple library modules</H2>
+
+<P>This directory contains two simple library module examples:
+
+<DL>
+<DT><STRONG>Realloc</STRONG>: module Realloc, the source
+  implementation of the module is in file
+ <A HREF="realloc.ml"><CODE>realloc.ml</CODE></A>, the source
+  interface of the module is in file
+ <A HREF="realloc.mli"><CODE>realloc.mli</CODE></A>.</DT>
+  <DD>Defines a simple module to realloc (enlarge) arrays.
+  <BR>The module defines and exports a single realloc function.
+  <BR>Try to define and compile a program that uses realloc (for instance
+  to define dynamically extendable storage areas).
+  </DD>
+
+<DT><STRONG>Explode</STRONG>: module Explode, the source
+  implementation in file
+ <A HREF="explode.ml"><CODE>explode.ml</CODE></A>,
+  the interface is in file
+ <A HREF="explode.mli"><CODE>explode.mli</CODE></A>.</DT>
+  <DD>Defines explode and implode, two simple functions that convert a
+  string into a list of chars (explode) and converse (implode).
+  <BR>Those functons are linear and tail recursive.
+  </DD>
+
+</DL>
+
+<H2 ALIGN=LEFT>Advanced programs</H2>
+
+<P>This directory contains the following less simple programs:
+
+<DL>
+<DT><STRONG>Strpos</STRONG>: the source program is in file
+ <A HREF="strpos.ml"><CODE>strpos.ml</CODE></A>.</DT>
+  <DD>Tests if its first argument appears as a sub string of its second
+  argument, and returns the first character number of the first matching
+  occurrence.
+  <BR>Uses recursive function programming to implement a naive algorithm.</DD>
+  <DD>Try<BR>
+       <PRE>
+        strpos rs strstr
+        strpos ra strstr
+        </PRE>
+  </DD>
+
+<DT><STRONG>Kmp</STRONG>: the source program is in file
+ <A HREF="kmp.ml"><CODE>kmp.ml</CODE></A>.</DT>
+  <DD>Tests if its first argument appears as a sub string of its second
+  argument, and returns the first character number of the first matching
+  occurrence.
+  <BR>Uses imperative programming, while loops and references to
+  implement the Knuth-Morris-Pratt algorithm.</DD>
+  <DD>Try<BR>
+       <PRE>
+        kmp rs strstr
+        kmp ra strstr
+        </PRE>
+  </DD>
+
+<DT><STRONG>Qeens_tail</STRONG>: the source program is in file
+ <A HREF="queens_tail.ml"><CODE>queens_tail.ml</CODE></A>.</DT>
+  <DD>Same as Queens but the program is optimized, being written in a
+  so called ``tail rec'' style.
+  <BR>Interesting tail recursion exercise.
+  </DD>
+  <DD>Try<BR>
+       <PRE>
+        queens_tail 8
+        </PRE>
+  </DD>
+
+<DT><STRONG>Qeens_lazy</STRONG>: the source program is in file
+<A HREF="queens_lazy.ml"><CODE>queens_lazy.ml</CODE></A>.</DT>
+  <DD>Same as Queens but the program is written in lazy style.
+  Lazyness is hand coded, hence extremely explicit.
+  Defines sum types to implement lazy lists, use mutable fields to
+  implement call by need.
+  <BR>Strange mixing of side effects and pure functionality.
+  </DD>
+  <DD>Try<BR>
+       <PRE>
+        queens_lazy 8
+        </PRE>
+  </DD>
+
+</DL>
+
+<P>
+<ADDRESS>Contact the author <A HREF="mailto:Pierre.Weis@inria.fr">Pierre.Weis@inria.fr</A></ADDRESS>
+<HR>
+
+</BODY>
+</HTML>
+

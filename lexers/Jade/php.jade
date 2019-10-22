@@ -1,0 +1,41 @@
+    !!!
+    html
+      head
+        meta(charset="utf-8")
+        title Траляля
+        link(rel="stylesheet", href="css/bootstrap.min.css")
+        link(rel="stylesheet", href="blagodaruvas.css")
+      body
+        div.container
+          nav
+            ul.nav.nav-tabs
+              li
+                a(href="#") Описание
+              li
+                a(href="#") Учет
+              li
+                a(href="#") Кнопка
+
+
+          div.desc
+            h3 Описание
+
+          p.
+            <?php
+            $folder='s/'; // папка где хранятся массивы с инкрементами
+            $folder='s/'; // папка где хранятся массивы с инкрементами
+            $folder='s/'; // папка где хранятся массивы с инкрементами
+
+            ?>
+
+          center
+            h1 Поблагодарили за контент/сервис <?=$countIs?> раз.
+            h2 Домен: <a href="<?=$host?>"><?=$host?></a>
+            p <a href="<?=$url?>"><?=$url?></a>   
+
+        footer Стартап от jkeks
+        :javascript
+          alert ("asd")
+        :coffeescript
+          alert "asd"
+          

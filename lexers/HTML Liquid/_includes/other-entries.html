@@ -1,0 +1,8 @@
+<section class="blog-archive">
+	<h3>Blog Archive</h3>
+		<ul class="post-link">
+			{% for post in site.pages.blog.posts offset:1 %}
+          	<li><a href="{{post.url}}">{{post.title}}</a></li>
+          	{% endfor %}
+        </ul>	
+</section>

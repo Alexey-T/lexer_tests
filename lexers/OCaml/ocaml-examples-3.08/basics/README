@@ -1,0 +1,190 @@
+Extremely simple and basic programs.
+
+Calling the Caml compiler:
+  to compile the file hello.ml to executable program a.out type
+    ocamlc hello.ml
+  to compile the file hello.ml to executable program hello type
+    ocamlc -o hello hello.ml
+
+To try interactively:
+
+        ocaml               # or ledit ocaml if ledit is installed.
+        #use "loadall.ml";;
+
+This directory contains the following programs:
+
+Basic programs:
+
+ Hello: source programm is in file hello.ml.
+  Just prints Hello world! followed by a newline.
+  Try
+       hello
+
+ Greeting: source programm is in file greeting.ml.
+  Ask the name of the user, reads the input at keyboard, greets the
+  user and die.
+  Try
+       greeting
+
+ Argcargv: source program is in file argcargv.ml.
+  A simple program to determine the number of arguments and the
+  arguments passed to a Caml executable program.
+  Uses a simple for loop and the printf function to print the
+  vector of arguments passed to the command.
+  Try
+       argcargv
+       argcargv 1 2
+       argcargv 1 2 "ok" -f "/tmp/foo"
+
+ Square: source program is in file square.ml
+  Reads an integer passed as argument to the program, then compute
+  and prints its square.
+  Try
+        square 16
+
+ Fib: source program is in fib.ml.
+  Define the Fibonacci function as a simple recursive Caml function.
+  Try
+        fib 10
+
+ Wc: the source program is in wc.ml.
+  A program that mimicks the Unix "wc" utility: it counts the number of
+  characters, words, and lines of a given file.
+  Uses imperative variables or references.
+  Try
+        ./wc wc.ml
+
+ Reverse_stdin: the source program is in reverse_stdin.ml.
+  A program to reverse the lines of a character stream given on standard input.
+  Basic references and array manipulation, recursive loops, and for
+  loops.
+  Try
+        reverse_stdin < reverse_stdin.ml
+
+ Reverse_rec: the source program is in reverse_rec.ml.
+  Same specification as reverse_stdin.
+  Written in a more functional style, using recursive
+  functions. Extremely concise and elegant.
+  Try
+        reverse_rec < reverse_rec.ml
+
+ Wc_unix: the source program is in wc_unix.ml.
+  A Caml clone of the Unix "wc" utility.
+  Defines an uses a new record type.
+  Introduces the printf formatting primitive.
+  Try
+        ./wc_unix *.ml
+
+ Sieve: the source program is in sieve.ml.
+  The Eratosthene's sieve: the program computes the set of prime
+  numbers lesser than a given integer argument.
+  Uses lists.
+  Try
+        sieve 1000
+
+ Sieve_vect: the source program is in sieve_vect.ml.
+  The Eratosthene's sieve in an imperative way, using a vector:
+  the program computes the number of prime
+  numbers lesser than a given integer argument.
+  Uses and manipulates vectors.
+  Try
+        sieve_vect 1000
+
+  Note: the C correspondant of sieve_vect.ml is in sieve_vect.c.
+  The Caml correspondant with maximum speed is in sieve_vect_unsafe.ml
+  (no array bound checks).
+
+ Qeens: the source program is in queens.ml.
+  Lists manipulation: prints the solutions to the 8 queens problem.
+  How to set n queens on a chessboard of size n such that none
+  can catch one each other.
+  Try
+        queens 8
+
+ Soli: the source program is in soli.ml.
+  Prints the solution to the famous ``solitaire'' game.
+  Vectors and data types definitions and manipulation.
+  Try
+        soli
+
+Simple library modules
+
+ Realloc: module Realloc, the source implementation of the module 
+  is in file realloc.ml, the source interface of the module is in
+  realloc.mli. 
+  Defines a simple module to realloc (enlarge) arrays.
+  The module defines and exports a single realloc function.
+  Try to define and compile a program that uses realloc (for instance
+  to define dynamically extendable storage areas).
+
+ Explode: implementation in explode.ml, interface in explode.mli.
+  Defines explode and implode two simple functions that convert a
+  string into a list of chars (explode) and converse (implode).
+  Those functons are linear and tail recursive.
+
+Advanced examples:
+
+ Strpos: the source program is in strpos.ml.
+  Tests if its first argument appears as a sub string of its second
+  argument, and returns the character number of the first matching
+  occurrence.
+  Uses recursive functional programming to implement a naive algorithm.
+  Try
+        strpos rs strstr
+        strpos ra strstr
+
+ Kmp: the source program is in kmp.ml.
+  Tests if its first argument appears as a sub string of its second
+  argument, and returns the character number of the first matching
+  occurrence.
+  Uses imperative programming, while loops and references to implement
+  the Knuth-Morris-Pratt algorithm.
+  Try
+        kmp rs strstr
+        kmp ra strstr
+
+ Qeens_tail: the source program is in queens_tail.ml.
+  Same as Queens but the program is optimized, been written in a so
+  called ``tail rec'' style.
+  Interesting tail recursion exercise.
+  Try
+        queens_tail 8
+
+ Qeens_lazy: the source program is in queens_lazy.ml.
+  Same as Queens but the program is written in lazy style.
+  Lazyness is hand coded hence extremely explicit.
+  Defines sum types to implement lazy lists, use mutable fields to
+  implement call by need.
+  Try
+        queens_lazy 8
+
+To compile to byte code: either type "make", or enter directly the
+compile commands. For instance, to byte compile fib.ml wc.ml and
+sieve.ml, enter:
+
+        ocamlc -o fib fib.ml
+        ocamlc -o wc wc.ml
+        ocamlc -o sieve sieve.ml
+
+To run the executables:
+
+        fib 10              # or some other number
+        wc fib.ml           # or some other files
+        sieve 1000          # or some other number
+
+To compile to native code: either "make opt", or call the native code
+compiler (ocamlopt) instead of ocamlc:
+
+        ocamlopt -o fib fib.ml
+        ocamlopt -o wc wc.ml
+        ocamlopt -o sieve sieve.ml
+
+Generally speaking, native code executable programs are bigger and
+faster to execute.
+
+To try interactively call the interactive system, and load the source
+file loadall.ml:
+
+        ocaml               # or ledit ocaml if ledit is installed.
+        #use "loadall.ml";;
+

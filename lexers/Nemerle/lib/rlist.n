@@ -1,0 +1,924 @@
+/*
+ * Copyright (c) 2005-2006 Wojciech Knapik.
+ * Copyright (c) 2005-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of Wojciech Knapik may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using System;
+using SCG = System.Collections.Generic;
+
+namespace Nemerle.Collections {
+
+  /** An auxillary data-structure for RList used instead of a regular
+      tuple (which is a struct) for performance reasons.
+   */
+  [Record]
+  public class Pair ['a] : System.Collections.Generic.IEnumerable['a],
+    System.IEquatable[Pair['a]]
+  {
+    public fst : 'a;
+    public snd : 'a;
+
+    [Nemerle.OverrideObjectEquals]
+    public Equals (p : Pair ['a]) : bool
+      implements System.IEquatable[Pair['a]].Equals
+    {
+      this.fst.Equals (p.fst) && this.snd.Equals (p.snd)
+    }
+
+    public override ToString () : string {
+      $"($(this.fst), $(this.snd))"
+    }
+
+    public GetEnumerator () : SCG.IEnumerator ['a] {
+      yield (this.fst);
+      yield (this.snd)
+    }
+  }
+
+  /** RList is short for Random Access List. It is a purely functional
+      data-structure. This implementation is based on the SML sources
+      found in Chris Okasaki's "Purely Functional Data Structures"
+      (Cambridge University Press, 1999).
+   */
+  public variant RList ['a] : System.Collections.Generic.IEnumerable['a],
+    System.IEquatable[RList['a]]
+  {
+    | Nil
+    | Zero {
+      arg : RList [Pair ['a]]
+    }
+    | One {
+      arg1 : 'a;
+      arg2 : RList [Pair ['a]]
+    }
+
+    /** Returns an empty RList.
+        Time complexity: O (1).
+        <returns>
+          An empty RList.
+        </returns>
+     */
+    public static Empty : RList ['a] = Nil ();
+
+    /** Checks, whether the RList [xs] is empty.
+        Time complexity: O (1).
+        <param name="xs">
+          The list to check for emptiness.
+        </param>
+        <returns>
+          true if the [xs] is empty,
+          false otherwise.
+        </returns>
+     */
+    public static IsEmpty (xs : RList ['a]) : bool {
+      | Nil => true
+      | _ => false
+    }
+
+    /** Checks, whether [this] is an empty RList.
+        Time complexity: O (1).
+        <returns>
+          true if [this] is an empty RList,
+          false otherwise.
+        </returns>
+     */
+    public IsEmpty () : bool {
+      IsEmpty (this)
+    }
+
+    /** Checks, whether two RLists are equal, by cheking if their
+        respective elements are equal.
+        Time complexity: O (min (|xs|, |ys|)).
+        <param name="xs">
+          The first compared RList.
+        </param>
+        <param name="ys">
+          The second compared RList.
+        </param>
+        <returns>
+          true if [xs] and [ys] are equal,
+          false otherwise.
+        </returns>
+     */
+    public static Equals (xs : RList ['a], ys : RList ['a]) : bool {
+      | (Zero (ps), Zero (qs))
+      | (One (x, ps), One (y, qs)) when x.Equals (y) => RList [Pair ['a]].Equals (ps, qs)
+      | (Nil, Nil) => true
+      | _ => false
+    }
+
+    /** Checks, whether [this] and [ys] are equal RLists, by cheking if their
+        respective elements are equal.
+        Time complexity: O (min (|this|, |ys|)).
+        <param name="ys">
+          The RList [this] is compared to.
+        </param>
+        <returns>
+          true if [this] and [ys] are equal,
+          false otherwise.
+        </returns>
+     */
+    [Nemerle.OverrideObjectEquals]
+    public Equals (ys : RList ['a]) : bool
+      implements System.IEquatable[RList['a]].Equals
+    {
+      //PERFORMANCE: maybe it would be worth checking lenghts first ?
+      Equals (this, ys)
+    }
+
+    /** Returns a new RList composed by adding [x], to the head of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        <param name="x">
+          The element being added to the head of [xs].
+        </param>
+        <param name="xs">
+          The RList, to which head [x] is being added.
+        </param>
+        <returns>
+          A new RList composed of [x] as the new head and [xs] as the new tail.
+        </returns>
+     */
+    public static Cons (x : 'a, xs : RList ['a]) : RList ['a] {
+      match (xs) {
+        | One (y, ps) => Zero (RList [Pair ['a]].Cons (Pair (x, y), ps))
+        | Zero (ps) => One (x, ps)
+        | Nil => One (x, Nil ())
+      }
+    }
+
+    /** Returns a new RList composed by adding [x], to the head of the RList [this].
+        Time complexity: O (log (|this|)).
+        <param name="x">
+          The element being added to the head of [this].
+        </param>
+        <returns>
+          A new RList composed of [x] as the new head and [this] as the new tail.
+        </returns>
+     */
+    public Cons (x : 'a) : RList ['a] {
+      Cons (x, this)
+    }
+
+    /** Separates and returns the head and tail of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        <param name="xs">
+          The RList, which tail is going to be returned along with the separated head.
+        </param>
+        <returns>
+          The head and tail of [xs].
+        </returns>
+     */
+    public static UnCons (xs : RList ['a]) : 'a * RList ['a] {
+      | Zero (ps) => def ((x, y), ps') = RList [Pair ['a]].UnCons (ps);
+                     (x, One (y, ps'))
+      | One (x, Nil) => (x, Nil ())
+      | One (x, ps) => (x, Zero (ps))
+      | Nil => throw Exception ("Empty")
+    }
+
+    /** Separates and returns the head and tail of the RList [this].
+        Time complexity: O (log (|this|)).
+        <returns>
+          The head and tail of [this].
+        </returns>
+     */
+    public UnCons () : 'a * RList ['a] {
+      UnCons (this)
+    }
+
+    /** Returns the head of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        <param name="xs">
+          The RList, which head is going to be returned.
+        </param>
+        <returns>
+          The head of [xs].
+        </returns>
+     */
+    public static Head (xs : RList ['a]) : 'a {
+      | Zero (ps) => def (x, _) = RList [Pair ['a]].Head (ps);
+                     x
+      | One (x, _) => x
+      | Nil => throw Exception ("Empty")
+    }
+
+    /** Returns the head of the RList [this].
+        Time complexity: O (log (|this|)).
+        <returns>
+          The head of [this].
+        </returns>
+     */
+    public Head () : 'a {
+      Head (this)
+    }
+
+    /** Returns the head of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        An alias for Head.
+        <param name="xs">
+          The RList, which head is going to be returned.
+        </param>
+        <returns>
+          The head of [xs].
+        </returns>
+     */
+    public static Hd (xs : RList ['a]) : 'a {
+      Head (xs)
+    }
+
+    /** Returns the head of the RList [this].
+        Time complexity: O (log (|this|)).
+        An alias for Head.
+        <returns>
+          The head of [this].
+        </returns>
+     */
+    public Hd () : 'a {
+      Head (this)
+    }
+
+    /** Returns the tail of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        <param name="xs">
+          The RList, which tail is going to be returned.
+        </param>
+        <returns>
+          The tail of [xs].
+        </returns>
+     */
+    public static Tail (xs : RList ['a]) : RList ['a] {
+      def (_, xs') = UnCons (xs);
+      xs'
+    }
+
+    /** Returns the tail of the RList [this].
+        Time complexity: O (log (|this|)).
+        <returns>
+          The tail of [this].
+         </returns>
+     */
+    public Tail () : RList ['a] {
+      Tail (this)
+    }
+
+    /** Returns the tail of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        An alias for Tail.
+        <param name="xs">
+          The RList, which tail is going to be returned.
+        </param>
+        <returns>
+          The tail of [xs].
+        </returns>
+     */
+    public static Tl (xs : RList ['a]) : RList ['a] {
+      Tail (xs)
+    }
+
+    /** Returns the tail of the RList [this].
+        Time complexity: O (log (|this|)).
+        An alias fot Tail.
+        <returns>
+          The tail of [this].
+        </returns>
+     */
+    public Tl () : RList ['a] {
+      Tail (this)
+    }
+
+    /** Returns the last element of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        <param name="xs">
+          The RList, which last element is going to be returned.
+        </param>
+        <returns>
+          The last element of [xs].
+        </returns>
+     */
+    public static Last (xs : RList ['a]) : 'a {
+      | Zero (ps) => RList [Pair ['a]].Last (ps).snd;
+      | One (x, Nil) => x
+      | One (_, ps) => RList [Pair ['a]].Last (ps).snd;
+      | Nil => throw System.ArgumentException ("RList.Last called for empty RList")
+    }
+
+    /** Returns the last element of the RList [this].
+        Time complexity: O (log (|this|)).
+        <returns>
+          The last element of [this].
+        </returns>
+     */
+    public Last () : 'a {
+      Last (this)
+    }
+
+    /* An auxillary function used by the Length property.
+       Time complexity: O (log (|xs|)).
+     */
+    static _Length (xs : RList ['a], tmp = 1, count = 0) : int {
+      match (xs) {
+        | Zero (ps) => RList [Pair ['a]]._Length (ps, tmp * 2, count)
+        | One (_, ps) => RList [Pair ['a]]._Length (ps, tmp * 2, count + tmp)
+        | Nil => count
+      }
+    }
+
+    /** Returns the length of the RList [this].
+        Time complexity: O (log (|this|)).
+        <returns>
+          The length of [this].
+        </returns>
+     */
+    public Length : int {
+      get {
+        _Length (this)
+      }
+    }
+
+    /** Returns true if there exists an element on [xs], that
+        satisfies the predicate [f] (that is f (elem) == true).
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The RList containing the tested elements.
+        </param>
+        <param name="f">
+          The predicate used during the tests.
+        </param>
+        <returns>
+          Returns true if for any element on the RList [xs],
+          applying [f] to that element returns true, otherwise
+          returns false.
+        </returns>
+     */
+    public static Exists (xs : RList ['a], f : 'a -> bool) : bool {
+      def f' (x) { f (x.fst) || f (x.snd) }
+      match (xs) {
+        | One (x, ps) => f (x) || RList [Pair ['a]].Exists (ps, f')
+        | Zero (ps) => RList [Pair ['a]].Exists (ps, f')
+        | Nil => false
+      }
+    }
+
+    /** Returns true if there exists an element on [this], that
+        satisfies the predicate [f] (that is f (elem) == true).
+        Time complexity: O (|xs|).
+        <param name="f">
+          The predicate used during the tests.
+        </param>
+        <returns>
+          Returns true if for any element on the RList [this],
+          applying [f] to that element returns true, otherwise
+          returns false.
+        </returns>
+     */
+    public Exists (f : 'a -> bool) : bool {
+      Exists (this, f)
+    }
+
+    /** Returns true if the element [elem] exists on the
+        RList [xs].
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The RList containing the tested elements.
+        </param>
+        <param name="elem">
+          The element, which existence on the RList [xs] is
+          being tested.
+        </param>
+        <returns>
+          Returns true if for any element on the RList [xs],
+          element.Equals ([elem]), otherwise returns false.
+        </returns>
+     */
+    public static Member (xs : RList ['a], elem : 'a) : bool {
+      Exists (xs, x => x.Equals (elem))
+    }
+
+    /** Returns true if the element [elem] exists on the
+        RList [this].
+        Time complexity: O (|this|).
+        <param name="elem">
+          The element, which existence on the RList [this] is
+          being tested.
+        </param>
+        <returns>
+          Returns true if for any element on the RList [this],
+          element.Equals ([elem]), otherwise returns false.
+        </returns>
+     */
+    public Member (elem : 'a) : bool {
+      Member (this, elem)
+    }
+
+    /** Returns true if the element [elem] exists on the
+        RList [xs].
+        Time complexity: O (|xs|).
+        An alias for Member.
+        <param name="xs">
+          The RList containing the tested elements.
+        </param>
+        <param name="elem">
+          The element, which existence on the RList [xs] is
+          being tested.
+        </param>
+        <returns>
+          Returns true if for any element on the RList [xs],
+          element.Equals ([elem]), otherwise returns false.
+        </returns>
+     */
+    public static Contains (xs : RList ['a], elem : 'a) : bool {
+      Member (xs, elem)
+    }
+
+    /** Returns true if the element [elem] exists on the
+        RList [this].
+        Time complexity: O (|this|).
+        An alias for Member.
+        <param name="elem">
+          The element, which existence on the RList [this] is
+          being tested.
+        </param>
+        <returns>
+          Returns true if for any element on the RList [this],
+          element.Equals ([elem]), otherwise returns false.
+        </returns>
+     */
+    public Contains (elem : 'a) : bool {
+      Member (this, elem)
+    }
+
+    /** Returns the [i]-th element of the RList [xs].
+        Time complexity: O (log (|xs|)).
+        <param name="xs">
+          The RList, which [i]-th element is going to be returned.
+        </param>
+        <param name="i">
+          The index under which the return element is located in [xs].
+        </param>
+        <returns>
+          The [i]-th element of [xs].
+        </returns>
+     */
+    public static Nth (xs : RList ['a], i : int) : 'a {
+      match (xs) {
+        | Zero (ps) => def (x, y) = RList [Pair ['a]].Nth (ps, i / 2);
+                       if (i % 2 == 0) x else y
+        | One (x, ps) =>
+          if (i == 0) x
+          else {
+            // the three lines below could be substituted with Nth (Zero (ps), i - 1)
+            def (x, y) = RList [Pair ['a]].Nth (ps, (i - 1) / 2);
+            if (i % 2 != 0) x
+            else y
+          }
+        | Nil => throw Exception ("Subscript")
+      }
+    }
+
+    /** Returns the [i]-th element of the RList [this].
+        Time complexity: O (log (|this|)).
+        <param name="i">
+          The index under which the return element is located in [this].
+        </param>
+        <returns>
+          The [i]-th element of [this].
+        </returns>
+     */
+    public Nth (i : int) : 'a {
+      Nth (this, i)
+    }
+
+    /* A helper function used by update
+       Time complexity: O (log (|xs|)).
+     */
+    static _Update (f : 'a -> 'a, i : int, xs : RList ['a]) : RList ['a] {
+      match (xs) {
+        | Zero (ps) => def f' (p) { if (i % 2 == 0) Pair (f (p.fst), p.snd) else Pair (p.fst, f (p.snd)) }
+                       Zero (RList [Pair ['a]]._Update (f', i / 2, ps))
+        | One (x, ps) => if (i == 0) One (f (x), ps) else Cons (x, _Update (f, i - 1, Zero (ps)))
+        | Nil => throw Exception ("Subscript")
+      }
+    }
+
+    /** Returns a new RList composed by substituting the [i]-th element
+        of the RList [xs], with [x].
+        Time complexity: O (log (|xs|)).
+        <param name="xs">
+          The RList used in composing the return value.
+        </param>
+        <param name="i">
+          The index under which the element to be substituted resides in [xs].
+        </param>
+        <returns>
+          A new RList composed by substituting the [i]-th element
+          of the RList [xs], with [x].
+        </returns>
+     */
+    public static Update (i : int, y : 'a, xs : RList ['a]) : RList ['a] {
+      _Update (_ => y, i, xs)
+    }
+
+    /** Returns a new RList composed by substituting the [i]-th element
+        of the RList [this], with [x].
+        Time complexity: O (log (|this|)).
+        <param name="i">
+          The index under which the element to be substituted resides in [this].
+        </param>
+        <returns>
+          A new RList composed by substituting the [i]-th element
+          of the RList [this], with [x].
+        </returns>
+     */
+    public Update (i : int, y : 'a) : RList ['a] {
+      Update (i, y, this)
+    }
+
+    /** Iterates over the RList [xs] from left to right, composing the return
+        value, by applying [f], to each of [xs]'s elements and the current [acc].
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The RList over which FoldLeft is going to iterate.
+        </param>
+        <param name="acc">
+          The accumulator being updated on each level of recursion, to
+          finally become the return value of FoldLeft.
+          The supplied value will be used by [f] in the first step.
+        </param>
+        <param name="f">
+          The function being applied to ([RList-elem], [acc]) in each step.
+        </param>
+        <returns>
+          Acc in it's final state at the last step of recursion
+        </returns>
+     */
+    public static FoldLeft ['b] (xs : RList ['a], acc : 'b, f : 'a * 'b -> 'b) : 'b {
+      match (xs) {
+        | Zero (ps) => RList [Pair ['a]].FoldLeft (ps, acc, (a, b) => f (a.snd, f (a.fst, b)))
+        | One (x, ps) => RList [Pair ['a]].FoldLeft (ps, f (x, acc), (a, b) => f (a.snd, f (a.fst, b)))
+        | Nil => acc
+      }
+    }
+
+    /** Iterates over the RList [this] from left to right, composing the return
+        value, by applying [f], to each of [this]' elements and the current [acc].
+        Time complexity: O (|this|).
+        <param name="acc">
+          The accumulator being updated on each level of recursion, to
+          finally become the return value of FoldLeft.
+          The supplied value will be used by [f] in the first step.
+        </param>
+        <param name="f">
+          The function being applied to ([RList-elem], [acc]) in each step.
+        </param>
+        <returns>
+          Acc in it's final state at the last step of recursion
+        </returns>
+     */
+    public FoldLeft ['b] (acc : 'b, f : 'a * 'b -> 'b) : 'b {
+      FoldLeft (this, acc, f)
+    }
+
+    /** Iterates over the RList [xs] from right to left, composing the return
+        value, by applying [f], to each of [xs]'s elements and the current [acc].
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The RList over which FoldRight is going to iterate.
+        </param>
+        <param name="acc">
+          The accumulator updated on each level of recursion and used by [f].
+          The supplied value will be used by [f] in the last step.
+        </param>
+        <param name="f">
+          The function being applied to ([RList-elem], [acc]) in each step.
+        </param>
+        <returns>
+          The result of applying [f] to each element of [xs] and the current [acc].
+        </returns>
+     */
+    public static FoldRight ['b] (xs : RList ['a], acc : 'b, f : 'a * 'b -> 'b) : 'b {
+      match (xs) {
+        | Zero (ps) => RList [Pair ['a]].FoldRight (ps, acc, (a, b) => f (a.fst, f (a.snd, b)))
+        | One (x, ps) => f (x, RList [Pair ['a]].FoldRight (ps, acc, (a, b) => f (a.fst, f (a.snd, b))))
+        | Nil => acc
+      }
+    }
+
+    /** Iterates over the RList [this] from right to left, composing the return
+        value, by applying [f], to each of [this]' elements and the current [acc].
+        Time complexity: O (|this|).
+        <param name="acc">
+          The accumulator updated on each level of recursion and used by [f].
+          The supplied value will be used by [f] in the last step.
+        </param>
+        <param name="f">
+          The function being applied to ([RList-elem], [acc]) in each step.
+        </param>
+        <returns>
+          The result of applying [f] to each element of [xs] and the current [acc].
+        </returns>
+     */
+    public FoldRight ['b] (acc : 'b, f : 'a * 'b -> 'b) : 'b {
+      FoldRight (this, acc, f)
+    }
+
+    /** Returns a new RList composed from [xs] by applying [f]
+        to every element on that RList.
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The source RList from which the return RList is composed by
+          applying [f] to each of its elements.
+        </param>
+        <param name="f">
+          The function being applied to every [xs] element. The values
+          it returns will make up the new RList returned by Map.
+        </param>
+        <returns>
+          A new RList composed from [xs] by applying [f] to every
+          element on that RList.
+        </returns>
+     */
+    public static Map ['b] (xs : RList ['a], f : 'a -> 'b) : RList ['b] {
+      def f' (x) { Pair (f (x.fst), f (x.snd)) }
+      match (xs) {
+        | One (x, ps) => One (f (x), RList [Pair ['a]].Map (ps, f'))
+        | Zero (ps) => Zero (RList [Pair ['a]].Map (ps, f'))
+        | Nil => Nil ()
+      }
+    }
+
+    /** Returns a new RList composed from [this] by applying [f]
+        to every element on that RList.
+        Time complexity: O (|this|).
+        <param name="f">
+          The function being applied to every [this] element. The values
+          it returns will make up the new RList returned by Map.
+        </param>
+        <returns>
+          A new RList composed from [this] by applying [f] to every
+          element on that RList.
+        </returns>
+     */
+    public Map ['b] (f : 'a -> 'b) : RList ['b] {
+      Map (this, f)
+    }
+
+    /** Iterates over [xs] applying [f] to each of its elements.
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The RList on which [f] is iterated.
+        </param>
+        <param name="f">
+          The function being applied to every [xs] element during
+          iteration.
+        </param>
+     */
+    public static Iter (xs : RList ['a], f : 'a -> void) : void {
+      def f' (x) { f (x.fst); f (x.snd) }
+      match (xs) {
+        | One (x, ps) => f (x); RList [Pair ['a]].Iter (ps, f')
+        | Zero (ps) => RList [Pair ['a]].Iter (ps, f')
+        | Nil => ()
+      }
+    }
+
+    /** Iterates over [this] applying [f] to each of its elements.
+        Time complexity: O (|this|).
+        <param name="f">
+          The function being applied to every [this] element during
+          iteration.
+        </param>
+     */
+    public Iter (f : 'a -> void) : void {
+      Iter (this, f)
+    }
+
+    /** Returns an RList composed by reversing [xs].
+        Time complexity: O (|xs| * log (|xs|)).
+        <param name="xs">
+          The RList used when composing the return value.
+        </param>
+        <returns>
+          An RList composed by reversing [xs].
+        </returns>
+     */
+    public static Rev (xs : RList ['a]) : RList ['a] {
+      FoldLeft (xs, Nil (), Cons)
+    }
+
+//    PERFORMANCE: O (n) complexity - gotta benchmark if it's faster, than the above
+//    public static Rev_2 (xs : RList ['a]) : RList ['a] {
+//      FromList (FoldLeft (xs, [], _ :: _))
+//    }
+
+    /** Returns an RList composed by reversing [this].
+        Time complexity: O (|this| * log (|this|)).
+        <returns>
+          An RList composed by reversing [this].
+        </returns>
+     */
+    public Rev () : RList ['a] {
+      Rev (this)
+    }
+
+    /** Returns an a new RList composed by appending [ys]
+        at the end of [xs].
+        Time complexity: roughly O (|xs| * log (|ys| + |xs|)).
+        <param name="xs">
+          The RList, which elements come first in the resulting RList.
+        </param>
+        <param name="ys">
+          The RList, which elements come second in the resulting RList.
+        </param>
+        <returns>
+          An RList composed by appending [ys] at the end of [xs].
+        </returns>
+     */
+    public static Append (xs : RList ['a], ys : RList ['a]) : RList ['a] {
+      FoldRight (xs, ys, Cons)
+    }
+
+//    PERFORMANCE: O (n) complexity - gotta benchmark if it's faster, than the above
+//    public static Append_2 (xs : RList ['a], ys : RList ['a]) : RList ['a] {
+//      FromList (FoldRight (xs, ToList (ys), _ :: _))
+//    }
+
+    /** Returns an a new RList composed by appending [ys]
+        at the end of [this].
+        Time complexity: roughly O (|this| * log (|this| + |ys|)).
+        <param name="ys">
+          The RList, which elements come second in the resulting RList.
+        </param>
+        <returns>
+          An RListcomposed by appending [ys] at the end of [this].
+        </returns>
+     */
+    public Append (ys : RList ['a]) : RList ['a] {
+      Append (this, ys)
+    }
+
+    /** Returns an a new RList composed by appending [ys]
+        at the end of [xs].
+        Time complexity: roughly O (|xs| * log (|ys| + |xs|)).
+        An alias for Append.
+        <param name="xs">
+          The RList, which elements come first in the resulting RList.
+        </param>
+        <param name="ys">
+          The RList, which elements come second in the resulting RList.
+        </param>
+        <returns>
+          An RList composed by appending [ys] at the end of [xs].
+        </returns>
+     */
+    public static @+ (xs : RList ['a], ys : RList ['a]) : RList ['a] {
+      Append (xs, ys)
+    }
+
+    /** Returns an RList composed of the elements of list [xs].
+        Use RList (xs, |xs|) if |xs| is known.
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The list used when composing the return value.
+        </param>
+        <returns>
+          An RList composed of the elements of [xs].
+        </returns>
+     */
+    public static FromList (xs : list ['a]) : RList ['a] {
+      FromList (xs, xs.Length)
+    }
+
+    /** Returns an RList composed of the elements of list [xs], of
+        length [i].
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The list used when composing the return value.
+        </param>
+        <param name="i">
+          The length of [xs] and therefore of the return value as well.
+        </param>
+        <returns>
+          An RList composed of the elements of [xs].
+        </returns>
+     */
+    public static FromList (xs : list ['a], i : int) : RList ['a] {
+      _FromList (xs, i, l => match (l) { | x :: tl => (x, tl) | [] => throw Exception ("Empty") })
+    }
+
+    /* An auxillary function used by FromList (xs, i).
+       Time complexity: O (|xs|).
+     */
+    static _FromList ['b] (xs : list ['b], i : int, f : list ['b] -> 'a * list ['b]) : RList ['a] {
+      def f' (l) {
+        def (elem1, rest1) = f (l);
+        def (elem2, rest2) = f (rest1);
+        (Pair (elem1, elem2), rest2)
+      }
+      if (i % 2 == 1) {
+        def (elem, rest) = f (xs);
+        One (elem, RList [Pair ['a]]._FromList (rest, i / 2, f'))
+      }
+      else
+        if (i == 0)
+          Nil ()
+        else
+          Zero (RList [Pair ['a]]._FromList (xs, i / 2, f'))
+    }
+
+    /** Returns a list of elements of the RList [xs] in the same order.
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The RList used when composing the return value.
+        </param>
+        <returns>
+          A list of elements of the RList [xs] in the same order.
+        </returns>
+     */
+    public static ToList (xs : RList ['a]) : list ['a] {
+      FoldRight (xs, [], _ :: _)
+    }
+
+    /** Returns a list of elements of the RList [this] in the same order.
+        Time complexity: O (|this|).
+        <returns>
+          A list of elements of the RList [this] in the same order.
+        </returns>
+     */
+    public ToList () : list ['a] {
+      ToList (this)
+    }
+
+    /** Returns a string representation of the RList [xs].
+        Time complexity: O (|xs|).
+        <param name="xs">
+          The RList used when composing the return value.
+        </param>
+        <returns>
+          A string representation of the RList [xs].
+        </returns>
+     */
+    public static ToString (xs : RList ['a]) : string {
+      xs.ToString ()
+    }
+
+    /** Returns a string representation of the RList [this].
+        Time complexity: O (|this|).
+        <returns>
+          A string representation of the RList [this].
+        </returns>
+     */
+    public override ToString () : string {
+      match (this) {
+        | Zero (ps) => $"Zero ($ps)"
+        | One (x, ps) => $"One ($x, $ps)"
+        | Nil => "Nil"
+      }
+    }
+
+    public GetEnumerator () : SCG.IEnumerator ['a] {
+      match (this) {
+        | Zero (ps) =>
+          foreach (elem in ps) {
+            yield elem.fst;
+            yield elem.snd
+          }
+        | One (x, ps) =>
+          yield x;
+          foreach (elem in ps) {
+            yield elem.fst;
+            yield elem.snd
+          }
+        | Nil => {}
+      }
+    }
+
+    public Item [index : int] : 'a {
+      get { Nth (this, index) }
+    }
+  }
+}
+

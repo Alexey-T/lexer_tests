@@ -1,0 +1,278 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+namespace Nemerle.Collections 
+{ 
+  /**
+   * Class representing first-in-first-out queue.
+   */
+  public class Queue ['a] : System.Collections.Generic.Queue ['a]
+  {
+    /* -- PUBLIC CONSTRUCTORS ----------------------------------------------- */
+    
+    /** Create a new empty queue. */
+    public this () {  base ();  }
+
+    public this (size : int) { base (size) }
+
+    public this (enu : System.Collections.Generic.IEnumerable ['a]) { base (enu) }
+    
+
+    /* -- PUBLIC PROPERTIES ------------------------------------------------- */
+
+    /**
+     * Return `true` iff the queue is empty.
+     */
+    public IsEmpty : bool
+    {
+      get { Count == 0 }
+    }
+
+    
+    /**
+     * Alias for Count.
+     */
+    public Length : int
+    { 
+      get { Count }
+    }
+
+    
+    /* -- PUBLIC METHODS ---------------------------------------------------- */
+
+    /**
+     * Alias for Enqueue.
+     */
+    public Push (x : 'a) : void
+    {
+      Enqueue (x)
+    }
+
+
+    /**
+     * Alias for Enqueue.
+     */
+    public Add (x : 'a) : void
+    {
+      Enqueue (x);
+    }
+     
+    /**
+     * Return the first element of the queue and remove it.
+     */
+    public Take () : 'a
+    {
+      Dequeue ()
+    }
+
+
+    /**
+     * Alias for Take.
+     */
+    public Pop () : 'a
+    {
+      Dequeue ()
+    }
+
+
+
+    /**
+     * Alias for Peek.
+     */
+    public Top () : 'a
+    {
+      Peek ()
+    }
+
+
+    /** 
+     * Return some element from the queue, implements ICollection.First.
+     */
+    public First () : option ['a]
+    {
+      if (Count > 0)
+        Some (Peek ())
+      else
+        None ()
+    }
+
+
+    /**
+     * Create a shallow copy of the queue.
+     */
+    public Clone () : Queue ['a]
+    {
+      Queue (this)
+    }
+
+    
+    /**
+     * Call supplied function for every element of the queue.
+     */
+    public Iter (f : 'a -> void) : void
+    {
+      foreach (x in this)
+        f (x)
+    }
+        
+    
+    /**
+     * Fold elements of the queue with supplied function and initial
+     * value.
+     */
+    public Fold['b] (f : 'a * 'b -> 'b, mutable x : 'b) : 'b
+    {
+      foreach (el in this)
+        x = f (el, x);
+      x
+    }
+
+
+    /**
+     * Transfer all elements of the queue q to the end of this queue.
+     */
+    public Transfer (q : Queue['a]) : void
+    {
+      Clear ();
+      foreach (x in q)
+        Push (x)
+    }
+
+
+    /**
+     * Return `true' iff every element of the queue satisfy predicate f.
+     */
+    public ForAll (f : 'a -> bool) : bool
+    {
+      ret: {
+        foreach (x in this)
+          unless (f (x))
+            ret (false);
+        true
+      }
+    }
+
+          
+    /**
+     * Return true iff the queue contains an element that
+     * satisfies predicate f.
+     */
+    public Exists (f : 'a -> bool) : bool
+    {
+      ret: {
+        foreach (x in this)
+          when (f (x))
+            ret (true);
+        false
+      }
+    }
+
+
+    /**
+     * Remove from queue every element that does not satisfy
+     * predicate f.
+     */
+    public Filter (f : 'a -> bool) : void
+    {
+      def temp = ToArray ();
+      Clear ();
+      for (mutable i = 0; i < temp.Length; i++)
+        when (f (temp [i]))
+          Push (temp [i]);
+    }
+
+
+    /**
+     * Map queue to a new queue using mapping f.
+     */
+    public Map ['b] (f : 'a -> 'b) : Queue ['b]
+    {
+      def mapped = array (Count);
+      mutable i = 0;
+      foreach (x in this) {
+        mapped [i] = f (x);
+        i++;
+      }
+      def result = Queue (mapped.Length);
+      for (i = 0; i < mapped.Length; i++)
+        result.Push (mapped [i]);
+      result
+    }
+
+
+    /**
+     * Partition the queue into two queues: first with elements
+     * that satisfy predicate f, second with the rest.
+     */
+    public Partition (f : 'a -> bool) : Queue ['a] * Queue ['a]
+    {
+      def sat        = Queue ();
+      def nonsat     = Queue ();
+
+      foreach (x in this)
+        if (f (x))
+          sat.Push (x)
+        else
+          nonsat.Push (x);
+      
+      (sat, nonsat)
+    }
+
+    concat_helper (separator : string, sb : System.Text.StringBuilder) : void
+    {
+      unless (IsEmpty) {
+        def e = GetEnumerator ();
+        _ = e.MoveNext ();
+        _ = sb.Append (e.Current);
+        while (e.MoveNext ()) {
+          _ = sb.Append (separator);
+          _ = sb.Append (e.Current);
+        }
+      }
+    }
+
+    /** Returns string representing contents of the queue. */
+    public override ToString () : string
+    {
+      def sb = System.Text.StringBuilder ("[");
+      concat_helper (", ", sb);
+      sb.Append ("]").ToString ();
+    }
+
+    /** Constructs string out of queue contents using given argument as a separator.
+      * <param name="separator">String to use a separator - it will be put between each
+      *  two items of the list.</param>
+      */
+    public ToString (separator : string) : string
+    {
+      def sb = System.Text.StringBuilder ();
+      concat_helper (separator, sb);
+      sb.ToString ();
+    }        
+  } /* end of class Queue */
+} /* end of namespace */

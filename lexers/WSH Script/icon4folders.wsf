@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<job id="folderIcons" version="1.1">
+  <object id="f" progid="Scripting.FileSystemObject" />
+  <object id="s" progid="WScript.Shell" />
+  <script type="text/jscript" language="JScript"><![CDATA[
+    var
+     // прописываем относительный путь к иконке по умолчанию (слэш в пути задваивается: \\)
+     // относительный — относительно папки Total Commader (переменной %COMMANDER_PATH%), или
+     // папки скрипта, если иконка в ней (можно прописать и абсолютный, но — не портабельно)
+     // если не использовать БЕЗ указания иконки в командной строке, можно ничего не менять:
+     defaultIcon='ICON\\иконка.ico',
+     activeIcon='desktop.ico',		// рабочее название иконки в папке
+     createIcons=true,			// false — очистиь папки от икон
+     bruteForce=false,			// true — удалить desktop.ini не смотря ни на что
+     currentIcon,			// здесь будет путь к иконке, которую и назначим
+     firstArgument=0,			// 1 — если перед папками ключ или иконка
+     restoreFolders=false,		// true — только восстановить атрибуты папок
+     noFolderError='';			// список аргументов, не являющихся папками
+
+    // проверяем корректность вызова:
+    switch(WScript.Arguments.length){
+     case 0:invalidArgs();
+     case 1:
+      if(WScript.Arguments(0)=='/restore'){restoreAttrib(s.currentDirectory);WScript.quit();}
+      else if(!f.folderExists(WScript.Arguments(0)))invalidArgs();break;
+     default:
+      if(WScript.Arguments(0)=='/restore'){restoreFolders=true;firstArgument=1;}
+      else if(f.fileExists(WScript.Arguments(0))){
+        if(f.getExtensionName(WScript.Arguments(0)).toUpperCase()=='ICO'){
+          currentIcon=f.getAbsolutePathName(WScript.Arguments(0));
+          firstArgument=1;
+        }
+      }else{
+        if(WScript.Arguments(0)=='/clear'){createIcons=false;firstArgument=1;}
+        else if(WScript.Arguments(0)=='/brute'){
+          bruteForce=true;
+          createIcons=false;
+          firstArgument=1;
+        }else{
+          currentIcon=f.fileExists(defaultIcon)?defaultIcon:(
+           f.fileExists(
+            f.buildPath(f.getParentFolderName(WScript.scriptFullName),defaultIcon)
+           )?f.buildPath(f.getParentFolderName(WScript.scriptFullName),defaultIcon):
+           f.buildPath(s.expandEnvironmentStrings('%COMMANDER_PATH%'),defaultIcon));
+          if(
+           !f.fileExists(currentIcon)||
+           f.getExtensionName(currentIcon).toUpperCase()!='ICO'
+          )noDefaultIcon();
+        }
+      }
+    }
+
+    //собственно, обрабатываем папки:
+    for(var i=firstArgument;i<WScript.Arguments.length;i++){
+      if(f.folderExists(WScript.Arguments(i)))
+       restoreFolders?restoreAttrib(WScript.Arguments(i)):changeIcon(WScript.Arguments(i));
+      else noFolderError+='\n\t'+WScript.Arguments(i);
+    }if(noFolderError)invalidArgsNoFolder();
+
+    // скрипт кончился, дальше — функции:
+    function invalidArgs(){		// если нет правильных аргументов — подсказка
+      WScript.echo(
+       'Скрипт назначает переданным ему папкам новую иконку, или отменяет назначение,'+
+       ' сделанное этим же скриптом.\nСинтаксис:\n\n'+f.getBaseName(WScript.scriptName)+
+       ' [путь\\иконка.ico|/clear|/brute|/restore] "папка 1" ["папка 2" …]\n\nиконка'+
+       ' будет скопирована в целевую папку (папки) с именем '+activeIcon+
+       ' \n/clear —\tотменяет назначение иконки '+activeIcon+' выбранным папкам,\n\tно'+
+       ' не отменяет другие назначенные иконки\n\t(например, системные).\n/brute'+
+       ' —\tсносит, в том числе, и ранее назначенные иконки.\n/restore — восстанавливает'+
+       ' атрибут ReadOnly папкам и их подпапкам,\n\tсодержащим файл desktop.ini\nЕсли'+
+       ' с ключом /restore не передано других параметров (папок), будет обработана'+
+       ' текущая папка и её подпапки.'
+      );WScript.quit();
+    }
+    function invalidArgsNoFolder(){	// список неправильных аргументов при завершении
+      WScript.echo(
+       'Следующие аргументы не являются папками, или папки не найдены:\n'+noFolderError
+      );
+    }
+    function noDefaultIcon(){		// нет иконки для назначения папке
+      WScript.echo('Не задана иконка по умолчанию!\n(и не передана как параметр)');
+      WScript.quit();
+    }
+    function changeIcon(e){		// рабочая функция для назначения/очистки иконок
+      var
+       destFolder=f.getAbsolutePathName(e),
+       desktopIni=f.buildPath(destFolder,'desktop.ini'),
+       desktopIcon=f.buildPath(destFolder,activeIcon),
+       contentIni;
+      if(f.fileExists(desktopIcon)){
+        f.getFile(desktopIcon).attributes=0;
+        f.deleteFile(desktopIcon);
+      }
+      if(f.fileExists(desktopIni)){
+        f.getFile(desktopIni).attributes=0;
+        with(f.openTextFile(desktopIni)){if(!atEndOfStream)contentIni=readAll();close();}
+        if(bruteForce||contentIni.search('IconResource='+activeIcon+'\n')>0)
+         f.deleteFile(desktopIni);
+        else f.moveFile(desktopIni,desktopIni+'.bak');
+      }
+      if(createIcons){
+        f.getFile(currentIcon).copy(desktopIcon);
+        f.createTextFile(desktopIni);
+        with(f.openTextFile(desktopIni,2,true)){
+          write('[.ShellClassInfo]\nIconResource='+activeIcon+'\n');
+          close();
+        }desktopIniAttrib(desktopIni);
+        f.getFolder(destFolder).attributes=f.getFolder(destFolder).attributes|1;
+        f.getFile(desktopIcon).attributes=34;
+      }else{
+        if(f.fileExists(desktopIni+'.bak')){
+          if(bruteForce){
+            f.deleteFile(desktopIni+'.bak');
+            f.getFolder(destFolder).attributes=f.getFolder(destFolder).attributes&3134;
+          }else{
+            f.moveFile(desktopIni+'.bak',desktopIni);
+            desktopIniAttrib(desktopIni);
+          }
+        }else f.getFolder(destFolder).attributes=f.getFolder(destFolder).attributes&3134;
+      }
+    }
+    function restoreAttrib(e){		// рабочая функция для ключа /restore
+      var
+       subDirs=new Enumerator(f.getFolder(e).subFolders),
+       desktopIni=f.buildPath(e,'desktop.ini');
+      if(f.fileExists(desktopIni)){
+        f.getFolder(e).attributes=f.getFolder(e).attributes|1;
+        desktopIniAttrib(desktopIni);
+      }
+      while(!subDirs.atEnd()){
+        restoreAttrib(subDirs.item().path);	// рекурсия
+        subDirs.moveNext();
+      }
+    }
+    function desktopIniAttrib(e){	// сервисная функция для атрибутов desktop.ini
+      f.getFile(e).attributes=38;
+    }
+  ]]></script>
+</job>

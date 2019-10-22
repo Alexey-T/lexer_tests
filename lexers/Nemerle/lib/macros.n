@@ -1,0 +1,109 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+namespace Nemerle {
+  public type MacroTargets = System.AttributeTargets;
+
+//  public enum MacroTargets { // values taken from System.AttributeTargets
+//      | Assembly = 1         // I think that we can be sure they won't change
+//      | Module = 2
+//      | Class = 4
+//      | Struct = 8
+//      | Enum = 0x10
+//      | Constructor = 0x20
+//      | Method = 0x40
+//      | Property = 0x80
+//      | Field = 0x100
+//      | Event = 0x200
+//      | Interface = 0x400
+//      | Parameter = 0x800
+//      | Delegate = 0x1000
+//      | ReturnValue = 0x2000
+//      | GenericParameter = 0x4000
+//      | WithinClass = 0x8000  // single value added beyod the ones in System.AttributeTargets
+//      | All = 0x7fff
+//  }
+
+  [System.FlagsAttribute ()]
+  public enum MacroPhase {
+    | None
+    | BeforeInheritance
+    | BeforeTypedMembers
+    | WithTypedMembers
+  }
+  
+  [System.AttributeUsage (System.AttributeTargets.Class)]
+  public sealed class MacroUsageAttribute : System.Attribute
+  {
+//    valid_on : System.AttributeTargets;
+    valid_on: MacroTargets;
+    mutable allow_multiple : bool;
+    mutable inherited : bool;
+    phase : MacroPhase;
+
+    public this (phase : MacroPhase, validOn : MacroTargets)
+    {
+      valid_on = validOn;
+      this.phase = phase;
+    }
+
+    public AllowMultiple : bool {
+      get { allow_multiple; }
+      set {
+        allow_multiple = value;
+      }
+    }
+
+    public Inherited : bool {
+      get { inherited; }
+      set {
+        inherited = value;
+      }
+    }
+
+    public ValidOn : MacroTargets {
+      get { 
+          valid_on
+      }
+    }
+  }
+
+  [System.AttributeUsage (System.AttributeTargets.Class)]
+  public sealed class TailRecursionTransparentAttribute : System.Attribute
+  {
+    mutable is_transparent : bool;
+
+    public this (tr : bool) {
+      is_transparent = tr;
+    }
+
+    public IsTransparent : bool {
+      get { is_transparent; }
+    }
+  }
+}

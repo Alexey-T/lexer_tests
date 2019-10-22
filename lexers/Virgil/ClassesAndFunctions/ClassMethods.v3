@@ -1,0 +1,11 @@
+// a class to demonstrate class methods
+class ClassMethods(f: int) {
+	def add(a: int) -> int {
+		return a + f;
+	}
+}
+var o = ClassMethods.new(3);
+// "Class.method" can be used as a first class function
+var m: (ClassMethods, int) -> int = ClassMethods.add;
+// the function accepts the receiver object as the first parameter
+var x = m(o, 2);

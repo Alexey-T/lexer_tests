@@ -1,0 +1,9 @@
+// A basic cons list
+class List<T>(head: T, tail: List<T>) {
+}
+// creates a simple one-element list
+var a = List<int>.new(0, null);
+// create a new list linked to the previous list
+var b = List<int>.new(1, a);
+// create a list of a single string
+var c = List<string>.new("hello", null);

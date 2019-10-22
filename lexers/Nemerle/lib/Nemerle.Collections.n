@@ -1,0 +1,1452 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
+/* TYPE DEFINITION */
+
+using Nemerle.Assertions;
+using Nemerle.Collections.NList;
+using Nemerle.Imperative;
+
+using System;
+using System.Diagnostics;
+
+using Array = System.Array;
+using NCL = Nemerle.Collections.NList;
+using SCG = System.Collections.Generic;
+
+//public type NCollectionsUtils = Nemerle.Collections.NCollectionsExtensions;
+
+namespace Nemerle.Collections
+{
+  public type Seq[T] = SCG.IEnumerable[T];
+  
+  [DebuggerNonUserCode]
+  public module NCollectionsExtensions
+  {
+  public Grouping[TSource, TKey, TValue](this source : Seq[TSource], selector : TSource -> TKey * TValue): Hashtable[TKey, SCG.List[TValue]]
+  {
+    def table = Hashtable();
+    
+    foreach (elem in source)
+    {
+      def (key, value) = selector(elem);
+      mutable values;
+      
+      if (table.TryGetValue(key, out values))
+        values.Add(value);
+      else
+      {
+        values = SCG.List();
+        values.Add(value);
+        table.Add(key, values);
+      }
+    }
+    
+    table
+  }
+  
+  public Flatten[TEnu, TOut]([NotNull] this source : Seq[TEnu]) : Seq[TOut]
+      where TEnu : Seq[TOut]
+    {
+      foreach(elem1 in source)
+        foreach(elem2 in elem1 : Seq[TOut])
+          yield elem2;
+    }
+
+    public ZipLazy[TFirst, TSecond](
+        [NotNull] this first : Seq[TFirst],
+        [NotNull] second : Seq[TSecond]
+    ) : Seq[TFirst * TSecond]
+    {
+      Map2Lazy(first, second, x => x)
+    }
+
+    public Map2Lazy[TFirst, TSecond, TResult](
+        [NotNull] this first  : Seq[TFirst],
+        [NotNull]      second : Seq[TSecond],
+        [NotNull]      func   : TFirst * TSecond -> TResult
+    ) : Seq[TResult]
+    {
+      using (e2 = second.GetEnumerator(), e1 = first.GetEnumerator())
+      {
+        def loop(e1, e2)
+        {
+          match (e1.MoveNext(), e2.MoveNext())
+          {
+            | (true, true) => yield func(e1.Current, e2.Current); loop(e1, e2)
+            | (false, false) => ()
+            | (true, false) with arg = "second"
+            | (false, true) with arg = "first" =>
+              throw ArgumentException("The first & second mast be same length.", arg)
+          }
+        }
+
+        loop(e1, e2)
+      }
+    }
+
+    public Map2ToArray[First, Second, Result](
+      [NotNull] this first  : Seq[First],
+      [NotNull]      second : Seq[Second],
+      [NotNull]      func   : First * Second -> Result
+    )
+      : array[Result]
+    {
+      match (first, second)
+      {
+        | (f is array[First], s is array[Second]) => Map2ToArray(f, s, func)
+        | (f is SCG.ICollection[First], s is SCG.ICollection[Second]) => Map2ToArray(f.NToArray(), s.NToArray(), func)
+        | (f is list[First], s is list[Second]) =>
+           def foldFunc(left, right, (arr, index))
+           {
+             arr[index] = func(left, right);
+             (arr, index + 1)
+           }
+
+           def (result, _) = f.FoldLeft2(s, (array(f.Length), 0), foldFunc);
+           result
+
+        | _ =>
+          using (e1 = first.GetEnumerator(), e2 = second.GetEnumerator())
+          {
+            def loop (result) : array[Result]
+            {
+              match (e1.MoveNext(), e2.MoveNext())
+              {
+                | (true,   true) => result.Add(func(e1.Current, e2.Current)); loop(result)
+                | (false, false) => result.NToArray()
+                | (true,  false)
+                | (false,  true) => throw ArgumentException("Collections must have the same length", "first, second");
+              }
+            }
+
+            loop(SCG.List()).NToArray();
+          }
+      }
+    }
+
+    public Map2ToArray[First, Second, Result](
+      [NotNull] this first : array[First],
+      [NotNull] second : array[Second],
+      [NotNull] func: First * Second -> Result
+    )
+      : array[Result]
+    {
+      when (first.Length != second.Length)
+        throw ArgumentException("Collections must have the same length", "first, second");
+
+      def result = array(first.Length);
+
+      foreach (i in[0 .. first.Length - 1])
+        result[i] = func(first[i], second[i]);
+
+      result;
+    }
+
+    public ZipToArray[First, Second]([NotNull] this first : Seq[First], [NotNull] second : Seq[Second])
+      : array[First * Second]
+    {
+      Map2ToArray(first, second, x => x);
+    }
+
+    public ZipToArray[First, Second](
+      [NotNull] this first : SCG.ICollection[First],
+      [NotNull] second : SCG.ICollection[Second]
+    )
+      : array[First * Second]
+    {
+      Map2ToArray(first, second, x => x);
+    }
+
+    public ZipToArray[First, Second](
+      [NotNull] this first : array[First],
+      [NotNull] second : array[Second]
+    )
+      : array[First * Second]
+    {
+      Map2ToArray(first, second, x => x);
+    }
+
+    public ForAll2[T1, T2](this first : Seq[T1], second : Seq[T2], comparator : T1 * T2 -> bool) : bool
+    {
+      match (first, second)
+      {
+        | (f is array[T1],     s is array[T2])     => f.ForAll2(s, comparator)
+        | (f is SCG.IList[T1], s is SCG.IList[T2]) => f.ForAll2(s, comparator)
+        | _ =>
+          if (first == null)
+            second == null
+          else if (second == null)
+            first == null
+          else
+          {
+            def enum1 = first.GetEnumerator();
+            def enum2 = second.GetEnumerator();
+            try
+            {
+              def loop()
+              {
+                def exists1 = enum1.MoveNext();
+                def exists2 = enum2.MoveNext();
+                if (exists1 && exists2)
+                  if (comparator(enum1.Current, enum2.Current))
+                    loop()
+                  else false
+                else exists1 == exists2
+              }
+
+              loop()
+            }
+            finally
+            {
+              enum1.Dispose();
+              enum2.Dispose();
+            }
+          }
+      }
+    }
+
+    public ForAll2[T1, T2](this first : SCG.IList[T1], second : SCG.IList[T2], comparator : T1 * T2 -> bool) : bool
+    {
+      match (first, second)
+      {
+        | (f is array[T1], s is array[T2]) => f.ForAll2(s, comparator)
+        | _ =>
+          def loop(i)
+          {
+            if (i < first.Count && comparator(first[i], second[i])) loop(i + 1)
+            else i == first.Count
+          }
+
+          if (first : object == second)             true
+          else if (first == null || second == null) false
+          else if (first.Count != second.Count)     false
+          else loop(0)
+      }
+    }
+
+    public ForAll2[T1, T2](this first : array[T1], second : array[T2], comparator : T1 * T2 -> bool) : bool
+    {
+      def loop(i)
+      {
+        if (i < first.Length && comparator(first[i], second[i])) loop(i + 1)
+        else i == first.Length
+      }
+
+      if (first : object == second)             true
+      else if (first == null || second == null) false
+      else if (first.Length != second.Length)     false
+      else loop(0)
+    }
+
+    public IsEmpty(this seq : System.Collections.ICollection) : bool 
+    {
+      seq == null || seq.Count == 0
+    }
+    public IsEmpty(this str : string) : bool
+    {
+      str == null || str.Length == 0
+    }
+    public IsEmpty[T](this seq : array[T]) : bool
+    {
+      seq == null || seq.Length == 0
+    }
+    public IsEmpty[T](this seq : list[T]) : bool
+    {
+      | []     => true
+      | _ :: _ => false
+      | null   => true
+    }
+    public IsEmpty[T](this seq : SCG.IEnumerable[T]) : bool
+    { 
+      | []                                    => true
+      | _ :: _                                => false
+      | ary is array[T]                       => IsEmpty(ary)
+      | col is System.Collections.ICollection => IsEmpty(col)
+      | str is string                         => IsEmpty(str)
+      | null                                  => true
+      | _                                     =>
+        foreach (_ in seq) // This for call IDisposable...
+          Nemerle.Imperative.Return(false);
+        true
+    }
+
+    public NLastN[T]([NotNull] this source : array[T], n : int) : array[T]
+      requires n >= 0 requires n <= source.Length
+    {
+      def result = array(n);
+      
+      when (n > 0)
+        Array.Copy(source, source.Length - n, result, 0, n);
+        
+      result
+    }
+    
+    public static NCount[T](this seq : SCG.IEnumerable[T]) : int
+    {
+        | lst is array[T]     => lst.Length
+        | lst is list[T]      => lst.Length
+        | lst is SCG.List[T]  => lst.Count
+        | lst is SCG.IList[T] => lst.Count
+        | str is string       => str.Length
+        | null => 0
+        | _ => 
+          mutable i = 0;
+          
+          foreach (_x in seq)
+            i++;
+          i
+    }
+
+    public static NLast[T](this source : SCG.IList[T]) : T
+    {
+      source[source.Count - 1]
+    }
+
+    public static NLast[T](this source : array[T]) : T
+    {
+      source[source.Length - 1]
+    }
+
+    public static NLast[T](this source : SCG.IEnumerable[T]) : T
+    {
+      mutable exists = false;
+      mutable cur;
+
+      foreach (e in source)
+      {
+        exists = true;
+        cur = e;
+      }
+
+      if (exists) cur
+      else        throw IndexOutOfRangeException();
+    }
+
+    public static NFirst[T](this source : SCG.IList[T]) : T
+    {
+      source[0]
+    }
+
+    public static NFirst[T](this source : array[T]) : T
+    {
+      source[0]
+    }
+
+    public static NFirst[T](this source : SCG.IEnumerable[T]) : T
+    {
+      foreach (e in source)
+        return e;
+
+      throw IndexOutOfRangeException();
+    }
+
+    // Lazy functions
+    //
+
+    /// Convert a sequence of one type to sequence of another type.
+    /// Convertion execute in lazy manner.
+    public MapLazy[From, To](
+      this source : SCG.IEnumerable[From],
+      convert : From -> To
+    )
+      : SCG.IEnumerable[To]
+    {
+      foreach(elem in source)
+        yield convert(elem)
+    }
+
+    /// Convert a sequence of one type to sequence of another type with filtration.
+    /// Convertion execute in lazy manner.
+    public MapLazyFiltered[From, To](
+      this source : SCG.IEnumerable[From],
+      isMatch : From -> bool,
+      convert : From -> To
+    )
+      : SCG.IEnumerable[To]
+    {
+      foreach(elem when isMatch(elem) in source)
+        yield convert(elem);
+    }
+
+    /// Convert a sequence of one type to sequence of another type with filtration.
+    /// Convertion execute in lazy manner.
+    public MapLazyFiltered[From, To](
+      this source : SCG.IEnumerable[From],
+      matchAndConvert : From -> bool * To
+    )
+      : SCG.IEnumerable[To]
+    {
+      foreach(elem in source)
+      {
+        def (isMatch, convertedValue) = matchAndConvert(elem);
+        when (isMatch)
+          yield convertedValue;
+      }
+    }
+
+    /// Filter elements of sequence in lazy manner.
+    public FilterLazy[T](this source : SCG.IEnumerable[T], predicate : T -> bool) : SCG.IEnumerable[T]
+    {
+      foreach(elem when predicate(elem) in source)
+        yield elem;
+    }
+
+    public ExcludeLazy[T](
+      [NotNull] this source  : SCG.IEnumerable[T],
+      [NotNull]      exclude : SCG.IEnumerable[T]
+    )
+      : SCG.IEnumerable[T]
+    {
+      def ht = Hashtable();
+      foreach (elem in exclude)
+        ht[elem] = 0 : byte;
+
+      foreach (elem when !ht.Contains (elem) in source)
+        yield elem;
+    }
+
+    //
+    // Lazy functions
+
+    /// Iterate sequence and call action for each it elements.
+    public Iter[T](this source : SCG.IEnumerable[T], action : T -> void) : void
+    {
+      foreach (elem in source)
+        action (elem);
+    }
+
+    public FindIndex[T]([NotNull] this source : array[T], [NotNull] isMatch : T -> bool) : int
+    {
+      for (mutable i = 0; i < source.Length; i++)
+        when (isMatch(source[i]))
+          return i;
+
+      -1;
+    }
+
+    public FindIndex[T]([NotNull] this source : SCG.IList[T], [NotNull] isMatch : T -> bool) : int
+    { // doubling for performance reason
+      for (mutable i = 0; i < source.Count; i++)
+        when (isMatch(source[i]))
+          return i;
+
+      -1;
+    }
+
+    public FindIndex[T]([NotNull] this source : SCG.List[T], [NotNull] isMatch : T -> bool) : int
+    { // doubling for performance reason
+      for (mutable i = 0; i < source.Count; i++)
+        when (isMatch(source[i]))
+          return i;
+
+      -1;
+    }
+
+    public FoldLeft[TAccumulator, T](
+      this source : SCG.IEnumerable[T],
+      mutable ini : TAccumulator,
+      convert : T * TAccumulator -> TAccumulator
+    )
+      : TAccumulator
+    {
+      foreach (value in source)
+        ini = convert(value, ini);
+
+      ini
+    }
+
+    public FoldRight[TAccumulator, T](
+      this source : SCG.IEnumerable[T],
+      mutable ini : TAccumulator,
+      convert : T * TAccumulator -> TAccumulator
+    )
+      : TAccumulator
+    {
+      def ary = source.NToArray();
+      for (mutable i = ary.Length - 1; i >= 0; i--)
+        ini = convert(ary[i], ini);
+
+      ini
+    }
+
+    public Fold[TAccumulator, T](
+      this source : SCG.IEnumerable[T],
+      mutable ini : TAccumulator,
+      convert : T * TAccumulator -> TAccumulator
+    )
+      : TAccumulator
+    {
+      FoldLeft (source, ini, convert)
+    }
+
+    public BinarySearch[TElem](
+      this collection : array[TElem],
+      lo : int,
+      hi : int,
+      comparer : TElem -> int
+    ) : int
+    {
+      if (lo <= hi)
+      {
+        def i = (lo + hi) >> 1;
+        def cmpResult = comparer(collection[i]);
+
+        if (cmpResult == 0)
+          i
+        else if (cmpResult < 0)
+          BinarySearch (collection, i + 1, hi, comparer)
+        else
+          BinarySearch (collection, lo, i - 1, comparer)
+      }
+      else
+        ~lo
+    }
+
+    public BinarySearch[TElem](
+      this collection : array[TElem],
+      comparer : TElem -> int
+    ) : int
+    {
+      BinarySearch (collection, 0, collection.Length - 1, comparer);
+    }
+
+    public BinarySearch[TElem](
+      this collection : SCG.IList[TElem],
+      lo : int,
+      hi : int,
+      comparer : TElem -> int
+    ) : int
+    {
+      if (lo <= hi)
+      {
+        def i = (lo + hi) >> 1;
+        def cmpResult = comparer(collection[i]);
+
+        if (cmpResult == 0)
+          i
+        else if (cmpResult < 0)
+          BinarySearch (collection, i + 1, hi, comparer)
+        else
+          BinarySearch (collection, lo, i - 1, comparer)
+      }
+      else
+        ~lo
+    }
+
+    public BinarySearch[TElem](
+      this collection : SCG.IList[TElem],
+      comparer : TElem -> int
+    ) : int
+    {
+      BinarySearch (collection, 0, collection.Count - 1, comparer);
+    }
+
+    public NToList[T](this source : array[T]) : list[T]
+    {
+      ToNList (source)
+    }
+
+    public ToNList[T](this source : SCG.List[T]) : list[T] { NToList(source) }
+    
+    public NToList[T](this source : SCG.List[T]) : list[T]
+    {
+      def loop(index, acc) : list[T]
+      {
+        if (index >= 0)
+          loop(index - 1, source[index] :: acc)
+        else
+          acc
+      }
+
+      loop(source.Count - 1, [])
+    }
+
+    public NToList[T](this source : Seq[T]) : list[T]
+    {
+      NToList(SCG.List(source))
+    }
+
+    /// Convert collection to array.
+    public NToArray[T](this source : SCG.ICollection[T]) : array[T]
+    {
+      if (source == null)
+        array (0)
+      else
+      {
+        def tmp = array (source.Count);
+        source.CopyTo (tmp, 0);
+        tmp
+      }
+    }
+
+    /// Convert sequence to array.
+    public NToArray[T](this source : SCG.IEnumerable[T]) : array[T]
+    {
+      match (source)
+      {
+        | coll is SCG.ICollection[T] => coll.NToArray();
+        | null => array (0);
+        | _ =>
+          def dest = SCG.List();
+
+          foreach (elem in source)
+            dest.Add(elem);
+
+          dest.NToArray()
+      }
+    }
+
+    /// Copy a collection of one type to an array of another type (with cast it elements to To type).
+    /// Throw System.InvalidCastException if some elements can't be cast (VladD2: I hope :) ).
+    public UpCastToArray[From, To](this source : SCG.ICollection[From]) : array[To]
+      where From: class
+      where To:   From, class
+    {
+      match (source)
+      {
+        | null                => array (0);
+        | ary is array[From]  => ary.Map(_ :> To)
+        | x when x.Count == 0 => array (0);
+        | _                   =>
+          def ary : array[To] = array(source.Count);
+          source.CopyTo (ToBase(ary), 0);
+          ary // take covariance in account!
+      }
+    }
+
+    ///// Convert a collection of one type to an array of another type.
+    //public MapToArray[From, To](this source : SCG.ICollection[From], convert : From -> To) : array[To]
+    //{
+    //  match (source)
+    //  {
+    //    | null               => array (0);
+    //    | ary is array[From] => ary.Map (convert);
+    //    | _                  => MapCollectionToArray (source, convert);
+    //  }
+    //}
+
+    //private MapCollectionToArray[From, To](source : SCG.ICollection[From], convert : From -> To) : array[To]
+    //{
+    //  def tmp = array(source.Count);
+    //  source.CopyTo(tmp, 0);
+    //  tmp.Map(convert)
+    //}
+
+    ///// Convert collection of one type to array of another type. (Alias for MapToArray)
+    //public ConvertToArray[From, To](this source : SCG.ICollection[From], convert : From -> To) : array[To]
+    //{
+    //  MapToArray (source, convert)
+    //}
+
+    /// Convert a sequence of one type to an array of another type.
+    public MapToArray[From, To](this source : SCG.IEnumerable[From], convert : From -> To) : array[To]
+    {
+      match (source)
+      {
+        | null                          => array(0);
+        | ary is array[From]            => ary.Map(convert);
+        | coll is SCG.ICollection[From] => 
+          def tmp = array(coll.Count);
+          coll.CopyTo(tmp, 0);
+          tmp.Map(convert)
+        
+        | _ =>
+          def dest = SCG.List();
+
+          foreach (elem in source)
+            dest.Add(convert (elem));
+
+          dest.NToArray()
+      }
+    }
+
+    /// Convert sequence of one type to array of another type. (Alias for MapToArray)
+    public ConvertToArray[From, To](this source : SCG.IEnumerable[From], convert : From -> To) : array[To]
+    {
+      MapToArray(source, convert)
+    }
+
+    /// Convert sequence to array with filtration.
+    public ToArrayFiltered[T](this source : SCG.IEnumerable[T], isMatch : T -> bool) : array[T]
+    {
+      NToArrayFiltered(source, isMatch)
+    }
+    
+    public NToArrayFiltered[T](this source : SCG.IEnumerable[T], isMatch : T -> bool) : array[T]
+    {
+      match (source)
+      {
+        | null => array (0);
+        | _ =>
+          def dest = SCG.List();
+
+          foreach (elem when isMatch(elem) in source)
+            dest.Add (elem);
+
+          dest.NToArray()
+      }
+    }
+
+    InternalMapToArrayFiltered[From, To](
+      source  : array[From],
+      isMatch : From -> bool,
+      convert : From -> To
+    )
+      : array[To]
+    {
+      def dest = SCG.List(source.Length);
+
+      foreach (elem when isMatch(elem) in source)
+        dest.Add (convert (elem));
+
+      dest.NToArray()
+    }
+
+    /// Convert sequence to array with filtration.
+    public MapToArrayFiltered[From, To](
+      this source : array[From],
+      isMatch : From -> bool,
+      convert : From -> To
+    ) : array[To]
+    {
+      if (source == null || source.Length == 0)
+        array(0)
+      else if (source.Length == 1)
+      {
+        def tmp = source[0];
+        if (isMatch(tmp)) array[convert(tmp)] else array(0)
+      }
+      else
+        InternalMapToArrayFiltered(source, isMatch, convert)
+    }
+
+    /// Convert sequence to array with filtration.
+    public MapToArrayFiltered[From, To](
+      this source : SCG.IEnumerable[From],
+      isMatch : From -> bool,
+      convert : From -> To
+    ) : array[To]
+    {
+      match (source)
+      {
+        | null                => array (0);
+        | ary is array[From] => InternalMapToArrayFiltered(ary, isMatch, convert)
+        | _                   =>
+          def dest = SCG.List();
+
+          foreach (elem when isMatch(elem) in source)
+            dest.Add (convert (elem));
+
+          dest.NToArray()
+      }
+    }
+
+    public ConvertToArrayFiltered[From, To](
+      this source : SCG.IEnumerable[From],
+      isMatch : From -> bool,
+      convert : From -> To
+    ) : array[To]
+    {
+      MapToArrayFiltered(source, isMatch, convert)
+    }
+
+    public MapToList[From, To](this source : array[From], convert : From -> To) : list[To]
+    {
+      match (source)
+      {
+        | null => [];
+        | _ =>
+          mutable dest = [];
+
+          for (mutable i = source.Length - 1; i >= 0; i--)
+            dest ::= convert (source[i]);
+
+          dest
+      }
+    }
+
+    public MapToList[From, To](this source : SCG.IList[From], convert : From -> To) : list[To]
+    {
+      match (source)
+      {
+        | null                => [];
+        | ary is array[From] => ary.MapToList(convert);
+        | _ =>
+          mutable dest = [];
+
+          for (mutable i = source.Count - 1; i >= 0; i--)
+            dest ::= convert (source[i]);
+
+          dest
+      }
+    }
+
+    public MapToList[From, To](this source : SCG.IEnumerable[From], convert : From -> To) : list[To]
+    {
+      match (source)
+      {
+        | null                      => [];
+        | ary is array[From]       => ary.MapToList(convert);
+        | iList is SCG.IList[From] => iList.MapToList(convert);
+        | _ =>
+          def dest = SCG.List();
+
+          foreach (elem in source)
+            dest.Add (convert (elem));
+
+          dest.NToList ()
+      }
+    }
+
+    public Map[From, To](this source : SCG.IEnumerable[From], convert : From -> To) : list[To]
+    {
+      source.MapToList (convert)
+    }
+
+
+    public Filter[T](this seq : SCG.IEnumerable[T], predicate : T -> bool) : list[T]
+    {
+      $[ x | x in seq, predicate (x) ]
+    }
+
+    /// Convert sequence to array with filtration.
+    public FilterToArray[T](
+      this source : array[T],
+      isMatch : T -> bool
+    ) : array[T]
+    {
+      if (source == null || source.Length == 0)
+        array(0)
+      else if (source.Length == 1)
+      {
+        def tmp = source[0];
+        if (isMatch(tmp)) array[tmp] else array(0)
+      }
+      else
+        InternalFilterToArray(source, isMatch)
+    }
+
+    public FilterToArray[T](this source : SCG.IEnumerable[T], isMatch : T -> bool) : array[T]
+    {
+      match (source)
+      {
+        | null             => array (0);
+        | ary is array[T] => InternalFilterToArray (ary, isMatch)
+        | _                =>
+          def dest = SCG.List();
+
+          foreach (elem when isMatch(elem) in source)
+            dest.Add (elem);
+
+          dest.NToArray()
+      }
+    }
+
+    InternalFilterToArray[T](source : array[T], isMatch : T -> bool) : array[T]
+    {
+      def dest = SCG.List(source.Length);
+
+      foreach (elem when isMatch(elem) in source)
+        dest.Add (elem);
+
+      dest.NToArray()
+    }
+
+    /// Convert sequence to string.
+    public ToString[T](this source : SCG.IEnumerable[T], separator : string) : string
+    {
+      when (source == null)
+        return "";
+
+      mutable isFirstTime = true;
+      def sb = System.Text.StringBuilder();
+      foreach (elem in source)
+      {
+        if (isFirstTime) isFirstTime = false;
+        else             _ = sb.Append (separator);
+
+        _ = sb.Append (elem);
+      }
+
+      sb.ToString()
+    }
+
+    /// Return right-hand element or new object (if id does not exists).
+    public RightHand[T]([NotNull] this source : SCG.IList[T], index : int) : T
+      where T: new()
+    {
+      def nextIndex = index + 1;
+      if (nextIndex >= source.Count) T() else source[nextIndex];
+    }
+
+    /// Return left-hand element or new object (if id does not exists).
+    public LeftHand[T]([NotNull] this source : SCG.IList[T], index : int) : T
+      where T: new()
+    {
+      def nextIndex = index - 1;
+      if (nextIndex < 0) T() else source[nextIndex];
+    }
+
+    public NReverse[T]([NotNull] this seq : SCG.IEnumerable[T]) : SCG.List[T]
+    {
+      def lst = SCG.List(seq);
+      lst.Reverse();
+      lst;
+    }
+
+    public Find[T]([NotNull] this seq : SCG.IEnumerable[T], predicate : T -> bool) : option[T]
+    {
+      foreach (item in seq)
+        when (predicate(item))
+          return Some(item);
+
+      None();
+    }
+
+    /// Find reference type object. Return reference to found objec of null.
+    public FindObject[T]([NotNull] this seq : SCG.IEnumerable[T], predicate : T -> bool) : T
+      where T : class
+    {
+      foreach (item in seq)
+        when (predicate(item))
+          return item;
+
+      null;
+    }
+
+    public FindValue[T]([NotNull] this seq : SCG.IEnumerable[T], predicate : T -> bool) : T?
+      where T : struct
+    {
+      foreach (item in seq)
+        when (predicate(item))
+          return item;
+
+      null;
+    }
+  
+    public Append[T](mutable this source : array[T], value : T) : array[T]
+    {
+      def oldLen = source.Length;
+      System.Array.Resize(ref source, oldLen + 1);
+      source[oldLen] = value;
+      source
+    }
+
+    public Append[T]([NotNull] mutable this source : array[T], [NotNull] value : array[T]) : array[T]
+    {
+      def newLen = source.Length + value.Length;
+      def insertIndex = source.Length;
+      System.Array.Resize(ref source, newLen);
+      value.CopyTo(source, insertIndex);
+      source
+    }
+
+    /// Iterates a function over an array.
+    public Iter[T](this arr : array[T], f : T -> void) : void
+    {
+      def loop (i)
+      {
+        when (i < arr.Length) {
+          f (arr[i]);
+          loop (i + 1)
+        }
+      }
+
+      loop (0)
+    }
+
+
+    /// Return a fresh copy of[arr] with first[n] elements removed.
+    public ChopFirstN[T](this arr : array[T], n : int) : array[T]
+    {
+      if (arr.Length < n)
+        throw ArgumentException ("ChopFirstN called for too short array")
+      else
+      {
+        def res = array (arr.Length - n);
+        Array.Copy(arr, n, res, 0, res.Length);
+        res
+      }
+    }
+
+
+    /// Return a fresh copy of[arr] with last[n] elements removed.
+    public ChopLastN[T](this arr : array[T], n : int) : array[T]
+    {
+      if (arr.Length < n)
+        throw ArgumentException ("LastFirstN called for too short array")
+      else
+      {
+        def res = array (arr.Length - n);
+        Array.Copy(arr, 0, res, 0, res.Length);
+        res
+      }
+    }
+
+	/// Iterates a function over a sequence, passing both the item index
+    /// and value as the iterated function parameters.
+    public IterI[T]([NotNull] this seq : SCG.IEnumerable[T], f : int * T -> void) : void
+    {
+	  foreach (item in seq with index)
+	    f(index, item);
+    }
+
+    /// Iterates a function over an array, passing both the array index
+    /// and value as the iterated function parameters.
+    public IterI[T](this arr : array[T], f : int * T -> void) : void
+    {
+      def loop (i)
+      {
+        when (i < arr.Length) {
+          f (i, arr[i]);
+          loop (i + 1)
+        }
+      }
+
+      loop (0)
+    }
+
+    public Map[From, To](this from : array[From], f : From -> To) : array[To]
+    {
+      if (from == null)
+        array(0)
+      else
+      {
+        def result = array (from.Length);
+
+        for (mutable i = 0; i < from.Length; ++i)
+          result[i] = f (from[i]);
+
+        result
+      }
+    }
+
+    /// Convert array of one type to other. (This is a alias for Map().)
+    public ConvertAll[From, To](this source : array[From], f : From -> To) : array[To]
+    {
+      source.Map (f);
+    }
+
+    public Map[From, To](res_type : Type, ar : array[From], f : From -> To) : array[To]
+    {
+      assert(typeof (To).Equals (res_type));
+      Map (ar, f)
+    }
+
+
+    /// Folds a function over an array.
+    public Fold[TAccumulator, T](this arr : array[T], ini : TAccumulator, f : T * TAccumulator -> TAccumulator) : TAccumulator
+    {
+      def loop (acc, i)
+      {
+        if (i >= arr.Length) acc
+        else loop (f (arr[i], acc), i + 1)
+      }
+
+      loop (ini, 0)
+    }
+
+
+    /// Folds a function over an array, passing the array index
+    /// as an additional parameter to the folded function parameters.
+    public FoldI[TAccumulator, T](this arr : array[T], ini : TAccumulator, f : int * T * TAccumulator -> TAccumulator) : TAccumulator
+    {
+      def loop (acc, i)
+      {
+        if (i >= arr.Length) acc
+        else loop (f (i, arr[i], acc), i + 1)
+      }
+
+      loop (ini, 0)
+    }
+
+    public Exists[T]([NotNull] this seq : SCG.IEnumerable[T], predicate : T -> bool) : bool
+    {
+      foreach (item in seq)
+        when (predicate(item))
+          return true;
+
+      false
+    }
+
+
+    /// Returns 'true' if at least one of the 'l' arrays's elements
+    /// satisfies the condition 'f'.
+    ///
+    /// Example of use:
+    ///
+    ///   assert(array["a", "b", "abc", "d", "e"].Exists(x => x.Length > 2));
+    ///
+    /// evaluates to 'true' as there is one string of length 3 on the list.
+    public Exists[T](this a : array[T], f : T -> bool) : bool
+    {
+      def walk_array (i : int) : bool
+      {
+        i < a.Length && (f (a[i]) || walk_array (i + 1))
+      }
+
+      walk_array (0)
+    }
+
+
+    /// Returns 'true' if exactly all of the 'l' arrays's elements
+    /// satisfy the condition 'f'.
+    ///
+    /// Example of use:
+    ///
+    ///   array[2, 4, 6, 8, 10].ForAll(x => x % 2 == 0)
+    ///
+    /// evaluates to 'true' as all the array's elements are even integers.
+    public ForAll[T](this a : array[T], f : T -> bool) : bool
+    {
+      def walk_array (i : int) : bool
+      {
+        i >= a.Length || (f (a[i]) && walk_array (i + 1))
+      }
+
+      walk_array (0)
+    }
+
+    public FromList[T](t : Type, x : list[T]) : array[T]
+    {
+      assert(t.Equals(typeof (T)));
+      x.NToArray ()
+    }
+
+    public ToNList[T](this arr : array[T]) : list[T]
+    {
+      NList.FromArray (arr)
+    }
+
+    public Iter2[TFirst, TSecond](this a : list[TFirst], b : array[TSecond], f : TFirst  * TSecond -> void) : void
+    {
+      def loop (l, acc) : void
+      {
+        match (l)
+        {
+          | [] => ()
+          | x :: xs => f (x, b[acc]); loop (xs, acc + 1)
+        }
+      }
+
+      loop (a, 0)
+    }
+
+    public Iter2[TFirst, TSecond](this a : array[TFirst], b : list[TSecond], f : TFirst  * TSecond -> void) : void
+    {
+      def loop (l, acc) : void
+      {
+        match (l)
+        {
+          | [] => ()
+          | x :: xs  => f (a[acc], x); loop (xs, acc + 1)
+        }
+      }
+
+      loop (b, 0)
+    }
+
+    /// Iterate over two collection
+    public Iter2[TFirst, TSecond](this a : Seq[TFirst], b : Seq[TSecond], f : TFirst  * TSecond -> void) : void
+    {
+      def iter1 = a.GetEnumerator();
+      def iter2 = b.GetEnumerator();
+      
+      try
+      {
+        def loop(iter1, iter2)
+        {
+          def ok1 = iter1.MoveNext();
+          def ok2 = iter2.MoveNext();
+          
+          if (ok1 && ok2)
+          {
+            f(iter1.Current, iter2.Current);
+            loop(iter1, iter2);
+          }
+          else when (ok1 != ok2)
+            throw ArgumentException("Arguments has different length")
+        }
+        
+        loop(iter1, iter2);
+      }
+      finally
+      {
+        iter1.Dispose();
+        iter2.Dispose();
+      }
+    }
+
+    /// Iterate over several collections
+    public IterX[T](f : array[T] -> void, params sources : array[Seq[T]]) : void
+    {
+      def iters = array(sources.Length);
+      
+      foreach (s in sources with i)
+        iters[i] = s.GetEnumerator();
+      
+      try
+      {
+        def loop(iters)
+        {
+          mutable ok;
+          
+          foreach (iter in iters with i)
+          {
+            if (i == 0)
+              ok = iter.MoveNext();
+            else when (ok != iter.MoveNext())
+              throw ArgumentException("Arguments has different length", "sources");
+          }
+          
+          when (ok)
+          {
+            def values = array(iters.Length);
+            
+            foreach (iter in iters with i)
+              values[i] = iter.Current;
+              
+            f(values);
+            loop(iters);
+          }
+        }
+        
+        loop(iters);
+      }
+      finally
+      {
+        foreach (iter in iters)
+          iter.Dispose();
+      }
+    }
+
+    public Map2[TFirst, TSecond, TResult](this a : list[TFirst], b : array[TSecond], f : TFirst * TSecond -> TResult) : list[TResult]
+    {
+      def loop (l, acc) : list[TResult]
+      {
+        match (l) {
+          | [] => []
+          | x :: xs => f (x, b[acc]) :: loop (xs, acc + 1)
+        }
+      }
+
+      loop (a, 0)
+    }
+
+    public Map2[TFirst, TSecond, TResult](this a : array[TFirst], b : list[TSecond], f : TFirst * TSecond -> TResult) : list[TResult]
+    {
+      def loop (l, acc) : list[TResult]
+      {
+        match (l) {
+          | [] => []
+          | x :: xs => f (a[acc], x) :: loop (xs, acc + 1)
+        }
+      }
+
+      loop (b, 0)
+    }
+
+    public RevMap2[TFirst, TSecond, TResult](this a : list[TFirst], b : array[TSecond], f : TFirst * TSecond -> TResult) : list[TResult]
+    {
+      def loop (x, i, acc) : list[TResult]
+      {
+        match (x) {
+          | [] => acc
+          | h :: t => loop (t, i + 1, f (h, b[i]) :: acc)
+        }
+      }
+
+      loop(a, 0, [])
+    }
+
+    public RevMap2[TFirst, TSecond, TResult](this a : array[TFirst], b : list[TSecond], f : TFirst * TSecond -> TResult) : list[TResult]
+    {
+      def loop (x, i, acc) : list[TResult]
+      {
+        match (x)
+        {
+          | [] => acc
+          | h :: t => loop (t, i + 1, f (a[i], h) :: acc)
+        }
+      }
+
+      loop(b, 0, [])
+    }
+
+    public FoldLeft2[TFirst, TSecond, TResult](this a : list[TFirst], b : array[TSecond], acc : TResult, f : TFirst  * TSecond * TResult -> TResult) : TResult
+    {
+      def loop (x, i, ac) : TResult
+      {
+        match (x) {
+          | [] => ac
+          | h :: t => loop (t, i + 1, f (h, b[i], ac))
+        }
+      }
+
+      loop (a, 0, acc)
+    }
+
+    public FoldLeft2[TFirst, TSecond, TResult](this a : array[TFirst], b : list[TSecond], acc : TResult, f : TFirst  * TSecond * TResult -> TResult) : TResult
+    {
+      def loop (x, i, ac) : TResult
+      {
+        match (x)
+        {
+          | [] => ac
+          | h :: t => loop (t, i + 1, f (a[i], h, ac))
+        }
+      }
+
+      loop (b, 0, acc)
+    }
+
+    public FoldRight2[TFirst, TSecond, TResult](this a : list[TFirst], b : array[TSecond], c : TResult, f : TFirst * TSecond  * TResult -> TResult) : TResult
+    {
+      def loop (x, i, acc) : TResult
+      {
+        match (x)
+        {
+          | [] => acc
+          | h :: t => f (h, b[i], loop (t, i + 1, acc))
+        }
+      }
+
+      loop (a, 0, c)
+    }
+
+    public FoldRight2[TFirst, TSecond, TResult](this a : array[TFirst], b : list[TSecond], c : TResult, f : TFirst * TSecond  * TResult -> TResult) : TResult
+    {
+      def loop (x, i, acc) : TResult
+      {
+        match (x)
+        {
+          | [] => acc
+          | h :: t => f (a[i], h, loop (t, i + 1, acc))
+        }
+      }
+
+      loop (b, 0, c)
+    }
+
+    public ForAll2[TFirst, TSecond](this a : list[TFirst], b : array[TSecond], f : TFirst * TSecond -> bool) : bool
+    {
+      def loop (x, i) : bool {
+        match (x) {
+          | [] => true
+          | h :: t => f (h, b[i]) && loop (t, i + 1)
+        }
+      }
+
+      loop (a, 0)
+    }
+
+    public ForAll2[TFirst, TSecond](this a : array[TFirst], b : list[TSecond], f : TFirst * TSecond -> bool) : bool
+    {
+      def loop (x, i) : bool {
+        match (x) {
+          | [] => true
+          | h :: t => f (a[i], h) && loop (t, i + 1)
+        }
+      }
+
+      loop (b, 0)
+    }
+
+    public Exists2[TFirst, TSecond](this a : array[TFirst], b : list[TSecond], f : TFirst * TSecond -> bool) : bool
+    {
+      def loop (x, i) : bool {
+        match (x) {
+          | [] => false
+          | h :: t => f (a[i], h) || loop (t, i + 1)
+        }
+      }
+
+      loop (b, 0)
+    }
+
+    public Exists2[TFirst, TSecond](this a : list[TFirst], b : array[TSecond], f : TFirst * TSecond -> bool) : bool
+    {
+      def loop (x, i) : bool {
+        match (x) {
+          | [] => false
+          | h :: t => f (h, b[i]) || loop (t, i + 1)
+        }
+      }
+
+      loop (a, 0)
+    }
+
+    /// Filter elements to list.
+    public Filter[T](this ary : array[T], predicate : T -> bool) : list[T]
+    {
+      $[ x | x in ary, predicate (x) ]
+    }
+
+    /// Cast array to covariant subtype.
+    public ToBase[Derive, Base](this source : array[Derive]) : array[Base]
+      where Base: class
+      where Derive: Base, class
+    {
+      (source : object) :> array[Base]
+    }
+
+    /// Attention! It's inplace sort.
+    public SortInplace[T](this source : array[T], comparison : Comparison[T]) : array[T]
+    {
+      Array.Sort(source, comparison);
+      source
+    }
+
+    /// Attention! It's inplace sort.
+    public Sort[T, Val](this source : array[T], getComparableValue : T -> Val) : array[T]
+      where Val: IComparable[Val]
+    {
+      def Cmp(x : T, y : T) : int
+      {
+        getComparableValue(x).CompareTo(getComparableValue(y))
+      }
+      Array.Sort.[T](source, Comparison.[T](Cmp));
+      source
+    }
+
+    public Clone[T](this source : T) : T
+      where T: ICloneable
+    {
+      (source.Clone() :> T)
+    }
+
+    /// Convert array to string.
+    public ToString[T](this source : array[T], separator : string) : string
+    {
+      string.Join(separator, source.Map(value => value.ToString()));
+    }
+  } // end of module NCollectionsExtensions
+} // end of namespace Nemerle.Collections
+

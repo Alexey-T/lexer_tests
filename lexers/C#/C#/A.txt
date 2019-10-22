@@ -1,0 +1,21 @@
+ArrayListDemo.cs
+  Статическое поле ArrayList в 7 - ой строке
+
+DelegateCombineDemo.cs
+  Статическое поле и делегат в 7 и 9 - й строке
+
+EventDemo.cs
+  Делегаты
+
+Form1.Designer.cs
+  Закрытые поля
+
+HelloClass.cs
+  Открытые поля
+
+IndexerDemo.cs
+  Поля открытые по умолчанию
+
+Point.cs
+  Есть закрытые поля.
+

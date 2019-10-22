@@ -1,0 +1,108 @@
+<!--
+////////////////////////////////////////////////////////////////////////////
+// Copyright (c) Microsoft Corporation.  All rights reserved
+//
+// This XML file illustrates the various options that can be used for
+// scripting setup of a policy environment in a domain, using the script
+// CreateEnvironmentFromXML. The script supports creating OUs, GPOs,
+// GPO Links, Security Groups and Users. It also supports setting all
+// standard options for the GPO, including the security group filtering.
+// The script will move user and computer objects to the proper
+// location within the OU structure, as specified in the XML file.
+//
+// See below for a detailed example that illustrates using all of the
+// available options. For more details about how the script works, see
+// the CreateEnvironmentFromXML script itself. Note that the GPMC
+// must be installed for the script to work.
+//
+////////////////////////////////////////////////////////////////////////////
+-->
+
+<DomainRoot>
+	<!-- GPO links to the domain root -->
+	<GPOLink GPOName="RootUserPolicy" Enabled="True" Enforced="True"/>
+	<GPOLink GPOName="RootMachinePolicy" Enabled="True" Enforced="True"/>
+
+	<!-- User objects outside the OU tree -->
+	<User Name="GPMCPolicyAdmin" Password=""/>
+
+	<!-- The OU tree to be created for this environment -->
+	<OU Name="GPMCTestOU" Description="Root OU created by GPMC scripting">
+		<OU Name="GPMC Child OU 1">
+			<Computer Name="mtreittest"/>
+			<User Name="GPMCUser1" Password="password" ProfilePath="\\PolicyServer\profiles\GPMCUser1" LogonScript="\\PolicyServer\profiles\scripts\TestLogonScript.bat" HomeDrive="X:" HomeDir="\\PolicyServer\profiles\homedir\GPMCUser1"/>
+			<User Name="GPMCUser2" Password="password"/>
+			<User Name="GPMCUser3" Password="password"/>
+		</OU>
+
+		<!-- Nested OU sample -->
+		<OU Name="GPMC Child OU 2" BlockInheritance="True">
+			<OU Name="TestOU1">
+				<OU Name="TestOU2">
+					<OU Name="TestOU3">
+						<OU Name="TestOU4" BlockInheritance="False">
+							<GPOLink GPOName="TestOU4Policy"/>
+						</OU>
+					</OU>
+				</OU>
+			</OU>
+		</OU>
+
+		<!-- An OU that contains a security group -->
+		<OU Name="GPMCSecurityGroupSample">
+			<GPOLink GPOName="SecurityFilterSamplePolicy"/>
+			<SecurityGroup Name="GPMCGroup1" Type="DomainLocal">
+				<Member Name="GPMCUser1"/>
+				<Member Name="GPMCUser2"/>
+			</SecurityGroup>
+		</OU>
+
+	</OU>
+
+
+	<!-- List the GPOs to be created -->
+
+	<!-- A GPO with security filtering set -->
+	<GPO Name="SecurityFilterSamplePolicy" Enabled="True">
+		<!-- Who the GPO applies to -->
+		<ApplyPermissions Exclusive="True">
+			<Permission>GPMCGroup1</Permission>
+		</ApplyPermissions>
+		<!-- Who can edit, change security and delete the GPO -->
+		<EditSecurityPermissions Exclusive="True">
+			<Permission>adadmin</Permission>
+			<Permission>Enterprise Admins</Permission>
+		</EditSecurityPermissions>
+		<!-- Who can edit just the settings of the GPO -->
+		<EditPermissions Exclusive="False">
+			<Permission>PolicyAdmins</Permission>
+		</EditPermissions>
+		<ReadPermissions>
+			<Permission>Authenticated Users</Permission>
+		</ReadPermissions>
+	</GPO>
+
+	<!-- Other GPOs -->
+	<GPO Name="RootUserPolicy" Enabled="User" TemplatePath="c:\GPO-Templates" Template="Mike1"/>
+	<GPO Name="RootMachinePolicy" Enabled="Machine"/>
+	<GPO Name="TestOU4Policy" Enabled="False"/>
+	<GPO Name="GPMCTestGPO1" Enabled="True"/>
+	<GPO Name="GPMCTestGPO2" Enabled="True"/>
+	<GPO Name="GPMCTestGPO3" Enabled="True"/>
+	<GPO Name="GPMCTestGPO4" Enabled="True"/>
+	<GPO Name="GPMCTestGPO5" Enabled="True"/>
+	<GPO Name="GPMCTestGPO6" Enabled="True"/>
+	<GPO Name="GPMCTestGPO7" Enabled="True"/>
+	<GPO Name="GPMCDisabledGPO" Enabled="False"/>
+
+	<!-- Other security groups that are not inside an OU -->
+	<SecurityGroup Name="GPMCGroup2" Type="DomainGlobal">
+		<Member Name="GPMCUser3"/>
+	</SecurityGroup>
+	<SecurityGroup Name="PolicyAdmins">
+		<Member Name="GPMCPolicyAdmin"/>
+	</SecurityGroup>
+	<SecurityGroup Name="PolicyAdmins" Type="Universal">
+		<Member Name="GPMCPolicyAdmin"/>
+	</SecurityGroup>
+</DomainRoot>

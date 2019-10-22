@@ -1,0 +1,6 @@
+CamlProgP4(minicaml,eval.cmo lexuniv.cmo syntaxe.cmo types.cmo synthese.cmo caml.cmo,)
+CamlProgP4Opt(minicaml,eval.cmx lexuniv.cmx syntaxe.cmx types.cmx synthese.cmx caml.cmx,)
+CamlProgP4(camlinterp,eval.cmo lexuniv.cmo syntaxe.cmo interp.cmo,)
+CamlProgP4Opt(camlinterp,eval.cmx lexuniv.cmx syntaxe.cmx interp.cmx,)
+CamlProgP4(camltyp,lexuniv.cmo syntaxe.cmo types.cmo synthese.cmo typeur.cmo,)
+CamlProgP4Opt(camltyp,lexuniv.cmx syntaxe.cmx types.cmx synthese.cmx typeur.cmx,)

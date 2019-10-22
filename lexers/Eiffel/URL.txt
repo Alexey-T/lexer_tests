@@ -1,0 +1,3 @@
+http://www.erenkrantz.com/Geeks/SourceCodeExample2.shtml
+http://www.gobosoft.com/eiffel/syntax/#Reserved_word
+http://docs.eiffel.com/book/examples

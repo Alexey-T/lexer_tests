@@ -1,0 +1,367 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using System.Diagnostics;
+using Nemerle.Assertions;
+using System.Runtime.Serialization;
+  
+using SC = System.Collections;
+using SCG = System.Collections.Generic;
+
+namespace Nemerle.Collections
+{
+  /**
+   * This is a subtype of Generic.Dictionary, which provides some additional
+   *  functional-style methods to its base type.
+   */
+  [System.Serializable]
+  [System.Runtime.InteropServices.ComVisible(false)]
+  [DebuggerDisplay("Count = {Count}: {ToString()}")]
+  [DebuggerNonUserCode]
+  public class Hashtable [TKey, TValue] : SCG.Dictionary [TKey, TValue]
+    //           , IDictionary [TKey,TValue]
+  {
+    /* -- PUBLIC CONSTRUCTORS ---------------------------------------------- */
+
+    /// <summary>Initializes a new instance of the <see cref="T:Nemerle.Collections.Hashtable`2"></see> class that is empty, has the default initial capacity, and uses the default equality comparer for the key type.</summary>
+    public this () { }
+
+    /// <summary>Initializes a new instance of the <see cref="T:Nemerle.Collections.Hashtable`2"></see> class that contains elements copied from the specified <see cref="T:System.Collections.Generic.IDictionary`2"></see> and uses the default equality comparer for the key type.</summary>
+    /// <param name="dictionary">The <see cref="T:System.Collections.Generic.IDictionary`2"></see> whose elements are copied to the new <see cref="T:Nemerle.Collections.Hashtable`2"></see>.</param>
+    /// <exception cref="T:System.ArgumentException">dictionary contains one or more duplicate keys.</exception>
+    /// <exception cref="T:System.ArgumentNullException">dictionary is null.</exception>
+    public this(dictionary : SCG.IDictionary[TKey, TValue]) { base (dictionary) }
+
+    /// <summary>Initializes a new instance of the <see cref="T:Nemerle.Collections.Hashtable`2"></see> class that contains elements copied from the specified <see cref="T:System.Collections.Generic.IEnumerable`1"></see> and uses the default equality comparer for the key type.</summary>
+    /// <param name="dictionary">The <see cref="T:System.Collections.Generic.IEnumerable`1"></see> whose elements are copied to the new <see cref="T:Nemerle.Collections.Hashtable`2"></see>.</param>
+    public this (generator : SC.Generic.IEnumerable [TKey * TValue])
+    {
+      base ();
+      foreach ((key, val) in generator)
+        Add (key, val)
+    }
+
+    /// <summary>Initializes a new instance of the Hashtable[,] class that is empty, has the default 
+    /// initial capacity, and uses the specified <see cref="T:System.Collections.Generic.IEqualityComparer`1"></see>.</summary>
+    /// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1"></see> implementation to use when comparing keys, or null to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1"></see> for the type of the key.</param>
+    public this(comparer : SCG.IEqualityComparer[TKey]) { base (comparer) }
+
+    /// <summary>Initializes a new instance of the <see cref="T:Nemerle.Collections.Hashtable`2"></see> class that is empty, has the specified initial capacity, and uses the default equality comparer for the key type.</summary>
+    /// <param name="capacity">The initial number of elements that the <see cref="T:Nemerle.Collections.Hashtable`2"></see> can contain.</param>
+    /// <exception cref="T:System.ArgumentOutOfRangeException">capacity is less than 0.</exception>
+    public this (capacity : int) { base (capacity); }
+
+    /// <summary>Initializes a new instance of the <see cref="T:Nemerle.Collections.Hashtable`2"></see> class that contains elements copied from the specified <see cref="T:System.Collections.Generic.IDictionary`2"></see> and uses the specified <see cref="T:System.Collections.Generic.IEqualityComparer`1"></see>.</summary>
+    /// <param name="dictionary">The <see cref="T:System.Collections.Generic.IDictionary`2"></see> whose elements are copied to the new <see cref="T:Nemerle.Collections.Hashtable`2"></see>.</param>
+    /// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1"></see> implementation to use when comparing keys, or null to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1"></see> for the type of the key.</param>
+    /// <exception cref="T:System.ArgumentException">dictionary contains one or more duplicate keys.</exception>
+    /// <exception cref="T:System.ArgumentNullException">dictionary is null.</exception>
+    public this(dictionary : SCG.IDictionary[TKey, TValue], comparer : SCG.IEqualityComparer[TKey])
+    {
+      base (dictionary, comparer)
+    }
+
+    /// <summary>Initializes a new instance of the <see cref="T:Nemerle.Collections.Hashtable`2"></see> class that is empty, has the specified initial capacity, and uses the specified <see cref="T:System.Collections.Generic.IEqualityComparer`1"></see>.</summary>
+    /// <param name="capacity">The initial number of elements that the <see cref="T:Nemerle.Collections.Hashtable`2"></see> can contain.</param>
+    /// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1"></see> implementation to use when comparing keys, or null to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1"></see> for the type of the key.</param>
+    /// <exception cref="T:System.ArgumentOutOfRangeException">capacity is less than 0.</exception>
+    public this(capacity : int, comparer : SCG.IEqualityComparer[TKey])
+    {
+      base (capacity, comparer)
+    }
+
+    /* -- SERIALIZATION CONSTRUCTOR ---------------------------------------------- */
+
+    /// <summary>Initializes a new instance of the <see cref="T:System.Collections.Generic.Dictionary`2"></see> class with serialized data.</summary>
+    /// <param name="context">A <see cref="T:System.Runtime.Serialization.StreamingContext"></see> structure containing the source and destination of the serialized stream associated with the <see cref="T:System.Collections.Generic.Dictionary`2"></see>.</param>
+    /// <param name="info">A <see cref="T:System.Runtime.Serialization.SerializationInfo"></see> object containing the information required to serialize the <see cref="T:System.Collections.Generic.Dictionary`2"></see>.</param>
+    protected this (info : SerializationInfo, context :  StreamingContext)
+    {
+      base(info, context);
+    }
+
+    /* -- PUBLIC METHODS --------------------------------------------------- */
+        
+    /**
+     * Returns an optional value associated with the specified key.
+     */
+    public Get (key : TKey) : option [TValue]
+    {
+      mutable value;
+      
+      if (TryGetValue (key, out value))
+        Some (value)
+      else
+        None ()
+    }
+        
+    public TryGetValue(key : TKey) : TValue * bool
+    {
+      mutable value;
+      
+      if (TryGetValue (key, out value))
+        (value, true)
+      else
+        (value, false)
+    }
+
+    /**
+     * Returns value associated with the specified key or default value (null for 
+     * referece type and result of parameterless constractor for value type).
+     */
+    public GetValueOrDefault (key : TKey) : TValue
+    {
+      mutable value;
+      
+      ignore (TryGetValue (key, out value));
+      
+      value
+    }    
+    
+    /**
+     * Returns value associated with the specified key or defaultValue.
+     */
+    public GetValueOrDefault (key : TKey, defaultValue : TValue) : TValue
+    {
+      mutable value;
+      
+      if (TryGetValue (key, out value))
+        value
+      else
+        defaultValue
+    }
+    
+    /**
+     * Returns value associated with the specified key or result of call getDefaultValue().
+     * The getDefaultValue() called only if key not exists in collection.
+     */
+    public GetValueOrGetDefault (key : TKey, getDefaultValue : void -> TValue) : TValue
+    {
+      mutable value;
+      
+      if (TryGetValue (key, out value))
+        value
+      else
+        getDefaultValue()
+    }
+    
+    /**
+     * Returns value associated with the specified key or new value.
+     * The new value obtain by call getNewValue(). The new value add 
+     * to collection before return to caller.
+     * The getNewValue() called only if key not exists in collection.
+     * Example:
+     * def map = Hashtable();
+     * Console.WriteLine(map.GetValue("1", () => 1)); // Write "1"
+     * Console.WriteLine(map.GetValue("1", () => 2)); // Write "1"
+     * Console.WriteLine(map["1"]);                   // Write "1"
+     */
+    public GetValue (key : TKey, getNewValue : void -> TValue) : TValue
+    {
+      mutable value;
+      
+      if (TryGetValue (key, out value))
+        value
+      else
+      {
+        value = getNewValue();
+        Add(key, value);
+        value
+      }
+    }
+    
+    /**
+     * This is different from add, which can fail if the key is
+     * already in the underlying Framework hashtable.
+     */
+    public Set (key : TKey, val : TValue) : void
+    {
+      this [key] = val;
+    }
+
+    /**
+     * Updates value associated with the specified key.
+     * If key not exists defaultValue used instead.
+     */
+    public Update (key : TKey, defaultValue : TValue, updateFn : TValue -> TValue) : Hashtable [TKey, TValue]
+    {
+      mutable value;
+
+      unless (TryGetValue (key, out value))
+        value = defaultValue;
+
+      this[key] = updateFn(value);
+
+      this;
+    }
+
+    public Update (key : TKey, newValue : void -> TValue, updateFn : TValue -> TValue) : Hashtable [TKey, TValue]
+    {
+      mutable value;
+
+      unless (TryGetValue (key, out value))
+        value = newValue();
+
+      this[key] = updateFn(value);
+
+      this;
+    }
+
+    
+    /**
+     * Clones this hashtable.
+     */
+    public Clone () : Hashtable [TKey,TValue]
+    {
+      Hashtable (this)
+    }
+
+
+    
+    /**
+     * Returns `true' if the hashtable contains the specified key.
+     *
+     * NOTE: this is the same as ContainsKey.
+     */
+    public Contains (key : TKey) : bool
+    {
+      ContainsKey (key)
+    }
+
+    
+    /**
+     * Folds a function over the key/value pairs.
+     */
+    public Fold ['c] (s : 'c, f : (TKey * TValue * 'c) -> 'c) : 'c 
+    {
+      mutable acc = s;
+      
+      foreach (x in this)
+        acc = f (x.Key, x.Value, acc);
+        
+      acc
+    }
+
+    
+    /**
+     * Iterates a function over the key/value pairs in the hashtable.
+     */
+    public Iter (f : TKey * TValue -> void) : void
+    {
+      foreach (x in this)
+        f (x.Key, x.Value)
+    }
+
+    
+    /**
+     * Maps a given function defined of key-value pairs to the contents
+     * of this hashtable. A new hashtable object is created, containing
+     * the results of the application.
+     */
+    public Map ['c, 'd] (f : TKey * TValue -> 'c * 'd) : Hashtable ['c,'d]
+    {
+      def ht = Hashtable (Count);
+
+      foreach (x in this)
+      {
+        def (k, v) = f (x.Key, x.Value);
+        
+        ht.Add (k, v)
+      }
+      
+      ht
+    }
+
+    /**
+     * Removes elements for which predicate is false
+     */
+    public Filter (f : TKey * TValue -> bool) : Hashtable [TKey, TValue]
+    {
+      def ht = Hashtable ();
+
+      foreach (x in this)
+      when (f (x.Key, x.Value))
+        ht.Add (x.Key, x.Value);
+
+      ht
+    }
+
+    public new Remove (key : TKey) : void
+    {
+      _ = base.Remove (key)
+    }
+
+
+    /**
+     * Returns a collection of the key/value pairs from this hashtable
+     */
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    public KeyValuePairs : array [TKey * TValue]
+    {
+      get
+      {
+        def result = array(Count);
+        mutable i = 0;
+
+        foreach (kv in this)
+        {
+          result[i] = (kv.Key, kv.Value);
+          i++;
+        }
+
+        result
+      }
+    }
+
+    internal static better_to_string (x : object) : string {
+        match (x) {
+          | str is string => "\"" + str + "\""
+          | ch is char    => "'" + ch.ToString () + "'"
+          | null          => "<null>"
+          | _             => x.ToString ()
+        }
+    }
+        
+    public override ToString () : string
+    {
+      def sb = System.Text.StringBuilder ("{");
+      foreach (x in this) {
+        _ = sb.Append (better_to_string (x.Key));
+        _ = sb.Append (": ");
+        _ = sb.Append (better_to_string (x.Value));
+        _ = sb.Append (", ");
+      }
+      // cut the last ', ' if it exists
+      when (sb.Length > 1)
+        sb.Length = sb.Length - 2;
+      _ = sb.Append ('}');
+      sb.ToString ()
+    }
+  } /* end of class Hashtable (TKey,TValue) */
+} /* end of namespace */
+

@@ -1,0 +1,2 @@
+CamlProg(soli,soli.cmo,)
+CamlProgOpt(soli,soli.cmx,)

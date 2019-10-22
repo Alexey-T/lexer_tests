@@ -1,0 +1,2 @@
+CamlProg(doctor,doctor.cmo,)
+CamlProgOpt(doctor,doctor.cmx,)

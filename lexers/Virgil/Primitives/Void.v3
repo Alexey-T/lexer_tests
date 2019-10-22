@@ -1,0 +1,4 @@
+// void is just like other types
+var x: void;
+var a: void = (); // () is the only value of type void
+var b = ();

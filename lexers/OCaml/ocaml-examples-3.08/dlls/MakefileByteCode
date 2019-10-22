@@ -1,0 +1,19 @@
+CAMLLIB=\camlfi\lib
+
+fibwrap.obj: fibwrap.c
+	ocamlc -c fibwrap.c
+
+fib.obj: fib.ml
+	ocamlc -output-obj -o fib.obj fib.ml
+
+fibdll.dll fibdll.lib: fib.obj fibwrap.obj
+	link /nologo /dll /libpath:"$(CAMLLIB)" \
+          /out:fibdll.dll /implib:fibdll.lib \
+	  /export:fib \
+	  /export:format_result \
+	  fibwrap.obj fib.obj \
+	  libcamlrun.lib
+
+client.exe: client.c fibdll.lib
+	cl -o client.exe client.c fibdll.lib
+

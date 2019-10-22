@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <link rel="stylesheet" href="style.css" />
+  <script type="text/javascript" src="tips.js"></script>
+  <style type="text/css">
+    body { font:90% 'calibri'; }
+    pre {
+	    background:#f0f0f0;
+	    font-family:consolas, monaco,'Lucida Console',monospace;
+	    font-size:80%;
+	    padding:10px;
+	    margin:10px 5px 10px 5px;
+    }
+    h1 { font:bold 19pt 'calibri'; 
+         text-align:center; 
+         margin:0px 30px 10px 30px;
+         border-bottom:1px solid black; }
+  </style>
+</head><body>
+
+<h1>F# Web Snippets</h1>
+
+<p>F# Web Snippets is a tool for formatting your F# source code for web pages or blogs. It does colorization
+  of the code and, more interestingly, adds <strong>tool tips with types</strong> and other information. This
+  is especially important for languages like F# where types are not written explicitly in the source code. 
+  When reading F# code in Visual Studio, you can use tool tips to get information about the type, which is 
+  very useful when understanding code. However, if you post a code snippet to a web, the information about types
+  is gone! F# Web Snippets generates snippets that include tool tips for identifiers in the same way as 
+  Visual Studio.</p>
+
+<p>The following two code snippets were generated from a single script file. When you place the cursor over
+  an identifier (such as <code>Hello</code>, <code>Console</code> or <code>name</code>), you should see 
+  a tool tip with additional information:</p>
+
+<pre class="fssnip">
+<span class="l">1: </span><span class="c">///</span><span class="c"> </span><span class="c">Says</span><span class="c"> </span><span class="c">hello</span><span class="c"> </span><span class="c">to</span><span class="c"> </span><span class="c">the</span><span class="c"> </span><span class="c">specified</span><span class="c"> </span><span class="c">person/entity</span>
+<span class="l">2: </span><span class="k">type</span> <span onmouseout="hideTip(event, 'fstips1', 1)" onmouseover="showTip(event, 'fstips1', 1)" class="i">Hello</span>(<span onmouseout="hideTip(event, 'fstips2', 2)" onmouseover="showTip(event, 'fstips2', 2)" class="i">name</span>) <span class="o">=</span> 
+<span class="l">3: </span>  <span class="c">///</span><span class="c"> </span><span class="c">Display</span><span class="c"> </span><span class="c">'Hello</span><span class="c"> </span><span class="c">&lt;name&gt;'</span><span class="c"> </span><span class="c">message</span><span class="c"> </span><span class="c">in</span><span class="c"> </span><span class="c">console</span>
+<span class="l">4: </span>  <span class="k">member</span> <span onmouseout="hideTip(event, 'fstips3', 3)" onmouseover="showTip(event, 'fstips3', 3)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fstips4', 4)" onmouseover="showTip(event, 'fstips4', 4)" class="i">SayHello</span>() <span class="o">=</span> 
+<span class="l">5: </span>    <span onmouseout="hideTip(event, 'fstips5', 5)" onmouseover="showTip(event, 'fstips5', 5)" class="i">Console</span><span class="o">.</span><span onmouseout="hideTip(event, 'fstips6', 6)" onmouseover="showTip(event, 'fstips6', 6)" class="i">WriteLine</span>(<span class="s">&quot;</span><span class="s">Hello</span><span class="s"> </span><span class="s">&quot;</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fstips2', 7)" onmouseover="showTip(event, 'fstips2', 7)" class="i">name</span>)<a target="_blank" class="fssniplink" href="http://tomasp.net/fswebsnippets">F# Web Snippets</a>
+</pre>
+
+<p>Note that the two snippets were generated from a single file, so we can see full information
+  about the <code>Hello</code> type (declared in the first snippet) in the second snippet, including
+  its members and documentation extracted from the <code>///</code> comment:</p>
+
+<pre class="fssnip">
+<span class="l">1: </span><span class="k">let</span> <span onmouseout="hideTip(event, 'fstips7', 8)" onmouseover="showTip(event, 'fstips7', 8)" class="i">hello</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fstips1', 9)" onmouseover="showTip(event, 'fstips1', 9)" class="i">Hello</span>(<span class="s">&quot;</span><span class="s">World</span><span class="s">&quot;</span>)
+<span class="l">2: </span><span onmouseout="hideTip(event, 'fstips7', 10)" onmouseover="showTip(event, 'fstips7', 10)" class="i">hello</span><span class="o">.</span><span onmouseout="hideTip(event, 'fstips8', 11)" onmouseover="showTip(event, 'fstips8', 11)" class="i">SayHello</span>()<a target="_blank" class="fssniplink" href="http://tomasp.net/fswebsnippets">F# Web Snippets</a>
+</pre>
+
+<h2>Get F# Web Snippets</h2>
+<p>There is a WinForms version and web based version of the tool. The WinForms based version has some
+  additional features, runs faster so it is a better choice if you plan to use it seriously. The web based
+  version is mainly for a demonstration (processing a simple script takes about 50% CPU time for a while,
+  so please be nice to my server!)</p>
+<ul>
+  <li>Go straight to the <a href="http://tomasp.net/fswebsnippets">web based <strong>F# Web Snippets</strong></a> to try it out!</li>
+  <li>Download a stand-alone Windows Forms based <a href="http://tomasp.net/fswebsnippets/fswebsnippets.zip"><strong>F# Web Snippets</strong></a> application.</li>
+  <li>Read more about the tool in a <a href="?">blog post</a> (and get the source code too)</li>
+  <li>Download <a href="http://tomasp.net/fswebsnippets/templates.zip">JavaScript and CSS</a> templates for your blog or web</li>
+</ul>
+
+<h2>Using F# Web Snippets</h2>
+<div style="float:right;margin:10px;margin-left:15px;text-align:center;font-size:80%;">
+<a href="http://tomasp.net/projects/fswebsnippets/fssnip-html.png" target="_blank"><img src="http://tomasp.net/projects/fswebsnippets/fssnip-html-sm.png" style="margin-bottom:4px;border-style:none;" /></a><br />
+<a href="http://tomasp.net/projects/fswebsnippets/fssnip-html.png" target="_blank">Click for a large version</a>
+</div>
+<p>The tool uses F# compiler service to do the formatting and to get tool tip texts. This 
+  means that you'll see exactly the same information as in Visual Studio. In order to use it,
+  you need to have an F# script file (<code>.fsx</code> file) that the compiler can type-check 
+  (so that it can generate correct tool tips). Obviously, the tool needs a complete and correct
+  script file and it cannot process a snippet without the full script context. </p>
+<h3>Marking snippets</h3>  
+<p>To make it easier
+  to generate snippets from the script file, the tool uses meta-comments to mark parts of code
+  that you want to process. For example, the following script file generates snippet that is 
+  displayed in the screenshot on the right.</p>
+
+<pre>
+<span class="l"> 1: </span><span class="k">let</span> <span onmouseout="hideTip(event, 'fstipsn1', 1)" onmouseover="showTip(event, 'fstipsn1', 1)" class="i">isEven</span> <span onmouseout="hideTip(event, 'fstipsn2', 2)" onmouseover="showTip(event, 'fstipsn2', 2)" class="i">n</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fstipsn2', 3)" onmouseover="showTip(event, 'fstipsn2', 3)" class="i">n</span><span class="o">%</span><span class="n">2</span> <span class="o">=</span> <span class="n">0</span>
+<span class="l"> 2: </span><span class="k">let</span> <span onmouseout="hideTip(event, 'fstipsn3', 4)" onmouseover="showTip(event, 'fstipsn3', 4)" class="i">formatInt</span> <span onmouseout="hideTip(event, 'fstipsn2', 5)" onmouseover="showTip(event, 'fstipsn2', 5)" class="i">n</span> <span class="o">=</span> (<span onmouseout="hideTip(event, 'fstipsn4', 6)" onmouseover="showTip(event, 'fstipsn4', 6)" class="i">string</span> <span onmouseout="hideTip(event, 'fstipsn2', 7)" onmouseover="showTip(event, 'fstipsn2', 7)" class="i">n</span>) <span class="o">+</span> <span class="s">&quot;</span><span class="s">N</span><span class="s">&quot;</span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span><span class="c">//</span><span class="c"> </span><span class="c">[snippet:Filtering</span><span class="c"> </span><span class="c">and</span><span class="c"> </span><span class="c">projection]</span>
+<span class="l"> 5: </span><span class="k">let</span> <span onmouseout="hideTip(event, 'fstipsn5', 8)" onmouseover="showTip(event, 'fstipsn5', 8)" class="i">res</span> <span class="o">=</span> 
+<span class="l"> 6: </span>  [ <span class="n">1</span> <span class="o">..</span> <span class="n">10</span> ] 
+<span class="l"> 7: </span>  <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fstipsn6', 9)" onmouseover="showTip(event, 'fstipsn6', 9)" class="i">List</span><span class="o">.</span><span onmouseout="hideTip(event, 'fstipsn7', 10)" onmouseover="showTip(event, 'fstipsn7', 10)" class="i">filter</span> <span onmouseout="hideTip(event, 'fstipsn1', 11)" onmouseover="showTip(event, 'fstipsn1', 11)" class="i">isEven</span>
+<span class="l"> 8: </span>  <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fstipsn6', 12)" onmouseover="showTip(event, 'fstipsn6', 12)" class="i">List</span><span class="o">.</span><span onmouseout="hideTip(event, 'fstipsn8', 13)" onmouseover="showTip(event, 'fstipsn8', 13)" class="i">map</span> <span onmouseout="hideTip(event, 'fstipsn3', 14)" onmouseover="showTip(event, 'fstipsn3', 14)" class="i">formatInt</span>
+<span class="l"> 9: </span><span class="c">//</span><span class="c"> </span><span class="c">[/snippet]</span>
+</pre>
+
+<p>The meta-comment syntax is quite simple - you can enclose any block of code between <code>[snippet:&lt;Title&gt;]</code>
+  and <code>[/snippet]</code> tags. As the screenshot demonstrates, F# Web Snippets tool will generate HTML
+  only for snippets marked using meta-comments. It also picks the title of a snippet from the comment 
+  so that you can easily see which snippet is which. However, because we provided a complete script
+  file, the tool can generate tool tips even for items that are not declared in the snippets (e.g.
+  <code>formatInt</code> function in the screenshot).</p>
+
+<h3>Tool configuration</h3>
+<div style="float:right;margin:10px;margin-left:15px;text-align:center;font-size:80%;">
+<a href="http://tomasp.net/projects/fswebsnippets/fssnip-source.png" target="_blank"><img src="http://tomasp.net/projects/fswebsnippets/fssnip-source-sm.png" style="margin-bottom:4px;border-style:none;" /></a><br />
+<a href="http://tomasp.net/projects/fswebsnippets/fssnip-source.png" target="_blank">Click for a large version</a>
+</div>
+
+<p>The tool internally calls F# compiler and it will work correctly only when the script file
+  type-checks without errors. This means that you may need to provide some information about the
+  context. This can be done using a few options in the Windows Forms based version of the tool 
+  (the web based version supports only default .NET 2.0 script context). The ways to configure
+  the tool are:</p>
+
+<ul>
+  <li><strong>File name</strong> - This is not used as the source for the parser - if you 
+    modify the content in the text box, it will use the modified version. A file name is needed
+    because F# may need to resolve files referenced using <code>#load</code> and <code>#r</code>
+    commands (these are available only when the file name ends with <code>.fsx</code>)</li>
+  <li><strong>#r and #load</strong> - You can use the standard <code>#load</code> and <code>#r</code>
+    commands in the source code to load other F# source files and reference additional 
+    .NET libraries. This is usually the easiest option to make the script type check.</li>
+  <li><strong>Defined symbols</strong> - Here you can provide pre-processor symbols that
+    are defined (so that the colorizer can properly recognize inactive code marked with 
+    <code>#if</code>)</li>
+  <li><strong>Command line</strong> - The "ultimate" option that allows you to provide any 
+    command line parameters to the compiler. You'll need this if you want to reference some
+    non-standard <code>mscorlib</code> library (e.g. Silverlight or XNA), which requires the 
+    <code>--noframework</code> flag. The format should be the same as for compiler options (if 
+    a path contains space, it can be wrapped in double quotes, e.g. <code>-r:"C:\Program Files\a.dll"</code>)</li>
+  <li><strong>Standard</strong> - Contains some common command line options for the tool. Since
+    the tool is compiled using .NET 2.0, you need to use the drop down if you want to type-check 
+    against .NET 4.0 runtime. The other options are experimental. You can customize the 
+    settings here by editing the <code>standard.xml</code> file in the application directory.</li>
+</ul>
+
+<p>There are also a couple of settings that configure the HTML generator, so if you want to 
+  change the look of the formatted snippet, here is what you can do:</p>
+<ul>
+  <li><strong>CSS and JavaScript</strong> - The generated code uses CSS classes (such as <code>c</code> for
+    comments, <code>k</code> for keywords etc.), so colors can be configured by editing the
+    default <code>style.css</code> file (or by adding styles to your blog). The JavaScript code for
+    showing tool tips can be modified in <code>tips.js</code> (and you also need to reference
+    it from your blog).</li>
+  <li><strong>Add line numbers</strong> - If the option is checked, the tool will add line numbers
+    to the generated snippet (which makes the snippet nicer, but more difficult to copy &amp; paste).</li>
+  <li><strong>Prefix</strong> - Here you can set a unique prefix that will be used for <code>id</code>
+    attributes in the generated HTML (you need to change this if you want to include snippets from
+    multiple script files in a single page - to avoid name clashes in the generated HTML).</li>
+</ul>
+
+<!-- HTML code for ToolTips -->
+<div class="tip" id="fstipsn1">val isEven : int -&gt; bool<br /><br />Full name: Untitled.isEven<br /></div>
+<div class="tip" id="fstipsn2">val n : int<br /><br />&#160;&#160;type: int<br />&#160;&#160;implements: System.IComparable<br />&#160;&#160;implements: System.IFormattable<br />&#160;&#160;implements: System.IConvertible<br />&#160;&#160;implements: System.IComparable&lt;int&gt;<br />&#160;&#160;implements: System.IEquatable&lt;int&gt;<br />&#160;&#160;inherits: System.ValueType<br /></div>
+<div class="tip" id="fstipsn3">val formatInt : int -&gt; string<br /><br />Full name: Untitled.formatInt<br /></div>
+<div class="tip" id="fstipsn4">Multiple items
+<br />val string : 'T -&gt; string<br /><br />Full name: Microsoft.FSharp.Core.Operators.string
+<br /><br />--------------------<br />
+<br />type string = System.String<br /><br />Full name: Microsoft.FSharp.Core.string<br /><br />&#160;&#160;type: string<br />&#160;&#160;implements: System.IComparable<br />&#160;&#160;implements: System.ICloneable<br />&#160;&#160;implements: System.IConvertible<br />&#160;&#160;implements: System.IComparable&lt;string&gt;<br />&#160;&#160;implements: seq&lt;char&gt;<br />&#160;&#160;implements: System.Collections.IEnumerable<br />&#160;&#160;implements: System.IEquatable&lt;string&gt;<br /></div>
+<div class="tip" id="fstipsn5">val res : string list<br /><br />Full name: Untitled.res<br /><br />&#160;&#160;type: string list<br />&#160;&#160;implements: System.Collections.IStructuralEquatable<br />&#160;&#160;implements: System.IComparable&lt;List&lt;string&gt;&gt;<br />&#160;&#160;implements: System.IComparable<br />&#160;&#160;implements: System.Collections.IStructuralComparable<br />&#160;&#160;implements: System.Collections.Generic.IEnumerable&lt;string&gt;<br />&#160;&#160;implements: System.Collections.IEnumerable<br /></div>
+<div class="tip" id="fstipsn6">Multiple items
+<br />module List<br /><br />from Microsoft.FSharp.Collections
+<br /><br />--------------------<br />
+<br />type List&lt;'T&gt; =<br />&#160;&#160;| ( [] )<br />&#160;&#160;| ( :: ) of 'T * 'T list<br />&#160;&#160;with<br />&#160;&#160;&#160;&#160;interface System.Collections.IEnumerable<br />&#160;&#160;&#160;&#160;interface System.Collections.Generic.IEnumerable&lt;'T&gt;<br />&#160;&#160;&#160;&#160;member Head : 'T<br />&#160;&#160;&#160;&#160;member IsEmpty : bool<br />&#160;&#160;&#160;&#160;member Item : index:int -&gt; 'T with get<br />&#160;&#160;&#160;&#160;member Length : int<br />&#160;&#160;&#160;&#160;member Tail : 'T list<br />&#160;&#160;&#160;&#160;static member Cons : head:'T * tail:'T list -&gt; 'T list<br />&#160;&#160;&#160;&#160;static member Empty : 'T list<br />&#160;&#160;end<br /><br />Full name: Microsoft.FSharp.Collections.List&lt;_&gt;<br /><br />&#160;&#160;type: List&lt;'T&gt;<br />&#160;&#160;implements: System.Collections.IStructuralEquatable<br />&#160;&#160;implements: System.IComparable&lt;List&lt;'T&gt;&gt;<br />&#160;&#160;implements: System.IComparable<br />&#160;&#160;implements: System.Collections.IStructuralComparable<br />&#160;&#160;implements: System.Collections.Generic.IEnumerable&lt;'T&gt;<br />&#160;&#160;implements: System.Collections.IEnumerable<br /></div>
+<div class="tip" id="fstipsn7">val filter : ('T -&gt; bool) -&gt; 'T list -&gt; 'T list<br /><br />Full name: Microsoft.FSharp.Collections.List.filter<br /></div>
+<div class="tip" id="fstipsn8">val map : ('T -&gt; 'U) -&gt; 'T list -&gt; 'U list<br /><br />Full name: Microsoft.FSharp.Collections.List.map<br /></div>
+
+<!-- HTML code for ToolTips -->
+<div class="tip" id="fstips1">type Hello =<br />&#160;&#160;class<br />&#160;&#160;&#160;&#160;new : name:string -&gt; Hello<br />&#160;&#160;&#160;&#160;member SayHello : unit -&gt; unit<br />&#160;&#160;end<br /><br />Full name: Untitled.Hello
+<br /><br /><em>Says hello to the specified person/entity</em><br /></div>
+<div class="tip" id="fstips2">val name : string<br /><br />&#160;&#160;type: string<br />&#160;&#160;implements: IComparable<br />&#160;&#160;implements: ICloneable<br />&#160;&#160;implements: IConvertible<br />&#160;&#160;implements: IComparable&lt;string&gt;<br />&#160;&#160;implements: seq&lt;char&gt;<br />&#160;&#160;implements: Collections.IEnumerable<br />&#160;&#160;implements: IEquatable&lt;string&gt;<br /></div>
+<div class="tip" id="fstips3">val x : Hello<br /></div>
+<div class="tip" id="fstips4">member Hello.SayHello : unit -&gt; unit<br /><br />Full name: Untitled.Hello.SayHello
+<br /><br /><em>Display 'Hello &lt;name&gt;' message in console</em><br /></div>
+<div class="tip" id="fstips5">type Console =<br />&#160;&#160;class<br />&#160;&#160;&#160;&#160;static member BackgroundColor : System.ConsoleColor with get, set<br />&#160;&#160;&#160;&#160;static member Beep : unit -&gt; unit<br />&#160;&#160;&#160;&#160;static member Beep : int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member BufferHeight : int with get, set<br />&#160;&#160;&#160;&#160;static member BufferWidth : int with get, set<br />&#160;&#160;&#160;&#160;static member CapsLock : bool<br />&#160;&#160;&#160;&#160;static member Clear : unit -&gt; unit<br />&#160;&#160;&#160;&#160;static member CursorLeft : int with get, set<br />&#160;&#160;&#160;&#160;static member CursorSize : int with get, set<br />&#160;&#160;&#160;&#160;static member CursorTop : int with get, set<br />&#160;&#160;&#160;&#160;static member CursorVisible : bool with get, set<br />&#160;&#160;&#160;&#160;static member Error : System.IO.TextWriter<br />&#160;&#160;&#160;&#160;static member ForegroundColor : System.ConsoleColor with get, set<br />&#160;&#160;&#160;&#160;static member In : System.IO.TextReader<br />&#160;&#160;&#160;&#160;static member InputEncoding : System.Text.Encoding with get, set<br />&#160;&#160;&#160;&#160;static member KeyAvailable : bool<br />&#160;&#160;&#160;&#160;static member LargestWindowHeight : int<br />&#160;&#160;&#160;&#160;static member LargestWindowWidth : int<br />&#160;&#160;&#160;&#160;static member MoveBufferArea : int * int * int * int * int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member MoveBufferArea : int * int * int * int * int * int * char * System.ConsoleColor * System.ConsoleColor -&gt; unit<br />&#160;&#160;&#160;&#160;static member NumberLock : bool<br />&#160;&#160;&#160;&#160;static member OpenStandardError : unit -&gt; System.IO.Stream<br />&#160;&#160;&#160;&#160;static member OpenStandardError : int -&gt; System.IO.Stream<br />&#160;&#160;&#160;&#160;static member OpenStandardInput : unit -&gt; System.IO.Stream<br />&#160;&#160;&#160;&#160;static member OpenStandardInput : int -&gt; System.IO.Stream<br />&#160;&#160;&#160;&#160;static member OpenStandardOutput : unit -&gt; System.IO.Stream<br />&#160;&#160;&#160;&#160;static member OpenStandardOutput : int -&gt; System.IO.Stream<br />&#160;&#160;&#160;&#160;static member Out : System.IO.TextWriter<br />&#160;&#160;&#160;&#160;static member OutputEncoding : System.Text.Encoding with get, set<br />&#160;&#160;&#160;&#160;static member Read : unit -&gt; int<br />&#160;&#160;&#160;&#160;static member ReadKey : unit -&gt; System.ConsoleKeyInfo<br />&#160;&#160;&#160;&#160;static member ReadKey : bool -&gt; System.ConsoleKeyInfo<br />&#160;&#160;&#160;&#160;static member ReadLine : unit -&gt; string<br />&#160;&#160;&#160;&#160;static member ResetColor : unit -&gt; unit<br />&#160;&#160;&#160;&#160;static member SetBufferSize : int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member SetCursorPosition : int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member SetError : System.IO.TextWriter -&gt; unit<br />&#160;&#160;&#160;&#160;static member SetIn : System.IO.TextReader -&gt; unit<br />&#160;&#160;&#160;&#160;static member SetOut : System.IO.TextWriter -&gt; unit<br />&#160;&#160;&#160;&#160;static member SetWindowPosition : int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member SetWindowSize : int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member Title : string with get, set<br />&#160;&#160;&#160;&#160;static member TreatControlCAsInput : bool with get, set<br />&#160;&#160;&#160;&#160;static member WindowHeight : int with get, set<br />&#160;&#160;&#160;&#160;static member WindowLeft : int with get, set<br />&#160;&#160;&#160;&#160;static member WindowTop : int with get, set<br />&#160;&#160;&#160;&#160;static member WindowWidth : int with get, set<br />&#160;&#160;&#160;&#160;static member Write : bool -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : char -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : char [] -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : float -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : decimal -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : float32 -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : int -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : uint32 -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : int64 -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : uint64 -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : string -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : string * obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : string * obj [] -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : string * obj * obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : char [] * int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : string * obj * obj * obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member Write : string * obj * obj * obj * obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : unit -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : bool -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : char -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : char [] -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : decimal -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : float -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : float32 -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : int -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : uint32 -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : int64 -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : uint64 -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : string -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : string * obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : string * obj [] -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : char [] * int * int -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : string * obj * obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : string * obj * obj * obj -&gt; unit<br />&#160;&#160;&#160;&#160;static member WriteLine : string * obj * obj * obj * obj -&gt; unit<br />&#160;&#160;end<br /><br />Full name: System.Console<br /></div>
+<div class="tip" id="fstips6">Multiple overloads
+<br />Console.WriteLine() : unit
+<br />Console.WriteLine(value: string) : unit
+<br />Console.WriteLine(value: obj) : unit
+<br />Console.WriteLine(value: uint64) : unit
+<br />Console.WriteLine(value: int64) : unit
+<br />Console.WriteLine(value: uint32) : unit
+<br />Console.WriteLine(value: int) : unit
+<br />Console.WriteLine(value: float32) : unit
+<br />Console.WriteLine(value: float) : unit
+<br />Console.WriteLine(value: decimal) : unit
+<br />&#160;&#160;&#160;<em>(+9 other overloads)</em><br /></div>
+<div class="tip" id="fstips7">val hello : Hello<br /></div>
+<div class="tip" id="fstips8">member Hello.SayHello : unit -&gt; unit
+<br /><br /><em>Display 'Hello &lt;name&gt;' message in console</em><br /></div>
+
+</body></html>

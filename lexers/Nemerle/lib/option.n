@@ -1,0 +1,250 @@
+﻿/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using Nemerle.Utility;
+
+using System.Diagnostics;
+
+namespace Nemerle.Core
+{
+  /**
+   * The optional value variant.
+   */
+  [DebuggerNonUserCode]
+  [System.Serializable]
+  [Nemerle.MarkOptions (System.Serializable)]    
+  [Nemerle.MarkOptions (DebuggerNonUserCode)]    
+  public variant option[T] : System.IEquatable[option[T]]
+  {
+    | None
+    | Some { val : T; }
+
+    /**
+     * Pretty prints the optional value.
+     */
+    public override ToString () : string
+    {
+      match (this){
+        | Some (x) when x : object == null => "Some()"
+        | Some (x)                         => "Some (" + x.ToString () + ")"
+        | None                             => "None"
+      }
+    }
+
+    /**
+     * Typesafe equality checks.
+     */
+    [Nemerle.OverrideObjectEquals]
+    public Equals (o : option [T]) : bool
+      implements System.IEquatable[option[T]].Equals
+    {
+      Nemerle.Core.Option.Equals (this, o)
+    }
+
+    
+    /**
+     *  Structural HashCode provider
+     */
+    public override GetHashCode () : int
+    {
+      match (this) {
+        | None => 0
+        | Some (x) => x.GetHashCode ()
+      }
+    }
+
+
+    public IsSome : bool
+    {
+      get { this is Some (_) }
+    }
+
+
+    public IsNone : bool
+    {
+      get { this is None () }
+    }
+
+    public WithDefault (val : T) : T
+    {
+      match (this) {
+        | Some (v) => v
+        | None => val
+      }
+    }
+
+    public HasValue : bool
+    {
+      get { this is Some (_) }
+    }
+
+    public Value : T
+    {
+      get { 
+        match (this) {
+          | Some (x) => x
+          | None =>
+            throw System.ArgumentException ("option.Value")
+        }
+      }
+    }
+
+    public static @:[TFrom](value : System.Nullable[TFrom]) : option[TFrom]
+      where TFrom: struct
+    {
+      if (value.HasValue) Some(value.Value) else None()
+    }
+  }
+
+
+  /**
+   * Operations on optional values
+   */
+  public module Option
+  {
+    /**
+     * Safe equality check
+     */
+    public Equals [T] (x : option [T], y : option [T]) : bool
+    {
+      | (Some (a), Some (b)) => a.Equals (b)
+      | (None, None)         => true
+      | (null, null)         => throw System.ArgumentException ("option can't be null")
+      | _                    => false
+    }
+
+    /**
+     * Safe optional value mapping.
+     */
+    public Map [T, TTo] (this x : option [T], f : T -> TTo) : option [TTo]
+    {
+      match (x) {
+        | Some (x) => Some (f (x))
+        | null     => throw System.ArgumentException ("option can't be null")
+        | None => None ()
+      }
+    }    
+
+    /**
+     * Same as ignore (Map (x, f)).
+     */
+    public Iter [T] (this x : option [T], f : T -> void) : void
+    {
+      match (x) {
+        | Some (x)    => f (x)
+        | null | None => ()
+      }
+    }    
+
+    /**
+     * Checks if the optional value is present.
+     */
+    public IsSome [T] (x : option [T]) : bool
+    {
+      match (x) {
+        | Some => true
+        | _ => false
+      }
+    }
+
+    /**
+     * Returns `true' if the optional value is not present.
+     */
+    public IsNone[T] (x : option [T]) : bool
+    {
+      match (x) {
+        | None => true
+        | null => throw System.ArgumentException ("option can't be null")
+        | _ => false
+      }
+    }  
+
+    /**
+     * Unwraps an optional value; throws an argument exception
+     * if the value is not present.
+     */
+    public UnSome [T] (this x : option [T]) : T
+    {
+      match (x) {
+        | Some (x) => x
+        | _        => throw System.ArgumentException ("Option.UnSome")
+      }
+    }
+
+    /**
+     * Converts nullable value to optional value.
+     */
+    public ToOption[T](this x : System.Nullable[T]) : option[T]
+      where T: struct
+    {
+      x
+    }
+  }
+
+  public module ValueOptionStatic
+  {
+    public VSome[T](value : T) : ValueOption[T] { ValueOption(value) }
+    public VNone[T]()          : ValueOption[T] { default(ValueOption[T]) }
+  }
+
+  [ExtensionPattern(VSome(value) = ValueOption where(HasValue=true, Value=value))]
+  [ExtensionPattern(VNone()      = ValueOption where(HasValue=false))]
+  public struct ValueOption[T]
+  {
+    _value : T;
+    public Value : T
+    {
+      get
+      {
+        if (HasValue) _value 
+        else assert(false, "try use Value when it not set");
+      }
+    }
+    public GetValueOrDefault() : T { _value }
+    public HasValue : bool;
+    
+    public IsSome : bool
+    {
+      get { HasValue }
+    }
+
+    public IsNone : bool
+    {
+      get { !HasValue }
+    }
+
+    public this(value : T)
+    {
+      _value   = value;
+      HasValue = true;
+    }
+    
+    public static None()          : ValueOption[T] { default(ValueOption[T]) }
+    public static Some(value : T) : ValueOption[T] { ValueOption(value) }
+  }
+}

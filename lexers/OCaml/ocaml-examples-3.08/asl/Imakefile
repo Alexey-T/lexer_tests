@@ -1,0 +1,2 @@
+CamlProgP4(asl,prel.cmo asl.cmo token.cmo parser.cmo semant.cmo typing.cmo main.cmo run.cmo,)
+CamlProgP4Opt(asl,prel.cmx asl.cmx token.cmx parser.cmx semant.cmx typing.cmx main.cmx run.cmx,)

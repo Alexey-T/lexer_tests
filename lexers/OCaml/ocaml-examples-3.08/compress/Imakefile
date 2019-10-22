@@ -1,0 +1,4 @@
+CamlProg(compr,esbit.cmo fileprio.cmo huffman.cmo compr.cmo,)
+CamlProg(decompr,esbit.cmo fileprio.cmo huffman.cmo decompr.cmo,)
+CamlProgOpt(compr,esbit.cmx fileprio.cmx huffman.cmx compr.cmx,)
+CamlProgOpt(decompr,esbit.cmx fileprio.cmx huffman.cmx decompr.cmx,)

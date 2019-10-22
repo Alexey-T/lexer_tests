@@ -1,0 +1,417 @@
+/*
+ * Copyright (c) 2009-2009  rampelstinskin@gmail.com
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of rampelstinskin may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using System;
+using System.Diagnostics;
+using SCG = System.Collections.Generic;
+using Nemerle.Utility;
+
+namespace Nemerle.Collections
+{
+  [DebuggerDisplay("Count = {Count}: {ToString()}")]
+  [DebuggerNonUserCode]
+  public class Set[T] : SCG.ICollection[T], IComparable[Set[T]]
+  {
+    #region State
+
+    private _tree : TwoThreeTree.Node[T];
+    private _cmp : T * T -> int;
+    private _size : int;
+
+    #endregion
+
+    #region Constructors
+
+    public this()
+    {
+      this(0, TwoThreeTree.Node.Leaf(), NemerleCollectionsComparer.Comparer[T].Default);
+    }
+
+    public this(cmp : T * T -> int)
+    {
+      this(0, TwoThreeTree.Node.Leaf(), cmp);
+    }
+
+    public this(coll : SCG.IEnumerable [T])
+    {
+      this(0, TwoThreeTree.Node.Leaf(), NemerleCollectionsComparer.Comparer[T].Default, coll)
+    }
+
+    public this(coll : SCG.IEnumerable [T], cmp : T * T -> int)
+    {
+      this(0, TwoThreeTree.Node.Leaf(), cmp, coll)
+    }
+
+    private this(mutable size : int, tree : TwoThreeTree.Node[T], cmp : T * T -> int, coll : SCG.IEnumerable[T])
+    {
+      _cmp = cmp;
+      _tree = coll.Fold(tree, (value, tree) => tree.Insert(value, _cmp, TwoThreeTree.InsertOptions.ThrowIfDuplicate, ref size));
+      _size = size;
+    }
+
+    private this(size : int, tree : TwoThreeTree.Node[T], cmp : T * T -> int)
+    {
+      _tree = tree;
+      _cmp = cmp;
+      _size = size;
+    }
+
+    #endregion
+
+    public Clear() : Set[T]
+    {
+      Set(0, TwoThreeTree.Node.Leaf(), _cmp);
+    }
+
+    #region Add
+
+    public Add(value : T) : Set[T]
+    {
+      mutable size = _size;
+      def tree = _tree.Insert(value, _cmp, TwoThreeTree.InsertOptions.ThrowIfDuplicate, ref size);
+      Set(size, tree, _cmp);
+    }
+
+    public AddRange(elems : SCG.IEnumerable[T]) : Set[T]
+    {
+      Set(_size, _tree, _cmp, elems)
+    }
+
+    public AddList(elems : list[T]) : Set[T]
+    {
+      AddRange(elems)
+    }
+
+    #endregion
+
+    #region Remove
+
+    public Remove(value : T) : Set[T]
+    {
+      mutable size = _size;
+      def tree = _tree.Delete(value, _cmp, TwoThreeTree.DeleteOptions.IgnoreMissed, ref size);
+      Set(size, tree, _cmp);
+    }
+
+    public RemoveRange(elems : SCG.IEnumerable[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = elems.Fold(_tree, (value, tree) => tree.Delete(value, _cmp, TwoThreeTree.DeleteOptions.IgnoreMissed, ref size));
+      Set(size, tree, _cmp);
+    }
+
+    public RemoveList(elems : list[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = elems.Fold(_tree, (value, tree) => tree.Delete(value, _cmp, TwoThreeTree.DeleteOptions.IgnoreMissed, ref size));
+      Set(size, tree, _cmp);
+    }
+
+    #endregion
+
+    #region Replace
+
+    public Replace(value : T) : Set[T]
+    {
+      mutable size = _size;
+      def tree = _tree.Insert(value, _cmp, TwoThreeTree.InsertOptions.Replace, ref size);
+      Set(size, tree, _cmp);
+    }
+
+    public ReplaceRange(elems : SCG.IEnumerable[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = elems.Fold(_tree, (value, tree) => tree.Insert(value, _cmp, TwoThreeTree.InsertOptions.Replace, ref size));
+      Set(size, tree, _cmp);
+    }
+
+    public ReplaceList(elems : list[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = elems.Fold(_tree, (value, tree) => tree.Insert(value, _cmp, TwoThreeTree.InsertOptions.Replace, ref size));
+      Set(size, tree, _cmp);
+    }
+
+    #endregion
+
+    #region Fold
+
+    public Fold[TAccumulator](acc : TAccumulator, fn : T * TAccumulator -> TAccumulator) : TAccumulator
+    {
+      _tree.FoldLeft(acc, fn);
+    }
+
+    public FoldLeft[TAccumulator](acc : TAccumulator, fn : T * TAccumulator -> TAccumulator) : TAccumulator
+    {
+      _tree.FoldLeft(acc, fn);
+    }
+
+    public FoldRight[TAccumulator](acc : TAccumulator, fn : T * TAccumulator -> TAccumulator) : TAccumulator
+    {
+      _tree.FoldRight(acc, fn);
+    }
+
+    #endregion
+
+    #region Iter
+
+    public Iter(fn : T -> void) : void
+    {
+      _ = _tree.FoldLeft(null, (value, _) => { fn(value); null; })
+    }
+
+    public IterLeft(fn : T -> void) : void
+    {
+      _ = _tree.FoldLeft(null, (value, _) => { fn(value); null; })
+    }
+
+    public IterRight(fn : T -> void) : void
+    {
+      _ = _tree.FoldRight(null, (value, _) => { fn(value); null; })
+    }
+
+    #endregion
+
+    #region Filter
+
+    public Filter(fn : T -> bool) : Set[T]
+    {
+      def (size, tree) = _tree.Filter(_cmp, fn);
+      Set(size, tree, _cmp);
+    }
+
+    #endregion
+
+    #region Partition
+
+    public Partition(fn : T -> bool) : Set[T] * Set[T]
+    {
+      def (ysize, ytree, nsize, ntree) = _tree.Partition(_cmp, fn);
+      (Set(ysize, ytree, _cmp), Set(nsize, ntree, _cmp));
+    }
+
+    #endregion
+
+    #region ForAll
+
+    public ForAll(fn : T -> bool) : bool
+    {
+      _tree.ForAll(fn);
+    }
+
+    #endregion
+
+    #region Exists
+
+    public Exists(fn : T -> bool) : bool
+    {
+      _tree.Exists(fn);
+    }
+
+    #endregion
+
+    #region Contains
+
+    public Contains(value : T) : bool
+    {
+      mutable outValue;
+      _tree.TryGet(value, _cmp, out outValue)
+    }
+
+    public Item[value : T] : bool
+    {
+      get { Contains(value) }
+    }
+
+    #endregion
+
+    #region Sum
+
+    public Sum(that : Set[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = _tree.Sum(ref size, that._tree, _cmp);
+      Set(size, tree, _cmp)
+    }
+
+    #endregion
+
+    #region Subtract
+
+    public Subtract(that : Set[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = _tree.Subtract(ref size, that._tree, _cmp);
+      Set(size, tree, _cmp)
+    }
+
+    #endregion
+
+    #region Intersect
+
+    public Intersect(that : Set[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = _tree.Intersect(ref size, that._tree, _cmp);
+      Set(size, tree, _cmp)
+    }
+
+    #endregion
+
+    #region Xor
+
+    public Xor(that : Set[T]) : Set[T]
+    {
+      mutable size = _size;
+      def tree = _tree.Xor(ref size, that._tree, _cmp);
+      Set(size, tree, _cmp)
+    }
+
+    #endregion
+
+    public ToList() : list[T]
+    {
+      _tree.ToList();
+    }
+
+    public ToArray() : array[T]
+    {
+      _tree.ToArray();
+    }
+
+    public MapToList[U](fn : T -> U) : list[U]
+    {
+      _tree.MapToList(fn);
+    }
+
+    public MapToArray[U](fn : T -> U) : array[U]
+    {
+      _tree.MapToArray(fn);
+    }
+
+    public IsEmpty : bool
+    {
+      get { _size == 0 }
+    }
+
+    #region ICollection[T]
+
+    public GetEnumerator() : SCG.IEnumerator[T]
+    {
+      _tree.Enumerate().GetEnumerator();
+    }
+
+    public CopyTo(arr : array[T], mutable arrayIndex : int) : void
+    {
+      def copyOne(value, arrayIndex)
+      {
+        arr[arrayIndex] = value;
+        arrayIndex + 1;
+      }
+      _ = _tree.Fold(arrayIndex, copyOne);
+    }
+
+    public IsReadOnly : bool
+    {
+      get { true }
+    }
+
+    public Count : int
+    {
+      get { _size }
+    }
+
+    private Remove_Invalid (_ : T) : bool implements SCG.ICollection[T].Remove
+    {
+      throw System.NotSupportedException ("this is functional set, which is read-only");
+    }
+
+    private Clear_Invalid() : void implements SCG.ICollection[T].Clear
+    {
+      throw System.NotSupportedException ("this is functional set, which is read-only");
+    }
+
+    private Add_Invalid (_ : T) : void implements SCG.ICollection[T].Add
+    {
+      throw System.NotSupportedException ("this is functional set, which is read-only and returns new instance upon adding element");
+    }
+
+    #endregion
+
+    public override ToString() : string
+    {
+      _tree.ToString("Set[", ", ", "]");
+    }
+
+    public override GetHashCode() : int
+    {
+      _tree.GetHashCode();
+    }
+
+    public override Equals(that : object) : bool
+    {
+      match (that)
+      {
+      | that is Set[T] => _size == that._size && ForAll(that.Contains(_));
+      | _ => false;
+      }
+    }
+
+    public CompareTo(that : Set[T]) : int
+    {
+      res:
+      {
+        def items1 = this.ToArray();
+        def items2 = that.ToArray();
+        def len = Math.Min(items1.Length, items2.Length);
+        for (mutable i = 0; i < len; ++i)
+        {
+          def r = _cmp(items1[i], items2[i]);
+          when (r != 0)
+            res(r);
+        }
+        if (items1.Length == items2.Length)
+          0;
+        else if (items1.Length < items2.Length)
+          -1;
+        else
+          1;
+      }
+    }
+
+    public static Sum(this sets : list[Set[T]]) : Set[T]
+    {
+      sets.Fold(Set(), (e, s) => s.Sum(e))
+    }
+
+    public static Sum(this sets : list[Set[T]], cmp : T * T -> int) : Set[T]
+    {
+      sets.Fold(Set(cmp), (e, s) => s.Sum(e))
+    }
+  }
+}

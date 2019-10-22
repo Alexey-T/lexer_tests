@@ -1,0 +1,4 @@
+﻿namespace Nemerle
+{
+  public struct FakeVoid { }
+}

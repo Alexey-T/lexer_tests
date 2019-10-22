@@ -1,0 +1,20 @@
+
+"I'm a string. \"You can quote me\". Name\tJos\u00E9\nLocation\tSF."
+
+key1 = """
+Roses are red
+Violets are blue"""
+
+regex2 = '''I [dw]on't need \d{2} apples'''
+
++99
+42
+0
+-17
+
+true
+false
+
+1979-05-27T07:32:00Z
+1979-05-27T00:32:00-07:00
+1979-05-27T00:32:00.999999-07:00

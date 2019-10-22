@@ -1,0 +1,4 @@
+CamlGraphProg(spir,spir.cmo,)
+CamlGraphProgOpt(spir,spir.cmx,)
+CamlGraphProg(spir-bw,spir-bw.cmo,)
+CamlGraphProgOpt(spir-bw,spir-bw.cmx,)

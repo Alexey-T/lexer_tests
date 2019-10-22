@@ -1,0 +1,2 @@
+CamlProgP4(demonstr,prop.cmo lexuniv.cmo asynt.cmo demo.cmo,)
+CamlProgP4Opt(demonstr,prop.cmx lexuniv.cmx asynt.cmx demo.cmx,)

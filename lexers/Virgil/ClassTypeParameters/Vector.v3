@@ -1,0 +1,14 @@
+// a sketch of a growable array class
+class Vector<T> {
+	var length: int;
+	def add(e: T) {
+		// adds the element to this vector
+	}
+	def apply<R>(f: T -> R) {
+		// applies the given function to every element in the array
+	}
+}
+def copy<T>(a: Vector<T>, b: Vector<T>) {
+	// pass b.add to a.apply to copy a's contents into b!
+	a.apply(b.add);
+}

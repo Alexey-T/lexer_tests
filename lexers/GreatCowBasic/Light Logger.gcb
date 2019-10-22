@@ -1,0 +1,38 @@
+'Light Logger demonstration for GCBASIC
+' (c) Hugh Considine 2006-2008
+
+'By default, this program will take a reading every second from port AN0, and write it
+'to EEPROM. Most programmers have an "Read Chip" option, which can be used to upload the
+'log to a PC.
+
+'Program options
+#define ReadWait 1 s 	'Read every 1 second
+#define ReadSensor AN0	'Read the sensor on port AN0
+#define FullLight PORTB.0 'Switch on an LED connected to PORTB.0 when EEPROM is full
+
+'Hardware settings
+#chip 16F819, 8 	'PIC 16F819 running at 8 MHz
+#config MCLRE = Off, Osc = Int	'Turn off MCLR, select internal osc.
+				'WDT and LVP are disabled automatically
+
+'Initialise
+DataCount = 0		'Set the EEPROM data location to 0
+Dir PORTA.0 In		'Set the pin used for A/D conversion to an input
+Dir FullLight Out	'Set the pin used for the LED to output mode
+Set FullLight Off	'Make sure the full light is off at first
+
+'Main routine
+Do
+ 'Take a sample, and Write it to the EEPROM
+ EPWrite(DataCount, ReadAD(ReadSensor))
+
+
+ 'Stop program when EEPROM is full 
+ If DataCount = 255 then
+  Set FullLight On	'Turn on the light
+  End			'End the program
+ End If
+
+ DataCount += 1				'Increment EEPROM location
+ Wait ReadWait				'Wait before taking another reading
+Loop

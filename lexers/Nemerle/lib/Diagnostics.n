@@ -1,0 +1,55 @@
+using System;
+using System.Diagnostics;
+
+namespace Nemerle.Diagnostics
+{
+  // DODO: Move it into separate file.
+  public module NDebug
+  {
+    mutable StackTraceDepth : int = 15;
+
+    public ToStringWitoutNs(str : object) : string
+    {
+      try
+      {
+        str.ToString()
+          .Replace("System.Linq.Expressions.", "")
+          .Replace("System.Linq.", "")
+          .Replace("System.Collections.Generic.", "")
+          .Replace("System.Collections.", "")
+          .Replace("System.", "")
+          .Replace("Nemerle.Collections.", "")
+          .Replace("Nemerle.Core.", "")
+          .Replace("Nemerle.Compiler.", "")
+          .Replace("Nemerle.", "")
+          .Replace("`1", "")
+          .Replace("`2", "")
+          .Replace("`3", "")
+        }
+        catch { | e => $"ToString() throw exceptoin $(e.GetType()): $(e.Message)" }
+    }
+
+    public PrintStackTrace() : void
+    {
+      def st = StackTrace(true);
+      def frames = st.GetFrames();
+
+      foreach (frame when i < StackTraceDepth && i != 0 in frames with i)
+      {
+        def m     = frame.GetMethod();
+        def name  = m.Name;
+        def count = m.GetParameters().Length;
+        def file  = frame.GetFileName();
+        def line  = frame.GetFileLineNumber();
+        def col   = frame.GetFileColumnNumber();
+        Debug.WriteLine($"$file($line, $col): $name($count)");
+      }
+    }
+  }
+  
+  [Record]
+  public class CompileStatistic : Attribute
+  {
+    public Key : string { get; }
+  }
+}

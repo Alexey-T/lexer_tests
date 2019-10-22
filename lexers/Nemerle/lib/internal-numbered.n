@@ -1,0 +1,1358 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using System.Diagnostics;
+using Nemerle.Extensions;
+ 
+// note that the fact that Tuple`2 and `3 are structs
+// is also needed in FixedType.IsValueType
+
+namespace Nemerle.Builtins {
+
+
+[DebuggerNonUserCode]
+public abstract class Function ['r] : Function [System.Object, 'r]
+{
+  public abstract apply () : 'r;
+  public override apply (_ : System.Object) : 'r { apply () }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid : Function [System.Object]
+{
+  public abstract apply_void () : void;
+  public override apply () : System.Object { apply_void (); null }
+}
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'r]
+{
+  public static @>>[B] (fab : 'p1 -> B, fbc : B -> 'r) : 'p1 -> 'r
+  {
+    a => fbc(fab(a))
+  }
+
+  public static @>>[B] (fab : void -> B, fbc : B -> 'r) : void -> 'r
+  {
+    () => fbc(fab())
+  }
+
+  public static @>>[B] (fab : 'p1 -> B, fbc : B -> void) : 'p1-> void
+  {
+    a => fbc(fab(a))
+  }
+  
+  public static @>>[B] (fab : void -> B, fbc : B -> void) : void -> void
+  {
+    () => fbc(fab())
+  }
+
+  public static @<<[B] (fbc : B -> 'r, fab : 'p1 -> B) : 'p1 -> 'r
+  {
+    a => fbc(fab(a))
+  }
+
+  public static @<<[B] (fbc : B -> 'r, fab : void -> B) : void -> 'r
+  {
+    () => fbc(fab())
+  }
+ 
+  public static @<<[B] (fbc : B -> void, fab : 'p1-> B) : 'p1 -> void
+  {
+    a => fbc(fab(a))
+  }
+
+  public static @<<[B] (fbc : B -> void, fab : void -> B) : void -> void
+  {
+    () => fbc(fab())
+  }
+
+  public static @|> (a : 'p1, fac : 'p1 -> 'r) : 'r
+  {
+    fac(a)
+  }    
+
+  public static @|> (a : 'p1, fac : 'p1 -> void) : void
+  {
+    fac(a)
+  }   
+
+  public static @<| (fac : 'p1 -> 'r, a : 'p1) : 'r
+  {
+    fac(a)
+  }    
+
+  public static @<| (fac : 'p1 -> void, a : 'p1) : void
+  {
+    fac(a)
+  }  
+      
+  public abstract apply (_ : 'p1) : 'r;
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1] : Function ['p1, System.Object]
+{
+  public abstract apply_void (_ : 'p1) : void;
+  public override apply (p1 : 'p1) : System.Object { apply_void (p1); null }
+}
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'r] : Function [Tuple ['p1, 'p2], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2) : 'r;
+  public override apply (o : Tuple ['p1, 'p2]) : 'r { apply (o.Field0, o.Field1) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'r] : Function ['p1, 'p2, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2], 'r];
+  public this (f : Function [Tuple ['p1, 'p2], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2] (a1, a2))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2] : FunctionVoid ['p1, 'p2]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2] (a1, a2))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2] : FunctionVoid [Tuple ['p1, 'p2]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2) : void;
+  public override apply_void (o : Tuple ['p1, 'p2]) : void { apply_void (o.Field0, o.Field1); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1})")]
+  public struct Tuple ['p0, 'p1]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'r] : Function [Tuple ['p1, 'p2, 'p3], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3]) : 'r { apply (o.Field0, o.Field1, o.Field2) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'r] : Function ['p1, 'p2, 'p3, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3] (a1, a2, a3))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3] : FunctionVoid ['p1, 'p2, 'p3]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3] (a1, a2, a3))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3] : FunctionVoid [Tuple ['p1, 'p2, 'p3]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3]) : void { apply_void (o.Field0, o.Field1, o.Field2); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2})")]
+  public struct Tuple ['p0, 'p1, 'p2]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4] (a1, a2, a3, a4))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4] : FunctionVoid ['p1, 'p2, 'p3, 'p4]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4] (a1, a2, a3, a4))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5] (a1, a2, a3, a4, a5))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5] (a1, a2, a3, a4, a5))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6] (a1, a2, a3, a4, a5, a6))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6] (a1, a2, a3, a4, a5, a6))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7] (a1, a2, a3, a4, a5, a6, a7))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7] (a1, a2, a3, a4, a5, a6, a7))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8] (a1, a2, a3, a4, a5, a6, a7, a8))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8] (a1, a2, a3, a4, a5, a6, a7, a8))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9] (a1, a2, a3, a4, a5, a6, a7, a8, a9))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9] (a1, a2, a3, a4, a5, a6, a7, a8, a9))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12}, {Field13})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+    public Field13 : 'p13;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12}, {Field13}, {Field14})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+    public Field13 : 'p13;
+    public Field14 : 'p14;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12}, {Field13}, {Field14}, {Field15})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+    public Field13 : 'p13;
+    public Field14 : 'p14;
+    public Field15 : 'p15;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12}, {Field13}, {Field14}, {Field15}, {Field16})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+    public Field13 : 'p13;
+    public Field14 : 'p14;
+    public Field15 : 'p15;
+    public Field16 : 'p16;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17, _ : 'p18) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16, o.Field17) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17, a18 : 'p18) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17, a18 : 'p18) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17, _ : 'p18) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16, o.Field17); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12}, {Field13}, {Field14}, {Field15}, {Field16}, {Field17})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+    public Field13 : 'p13;
+    public Field14 : 'p14;
+    public Field15 : 'p15;
+    public Field16 : 'p16;
+    public Field17 : 'p17;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17, _ : 'p18, _ : 'p19) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16, o.Field17, o.Field18) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17, a18 : 'p18, a19 : 'p19) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17, a18 : 'p18, a19 : 'p19) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17, _ : 'p18, _ : 'p19) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16, o.Field17, o.Field18); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12}, {Field13}, {Field14}, {Field15}, {Field16}, {Field17}, {Field18})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+    public Field13 : 'p13;
+    public Field14 : 'p14;
+    public Field15 : 'p15;
+    public Field16 : 'p16;
+    public Field17 : 'p17;
+    public Field18 : 'p18;
+  }
+
+[DebuggerNonUserCode]
+public abstract class Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20, 'r] : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20], 'r]
+{
+  public abstract apply (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17, _ : 'p18, _ : 'p19, _ : 'p20) : 'r;
+  public override apply (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20]) : 'r { apply (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16, o.Field17, o.Field18, o.Field19) }
+}
+
+[DebuggerNonUserCode]
+public class FunctionFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20, 'r] : Function ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20, 'r]
+{
+  fn : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20], 'r];
+  public this (f : Function [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20], 'r])
+  {
+    fn = f;
+  }
+  public override apply (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17, a18 : 'p18, a19 : 'p19, a20 : 'p20) : 'r
+  {
+    fn.apply (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20))
+  }
+}
+
+[DebuggerNonUserCode]
+public class FunctionVoidFromTuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20] : FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20]
+{
+  fn : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20]];
+  public this (f : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20]])
+  {
+    fn = f;
+  }
+  public override apply_void (a1 : 'p1, a2 : 'p2, a3 : 'p3, a4 : 'p4, a5 : 'p5, a6 : 'p6, a7 : 'p7, a8 : 'p8, a9 : 'p9, a10 : 'p10, a11 : 'p11, a12 : 'p12, a13 : 'p13, a14 : 'p14, a15 : 'p15, a16 : 'p16, a17 : 'p17, a18 : 'p18, a19 : 'p19, a20 : 'p20) : void
+  {
+    fn.apply_void (Tuple.['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20] (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20))
+  }
+}
+
+[DebuggerNonUserCode]
+public abstract class FunctionVoid ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20] : FunctionVoid [Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20]]
+{
+  public abstract apply_void (_ : 'p1, _ : 'p2, _ : 'p3, _ : 'p4, _ : 'p5, _ : 'p6, _ : 'p7, _ : 'p8, _ : 'p9, _ : 'p10, _ : 'p11, _ : 'p12, _ : 'p13, _ : 'p14, _ : 'p15, _ : 'p16, _ : 'p17, _ : 'p18, _ : 'p19, _ : 'p20) : void;
+  public override apply_void (o : Tuple ['p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19, 'p20]) : void { apply_void (o.Field0, o.Field1, o.Field2, o.Field3, o.Field4, o.Field5, o.Field6, o.Field7, o.Field8, o.Field9, o.Field10, o.Field11, o.Field12, o.Field13, o.Field14, o.Field15, o.Field16, o.Field17, o.Field18, o.Field19); }
+}
+
+
+  [System.Serializable,
+   Record,
+   StructuralEquality,
+   TupleToString,
+   DebuggerNonUserCode,
+   DebuggerDisplay("({Field0}, {Field1}, {Field2}, {Field3}, {Field4}, {Field5}, {Field6}, {Field7}, {Field8}, {Field9}, {Field10}, {Field11}, {Field12}, {Field13}, {Field14}, {Field15}, {Field16}, {Field17}, {Field18}, {Field19})"),
+   DisableImplicitConstructor]
+  public sealed class Tuple ['p0, 'p1, 'p2, 'p3, 'p4, 'p5, 'p6, 'p7, 'p8, 'p9, 'p10, 'p11, 'p12, 'p13, 'p14, 'p15, 'p16, 'p17, 'p18, 'p19]
+  {
+    public Field0 : 'p0;
+    public Field1 : 'p1;
+    public Field2 : 'p2;
+    public Field3 : 'p3;
+    public Field4 : 'p4;
+    public Field5 : 'p5;
+    public Field6 : 'p6;
+    public Field7 : 'p7;
+    public Field8 : 'p8;
+    public Field9 : 'p9;
+    public Field10 : 'p10;
+    public Field11 : 'p11;
+    public Field12 : 'p12;
+    public Field13 : 'p13;
+    public Field14 : 'p14;
+    public Field15 : 'p15;
+    public Field16 : 'p16;
+    public Field17 : 'p17;
+    public Field18 : 'p18;
+    public Field19 : 'p19;
+  }
+
+}

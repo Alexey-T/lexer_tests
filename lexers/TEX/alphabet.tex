@@ -1,0 +1,187 @@
+\documentclass{article}
+
+\oddsidemargin=0in
+\evensidemargin=0in
+\textwidth=6in
+\topmargin=0in
+\textheight=9in
+
+\parindent=0in
+\pagestyle{empty}
+
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\input{lauracode}
+
+\begin{document}
+
+\section*{Basic Font Tables}
+
+\gotable{-1.5}{1.1}{|l|cccccccccccccccccccccccccc|}
+\hline
+\hline
+roman      & A&B&C&D&E&F&G&H&I&J&K&L&M&N&O&P&Q&R&S&T&U&V&W&X&Y&Z \\
+\verb|{\rm ...}| 
+           & a&b&c&d&e&f&g&h&i&j&k&l&m&n&o&p&q&r&s&t&u&v&w&x&y&z \\
+\hline
+bold       & \bf A & \bf B & \bf C & \bf D & \bf E & \bf F & \bf G 
+           & \bf H & \bf I & \bf J & \bf K & \bf L & \bf M & \bf N 
+           & \bf O & \bf P & \bf Q & \bf R & \bf S & \bf T & \bf U 
+           & \bf V & \bf W & \bf X & \bf Y & \bf Z \\
+\verb|{\bf ...}| 
+           & \bf a & \bf b & \bf c & \bf d & \bf e & \bf f & \bf g 
+           & \bf h & \bf i & \bf j & \bf k & \bf l & \bf m & \bf n 
+           & \bf o & \bf p & \bf q & \bf r & \bf s & \bf t & \bf u 
+           & \bf v & \bf w & \bf x & \bf y & \bf z \\
+\hline
+italic     & \it A & \it B & \it C & \it D & \it E & \it F & \it G 
+           & \it H & \it I & \it J & \it K & \it L & \it M & \it N 
+           & \it O & \it P & \it Q & \it R & \it S & \it T & \it U 
+           & \it V & \it W & \it X & \it Y & \it Z \\
+\verb|{\it ...}| 
+           & \it a & \it b & \it c & \it d & \it e & \it f & \it g 
+           & \it h & \it i & \it j & \it k & \it l & \it m & \it n 
+           & \it o & \it p & \it q & \it r & \it s & \it t & \it u 
+           & \it v & \it w & \it x & \it y & \it z \\
+\hline
+slant      & \sl A & \sl B & \sl C & \sl D & \sl E & \sl F & \sl G 
+           & \sl H & \sl I & \sl J & \sl K & \sl L & \sl M & \sl N 
+           & \sl O & \sl P & \sl Q & \sl R & \sl S & \sl T & \sl U 
+           & \sl V & \sl W & \sl X & \sl Y & \sl Z \\
+\verb|{\sl ...}| 
+           & \sl a & \sl b & \sl c & \sl d & \sl e & \sl f & \sl g 
+           & \sl h & \sl i & \sl j & \sl k & \sl l & \sl m & \sl n 
+           & \sl o & \sl p & \sl q & \sl r & \sl s & \sl t & \sl u 
+           & \sl v & \sl w & \sl x & \sl y & \sl z \\
+\hline
+\hline
+\multicolumn{27}{l}{} \\
+\hline
+\hline
+typewriter & \tt A & \tt B & \tt C & \tt D & \tt E & \tt F & \tt G 
+           & \tt H & \tt I & \tt J & \tt K & \tt L & \tt M & \tt N 
+           & \tt O & \tt P & \tt Q & \tt R & \tt S & \tt T & \tt U 
+           & \tt V & \tt W & \tt X & \tt Y & \tt Z \\
+\verb|{\tt ...}| 
+           & \tt a & \tt b & \tt c & \tt d & \tt e & \tt f & \tt g 
+           & \tt h & \tt i & \tt j & \tt k & \tt l & \tt m & \tt n 
+           & \tt o & \tt p & \tt q & \tt r & \tt s & \tt t & \tt u 
+           & \tt v & \tt w & \tt x & \tt y & \tt z \\
+\hline
+sans serif & \sf A & \sf B & \sf C & \sf D & \sf E & \sf F & \sf G 
+           & \sf H & \sf I & \sf J & \sf K & \sf L & \sf M & \sf N 
+           & \sf O & \sf P & \sf Q & \sf R & \sf S & \sf T & \sf U 
+           & \sf V & \sf W & \sf X & \sf Y & \sf Z \\
+\verb|{\sf ...}| 
+           & \sf a & \sf b & \sf c & \sf d & \sf e & \sf f & \sf g 
+           & \sf h & \sf i & \sf j & \sf k & \sf l & \sf m & \sf n 
+           & \sf o & \sf p & \sf q & \sf r & \sf s & \sf t & \sf u 
+           & \sf v & \sf w & \sf x & \sf y & \sf z \\
+\hline
+small caps & \sc A & \sc B & \sc C & \sc D & \sc E & \sc F & \sc G 
+           & \sc H & \sc I & \sc J & \sc K & \sc L & \sc M & \sc N 
+           & \sc O & \sc P & \sc Q & \sc R & \sc S & \sc T & \sc U 
+           & \sc V & \sc W & \sc X & \sc Y & \sc Z \\
+\verb|{\sc ...}| 
+           & \sc a & \sc b & \sc c & \sc d & \sc e & \sc f & \sc g 
+           & \sc h & \sc i & \sc j & \sc k & \sc l & \sc m & \sc n 
+           & \sc o & \sc p & \sc q & \sc r & \sc s & \sc t & \sc u 
+           & \sc v & \sc w & \sc x & \sc y & \sc z \\
+\hline
+\hline
+\multicolumn{27}{l}{} \\
+\hline
+\hline
+math       & $A$&$B$&$C$&$D$&$E$&$F$&$G$&$H$&$I$&$J$&$K$&$L$&$M$&$N$
+            &$O$&$P$&$Q$&$R$&$S$&$T$&$U$&$V$&$W$&$X$&$Y$&$Z$ \\
+\verb|$...$| 
+           & $a$&$b$&$c$&$d$&$e$&$f$&$g$&$h$&$i$&$j$&$k$&$l$&$m$&$n$
+            &$o$&$p$&$q$&$r$&$s$&$t$&$u$&$v$&$w$&$x$&$y$&$z$ \\
+\hline
+fraktur    & $\mathfrak A$ & $\mathfrak B$ & $\mathfrak C$ & $\mathfrak D$ 
+           & $\mathfrak E$ & $\mathfrak F$ & $\mathfrak G$ & $\mathfrak H$ 
+           & $\mathfrak I$ & $\mathfrak J$ & $\mathfrak K$ & $\mathfrak L$ 
+           & $\mathfrak M$ & $\mathfrak N$ & $\mathfrak O$ & $\mathfrak P$ 
+           & $\mathfrak Q$ & $\mathfrak R$ & $\mathfrak S$ & $\mathfrak T$ 
+           & $\mathfrak U$ & $\mathfrak V$ & $\mathfrak W$ & $\mathfrak X$ 
+           & $\mathfrak Y$ & $\mathfrak Z$ \\
+\verb|$\mathfrak{...}$| 
+           & $\mathfrak a$ & $\mathfrak b$ & $\mathfrak c$ & $\mathfrak d$ 
+           & $\mathfrak e$ & $\mathfrak f$ & $\mathfrak g$ & $\mathfrak h$ 
+           & $\mathfrak i$ & $\mathfrak j$ & $\mathfrak k$ & $\mathfrak l$ 
+           & $\mathfrak m$ & $\mathfrak n$ & $\mathfrak o$ & $\mathfrak p$ 
+           & $\mathfrak q$ & $\mathfrak r$ & $\mathfrak s$ & $\mathfrak t$ 
+           & $\mathfrak u$ & $\mathfrak v$ & $\mathfrak w$ & $\mathfrak x$ 
+           & $\mathfrak y$ & $\mathfrak z$ \\
+\hline
+calligraphic  
+           & $\mathcal A$ & $\mathcal B$ & $\mathcal C$ & $\mathcal D$ 
+           & $\mathcal E$ & $\mathcal F$ & $\mathcal G$ & $\mathcal H$ 
+           & $\mathcal I$ & $\mathcal J$ & $\mathcal K$ & $\mathcal L$ 
+           & $\mathcal M$ & $\mathcal N$ & $\mathcal O$ & $\mathcal P$ 
+           & $\mathcal Q$ & $\mathcal R$ & $\mathcal S$ & $\mathcal T$ 
+           & $\mathcal U$ & $\mathcal V$ & $\mathcal W$ & $\mathcal X$ 
+           & $\mathcal Y$ & $\mathcal Z$ \\
+\verb|$\mathcal{...}$| 
+           & \multicolumn{26}{|l|}{\it (no lowercase calligraphic)} \\
+\hline
+blackboard bold
+           & $\mathbb A$ & $\mathbb B$ & $\mathbb C$ & $\mathbb D$ 
+           & $\mathbb E$ & $\mathbb F$ & $\mathbb G$ & $\mathbb H$ 
+           & $\mathbb I$ & $\mathbb J$ & $\mathbb K$ & $\mathbb L$ 
+           & $\mathbb M$ & $\mathbb N$ & $\mathbb O$ & $\mathbb P$ 
+           & $\mathbb Q$ & $\mathbb R$ & $\mathbb S$ & $\mathbb T$ 
+           & $\mathbb U$ & $\mathbb V$ & $\mathbb W$ & $\mathbb X$ 
+           & $\mathbb Y$ & $\mathbb Z$ \\
+\verb|$\mathbb{...}$| 
+           & \multicolumn{26}{|l|}{\it (no lowercase blackboard bold)} \\
+\hline
+\hline
+\multicolumn{27}{l}{} \\
+\hline
+\hline
+\verb|{\tiny ...}|  
+   & \multicolumn{26}{|l|}{\tiny Every good boy likes squid.} \\
+\hline
+\verb|{\small ...}| 
+   & \multicolumn{26}{|l|}{\small Every good boy likes squid.} \\
+\hline
+\verb|{\large ...}| 
+   & \multicolumn{26}{|l|}{\large Every good boy likes squid.} \\
+\hline
+\verb|{\Large ...}| 
+   & \multicolumn{26}{|l|}{\Large Every good boy likes squid.} \\
+\hline
+\verb|{\huge ...}|  
+   & \multicolumn{26}{|l|}{\huge Every good boy likes squid.} \\
+\hline
+\verb|{\Huge ...}|  
+   & \multicolumn{26}{|l|}{\Huge Every good boy likes squid.} \\
+\hline
+\hline
+\stoptable
+
+
+\section*{Remarks}
+
+\begin{itemize}
+
+\item Text fonts can also be called by \verb|\textbf{...}|, 
+\verb|\textit{...}| (which does automatic italic correction), 
+{\it et cetera}.  
+
+\item Fonts in the math environment can be called using
+\verb|\mathrm{...}|, \verb|\mathit{...}|, and so on.  
+
+\item Some simple style combinations are possible, but sometimes 
+the order matters, and some combinations may not work without 
+resorting to different font commands.  For example, 
+\verb|{\it \bf Squid}| produces only the bold {\it \bf Squid}, 
+\verb|{\bf \it Squid}| produces only the italic {\bf \it Squid},
+\verb|{\bf \itshape Squid}| produces the bold, italic {\bf \itshape Squid}.
+
+\end{itemize}
+
+
+\end{document}

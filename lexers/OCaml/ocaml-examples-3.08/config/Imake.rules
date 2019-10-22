@@ -1,0 +1,199 @@
+#ifndef TOPDIR
+#define TOPDIR .
+#endif
+
+#ifdef __STDC__
+#define concat(a,b) a##b
+#else
+#define concat(a,b) a/**/b
+#endif
+
+#define Prog(name,objs,others)                                             @@\
+name.OBJS=objs                                                             @@\
+name.FILES=$(name.OBJS:.cmo=.ml)                                           @@\
+                                                                           @@\
+all::name                                                                  @@\
+                                                                           @@\
+depend::                                                                   @@\
+	$(CAMLDEP) $(name.FILES) >> Makefile                               @@\
+                                                                           @@\
+clean::                                                                    @@\
+	$(RM) name                                                         @@\
+
+#define ProgOpt(name,objs,others)                                          @@\
+name.BINOBJS=objs                                                          @@\
+name.FILES=$(name.BINOBJS:.cmx=.ml)                                        @@\
+                                                                           @@\
+opt::name.opt                                                              @@\
+                                                                           @@\
+depend::                                                                   @@\
+	$(CAMLDEP) $(name.FILES) >> Makefile                               @@\
+                                                                           @@\
+clean::                                                                    @@\
+	$(RM) name name.opt                                                @@\
+
+
+#define CamlProg(name,objs,others)                                         @@\
+        Prog(name,objs,other)                                              @@\
+                                                                           @@\
+name: objs                                                                 @@\
+	$(CAMLC) $(LINKFLAGS) others objs -o name                          @@\
+
+
+#define CamlProgOpt(name,objs,others)                                      @@\
+        ProgOpt(name,objs,other)                                           @@\
+                                                                           @@\
+name.opt: objs                                                             @@\
+	$(CAMLCOPT) $(LINKFLAGSOPT) others objs -o name.opt                @@\
+	$(CP) name.opt name                                                @@\
+
+#define CamlProgP4(name,objs,others)                                       @@\
+COMPFLAGS=-g -pp camlp4o                                                   @@\
+                                                                           @@\
+        Prog(name,objs,other)                                              @@\
+                                                                           @@\
+name: objs                                                                 @@\
+	$(CAMLC) -pp camlp4o $(LINKFLAGS) others objs -o name              @@\
+
+#define CamlProgP4Opt(name,objs,others)                                    @@\
+COMPFLAGSOPT=-pp camlp4o                                                   @@\
+                                                                           @@\
+        ProgOpt(name,objs,other)                                           @@\
+                                                                           @@\
+name.opt: objs                                                             @@\
+	$(CAMLCOPT) -pp camlp4o $(LINKFLAGSOPT) others objs -o name.opt    @@\
+	$(CP) name.opt name                                                @@\
+
+#define CamlCustomProg(name,objs,others)                                   @@\
+        Prog(name,objs,other)                                              @@\
+                                                                           @@\
+name: objs                                                                 @@\
+	$(CAMLC) $(LINKFLAGS) -custom others objs -o name                  @@\
+
+#define CamlCustomProgOpt(name,objs,others)                                @@\
+        CamlProgOpt(name,objs,others)                                      @@\
+
+#define CamlCustomProgP4(name,objs,others)                                 @@\
+COMPFLAGS=-g -pp camlp4o                                                   @@\
+                                                                           @@\
+        Prog(name,objs,other)                                              @@\
+                                                                           @@\
+name: objs                                                                 @@\
+	$(CAMLC) -pp camlp4o $(LINKFLAGS) -custom others objs -o name      @@\
+
+#define CamlCustomProgP4Opt(name,objs,others)                              @@\
+        CamlProgP4Opt(name,objs,others)
+
+#define CamlGraphProg(name,objs,others)                                    @@\
+  CamlCustomProg(name,objs,unix.cma graphics.cma others)                   @@\
+
+#define CamlGraphProgOpt(name,objs,others)                                 @@\
+  CamlCustomProgOpt(name,objs,unix.cmxa graphics.cmxa others)              @@\
+
+#define CamlGraphProgP4(name,objs,others)                                  @@\
+  CamlCustomProgP4(name,objs,unix.cma graphics.cma others)                 @@\
+
+#define CamlGraphProgP4Opt(name,objs,others)                               @@\
+  CamlCustomProgP4Opt(name,objs,unix.cmxa graphics.cmxa others)            @@\
+
+#define CamlTkProg(name,objs,others)                                       @@\
+COMPFLAGS=-I +labltk                                                       @@\
+LINKFLAGS=$(COMPFLAGS)                                                     @@\
+  CamlCustomProg(name,objs,labltk.cma others)
+
+#define CamlTkProgOpt(name,objs,others)                                    @@\
+COMPFLAGSOPT=-I +labltk                                                    @@\
+LINKFLAGSOPT=$(COMPFLAGSOPT)                                               @@\
+  CamlCustomProgOpt(name,objs,labltk.cmxa others)
+
+#define CamlLibrary(name,ojs,others)                                      @@\
+all::name                                                                  @@\
+                                                                           @@\
+name: objs                                                                 @@\
+	$(CAMLLIBR) others objs -o name                                    @@\
+                                                                           @@\
+clean::                                                                    @@\
+	$(RM) name                                                         @@\
+                                                                           @@\
+
+#define CamlYaccFile(basename)                                             @@\
+basename.ml basename.mli: basename.mly                                     @@\
+	@$(RM) basename.ml basename.mli                                    @@\
+	$(CAMLYACC) basename.mly                                           @@\
+	@chmod a-w basename.ml basename.mli                                @@\
+                                                                           @@\
+clean::                                                                    @@\
+	$(RM) basename.ml basename.mli                                     @@\
+                                                                           @@\
+beforedepend:: basename.ml basename.mli                                    @@\
+                                                                           @@\
+
+#define CamlLexFile(basename)                                              @@\
+basename.ml: basename.mll                                                  @@\
+	@$(RM) basename.ml                                                 @@\
+	$(CAMLLEX) basename.mll                                            @@\
+	@chmod a-w basename.ml                                             @@\
+                                                                           @@\
+clean::                                                                    @@\
+	$(RM) basename.ml                                                  @@\
+                                                                           @@\
+beforedepend:: basename.ml                                                 @@\
+                                                                           @@\
+
+#define CamlPreproFile(target)                                             @@\
+target: concat(target,p)                                                   @@\
+	@$(RM) target                                                      @@\
+	@echo '(* GENERATED FILE --- DO NOT EDIT. *)' > target             @@\
+	$(CPP) < concat(target,p) >> target                                @@\
+	@chmod a-w target                                                  @@\
+                                                                           @@\
+clean::                                                                    @@\
+	$(RM) target                                                       @@\
+                                                                           @@\
+beforedepend:: target                                                      @@\
+                                                                           @@\
+
+#define SubDir(dir)                                                        @@\
+all::                                                                      @@\
+	@-echo "-- Making all in" dir; cd dir; make all                    @@\
+                                                                           @@\
+allopt : opt                                                               @@\
+                                                                           @@\
+opt::                                                                      @@\
+	@-echo "-- Making opt in" dir; cd dir; make opt                    @@\
+                                                                           @@\
+clean::                                                                    @@\
+	@-echo "-- Making clean in" dir; cd dir; make clean                @@\
+                                                                           @@\
+makefiles::                                                                @@\
+	@-echo "-- Making makefiles in" dir; cd dir; make TOP=../$(TOP) makefiles @@\
+                                                                           @@\
+
+#define SubGraphDir(dir)                                                   @@\
+all::                                                                      @@\
+	@-echo "-- Making all in" dir; echo "(This program requires the libgraph library;"; echo " if you haven't installed it, compilation will fail.)"; cd dir; make all                    @@\
+                                                                           @@\
+opt::                                                                      @@\
+	@-echo "-- Making opt in" dir; echo "(This program requires the libgraph library compiled to the native code;"; echo " if you haven't installed it, compilation will fail.)"; cd dir; make opt                    @@\
+                                                                           @@\
+clean::                                                                    @@\
+	@-echo "-- Making clean in" dir; cd dir; make clean                @@\
+                                                                           @@\
+makefiles::                                                                @@\
+	@-echo "-- Making makefiles in" dir; cd dir; make TOP=../$(TOP) makefiles @@\
+                                                                           @@\
+
+#define SubTkDir(dir)                                                      @@\
+all::                                                                      @@\
+	@-echo "-- Making all in" dir; echo "(This program requires the CamlTk library;"; echo " if you haven't installed it, compilation will fail.)"; cd dir; make all                    @@\
+                                                                           @@\
+opt::                                                                      @@\
+	@-echo "-- Making opt in" dir; echo "(This program requires the CamlTk library compiled to native code;"; echo " if you haven't installed it, compilation will fail.)"; cd dir; make opt                    @@\
+                                                                           @@\
+clean::                                                                    @@\
+	@-echo "-- Making clean in" dir; cd dir; make clean                @@\
+                                                                           @@\
+makefiles::                                                                @@\
+	@-echo "-- Making makefiles in" dir; cd dir; make TOP=../$(TOP) makefiles @@\
+                                                                           @@\
+

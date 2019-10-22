@@ -1,0 +1,31 @@
+
+declare @error_status int
+ @id int
+ select @id =3
+ begin tran
+ update table A
+ set title ='Doctor'
+ where id = @id
+ if (@error_status <>0) -- if error exists
+ begin
+ rollback tran
+ insert into tbl_check (id,status,date)
+ values (@id,'process #1,Not complete',getdate())
+ return
+ end
+ else
+ begin
+ commit tran
+ insert into tbl_check (id,status,date)
+
+begin catch
+end catch
+
+begin try
+end try
+
+case AA
+end
+
+@@ERROR
+@@CONNECTIONS()

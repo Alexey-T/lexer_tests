@@ -1,0 +1,6 @@
+def main(args: Array<string>) {
+	for (e in args) {
+		System.puts(e);
+		System.puts("\n");
+	}
+}

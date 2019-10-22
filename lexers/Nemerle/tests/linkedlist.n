@@ -1,0 +1,285 @@
+
+using Nemerle.Collections;
+using Nemerle.IO;
+
+#if NUNIT
+using NUnit.Framework;
+
+[TestFixture]
+public class LinkedList_UnitTest : Assertion {
+
+  [Test]
+  public Empty () : void
+  {
+    Assert (LinkedList ().IsEmpty);
+    Assert (!LinkedList ([1]).IsEmpty);
+  }
+
+  [Test]
+  public Create () : void
+  {
+    def l = array [1, 2, 3];
+    def m = LinkedList ([1, 2, 3]);
+    mutable i = 0;
+    foreach (item in m) {
+      AssertEquals (item, l[i]);
+      ++ i;
+    }
+  }
+
+  [Test]
+  public String () : void
+  {
+    AssertEquals (LinkedList ().ToString (), "[]");
+    AssertEquals (LinkedList ([1, 2, 3]).ToString (), "[1, 2, 3]");
+  }
+
+  [Test]
+  public Count () : void
+  {
+    AssertEquals (LinkedList ().Count, 0);
+    AssertEquals (LinkedList ([1, 2, 3]).Count, 3);
+  }
+
+  [Test]
+  public Append () : void
+  {
+    def l = LinkedList ([0]);
+    l.Append (1);
+    AssertEquals (l, LinkedList ([0, 1]));
+  }
+
+  [Test]
+  public AppendList () : void
+  {
+    def l = LinkedList ([1]);
+    l.Append (LinkedList ([2, 3]));
+    AssertEquals (l, LinkedList ([1, 2, 3]));
+  }
+
+  [Test]
+  public AppendToNull () : void
+  {
+    def l = LinkedList ();
+    l.Append (0);
+    AssertEquals (l, LinkedList ([0]));
+  }
+
+  [Test]
+  public AppendListToNull () : void
+  {
+    def l = LinkedList () : LinkedList [int];
+    l.Append (LinkedList ([2, 3]));
+    AssertEquals (l, LinkedList ([2, 3]));
+  }
+
+  [Test]
+  public Prepend () : void
+  {
+    def l = LinkedList ([1]);
+    l.Prepend (0);
+    AssertEquals (l, LinkedList ([0, 1]));
+  }
+
+  [Test]
+  public PrependList () : void
+  {
+    def l = LinkedList ([1]);
+    l.Prepend (LinkedList ([-1, 0]));
+    AssertEquals (l, LinkedList ([-1, 0, 1]));
+  }
+
+  [Test]
+  public PrependToNull () : void
+  {
+    def l = LinkedList ();
+    l.Prepend (0);
+    AssertEquals (l, LinkedList ([0]));
+  }
+
+  [Test]
+  public PrependListToNull () : void
+  {
+    def l = LinkedList () : LinkedList [int];
+    l.Prepend (LinkedList ([1, 2, 3]));
+    AssertEquals (l, LinkedList ([1, 2, 3]));
+  }
+
+  [Test]
+  public Remove () : void
+  {
+    def l = LinkedList ([1, 2]);
+    _ = l.RemoveFirst ();
+    AssertEquals (l.Last.Value, 2);
+    AssertEquals (l, LinkedList ([2]));
+  }
+
+  [Test]
+  public RemoveValue () : void
+  {
+    def l = LinkedList ([1, 2, 3]);
+    l.Remove (2);
+    AssertEquals (l, LinkedList ([1, 3]));
+  }
+
+  [Test]
+  public RemoveManyValues () : void
+  {
+    def l = LinkedList ([1, 2, 3, 1, 2, 3, 3, 4, 5, 3, 6]);
+    l.Remove (3);
+    AssertEquals (l, LinkedList ([1, 2, 1, 2, 4, 5, 6]));
+  }
+
+  [Test]
+  public RemoveAbsent () : void
+  {
+    def l = LinkedList ([1, 2, 3, 4, 5, 6]);
+    def r = l.Clone ();
+    l.Remove (10);
+    AssertEquals (l, r);
+  }
+
+  [Test]
+  public RemoveValueFromEmpty () : void
+  {
+    def l = LinkedList ();
+    l.Remove (4);
+    Assert (l.IsEmpty);
+  }
+
+  [Test]
+  public Clone () : void
+  {
+    def l = LinkedList ([1, 2, -1]);
+    def r = l.Clone ();
+    Assert (! System.Object.ReferenceEquals (l, r));
+    AssertEquals (l, r);
+  }
+
+  [Test]
+  public Reverse () : void
+  {
+    def l = LinkedList ([1, 2, 10]);
+    def r = l.Clone () :> LinkedList [int];
+    r.Reverse ();
+    AssertEquals (r, LinkedList ([10, 2, 1]));
+    r.Reverse ();
+    AssertEquals (l, r);
+  }
+
+  [Test]
+  public Fold () : void
+  {
+    def l = LinkedList ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    def sum = l.Fold (fun (a : int, b) { a + b; } , 0);
+    def prod = l.Fold (fun (a : int, b) { a * b; }, 1);
+    AssertEquals (sum, 55);
+    AssertEquals (prod, 3628800);
+  }
+
+  [Test]
+  public Map () : void
+  {
+    def l = LinkedList ([1, 2, 3]).Map (fun (a : int) { a * 10; });
+    AssertEquals (l.GetType (), typeof (LinkedList [int]));
+    AssertEquals (l, LinkedList ([10, 20, 30]));
+  }
+
+  [Test]
+  public Iter () : void
+  {
+    mutable l = [];
+    mutable m = LinkedList ([1, 2, 3, 4]);
+    m.Iter (fun (a : int) { l = a :: l; });
+    AssertEquals (l, [4, 3, 2, 1]);
+  }
+  
+  [Test]
+  public ForAll () : void
+  {
+    def l = LinkedList ([2, 4, 6, 8]);
+    Assert (l.ForAll (fun (a : int) { a % 2 == 0; }));
+    Assert (!l.ForAll (fun (a : int) { a < 8; }));
+  }
+
+  [Test]
+  public Exists () : void
+  {
+    Assert (LinkedList ([1, 2, 3]).Exists (fun (a : int) { a %2 == 0; }));
+    Assert (!LinkedList ([1, 2, 3]).Exists (fun (a : int) { a > 10; }));
+  }
+
+  [Test]
+  public Filter () : void
+  {
+    def l = LinkedList ([1, 2, 3, 4, 5, 6, 7, 8]);
+    l.Filter (fun (a : int) { a % 2 == 0; });
+    AssertEquals (l, LinkedList ([2, 4, 6, 8]));
+  }
+  
+  [Test]
+  public Partition () : void
+  {
+    def l = LinkedList ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    def (even, odd) = l.Partition (fun (a : int) { a % 2 == 0; });
+    AssertEquals (even, LinkedList ([2, 4, 6, 8, 10]));
+    AssertEquals (odd, LinkedList ([1, 3, 5, 7, 9]));
+  }
+}
+#endif
+
+module M {
+  public static Main () : void 
+  {
+    def l = LinkedList ([1, 2, 3, 4]);
+    def r = LinkedList ([5, 6, 7, 8]);
+
+    if (LinkedList ().IsEmpty)
+      printf ("[empty]\n")
+    else
+      printf ("[not empty]\n");
+
+    printf ("%s\n", l.ToString ());
+    printf ("%s\n", r.ToString ());
+    printf ("%s\n", r.Clone ().ToString ());
+    r.Reverse ();
+    printf ("%s\n", r.ToString ());
+
+    l.Prepend (r.Clone () :> LinkedList [int]);
+    l.Append (r.Clone () :> LinkedList [int]);
+    printf ("%s\n", l.ToString ());
+
+    if (l.Equals (r))
+      printf ("l == r\n")
+    else
+      printf ("l != r\n");
+
+    if (l.Equals (LinkedList ([8, 7, 6, 5, 1, 2, 3, 4, 8, 7, 6, 5])))
+      printf ("[equal]\n");
+    else
+      printf ("[not equal]\n");
+
+    def e = r.GetEnumerator ();
+    _ = e.MoveNext ();
+    _ = e.MoveNext ();
+    _ = e.MoveNext ();
+
+    printf ("Sum of r: %d\n", r.Fold (fun (a : int, b) { a + b; }, 0));
+    printf ("Squares of r: %s\n", r.Map (fun (a : int) { a*a; }).ToString ());
+  }
+}
+
+/*
+BEGIN-OUTPUT
+[empty]
+[1, 2, 3, 4]
+[5, 6, 7, 8]
+[5, 6, 7, 8]
+[8, 7, 6, 5]
+[8, 7, 6, 5, 1, 2, 3, 4, 8, 7, 6, 5]
+l != r
+[equal]
+Sum of r: 26
+Squares of r: [64, 49, 36, 25]
+END-OUTPUT
+*/

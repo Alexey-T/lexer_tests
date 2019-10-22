@@ -1,0 +1,91 @@
+{
+    "patterns": [
+        {
+            "comment": "Function names case insensitive", 
+            "captures": {
+                "1": {
+                    "name": "support.class.functions.sharcasm"
+                }
+            }, 
+            "name": "support.class.functions.sharcasm", 
+            "match": "\\b(?i:jump|call|modify|bit (set|tgl|tst|clr|xor)|bitrev|push|pop|nop|idle|cjump|rframe|[dp]m|if|else|do|until|EQ|NE|GT|LT|GE|LE|(NOT )?A[CV]|(NOT )?M[VS]|(NOT )?S[VZ]|(NOT )?TF|(NOT )?FLAG[0-3]_IN|(NOT )?BM|(NOT )?LCE|FOREVER|TRUE|compu?|abs|pass|fix|logb|mant|rnd|scalb|float|by|trunc|recips|rsqrts|copysign|min|max|clip|and|or|xor|lshift|ashift|rot|bclr|bset|btgl|btst|fdep|fext|exp|left[zo]|fpack|funpack|rt[si]|offsetof|sizeof)\\b"
+        }, 
+        {
+            "name": "comment.assembly.sharcasm", 
+            "match": "//.*$"
+        }, 
+        {
+            "captures": {
+                "0": {
+                    "name": "comment.assembly.sharcasm"
+                }
+            }, 
+            "begin": "/\\*", 
+            "end": "\\*/", 
+            "name": "comment.assembly.sharcasm"
+        }, 
+        {
+            "name": "keyword.operator.sharcasm",
+            "match": "(=|\\||/|\\+|-|\\*|&|~|%|<<|>>|^|@)|\\b(?i:(ADDRESS|HI|LO|LENGTH|SRU))\\b"
+        },
+        {
+            "comment": "For int constants",
+            "name": "constant.numeric.sharcasm", 
+            "match": "\\b-?[0-9]+\\b"
+        }, 
+        {
+            "comment": "For hex constants",
+            "name": "constant.numeric.hex.sharcasm", 
+            "match": "\\b(0x)(?i)[A-F0-9]+\\b"
+        }, 
+        {
+            "comment": "For binary constants",
+            "name": "constant.numeric.bin.sharcasm", 
+            "match": "\\b[bB]#[01]+\\b"
+        }, 
+        {
+            "comment": "For floating point constants",
+            "name": "constant.numeric.float.sharcasm", 
+            "match": "\\b-?[0-9]*(\\.[0-9]*)?e[-+]?[0-9]+r?\\b"
+        }, 
+        {
+            "comment": "For fractional constants",
+            "name": "constant.numeric.fractional.sharcasm",
+            "match": "\\b-?[0-9]*(\\.[0-9]*)?r?\\b"
+        },
+        {
+            "comment": "Bit fields and values. (Most likely to have some errors. Please report.)",
+            "name": "constant.language.sharcasm",
+            "match": "\\b(?i:PWM[0-3]EN|FLG[0-3]EN|IRQ[0-2]EN|TMREXPEN|[PS]PFLGS|IMDW[0-3]|SRST|IIVT|DCPR|MTMDMA[01]ACT|MTMFLUSH|MTMDENX|PPODIS|PPCHEN|PP[DB]S|PPCHS|PPFLMD|PPALEPL|PPBHD|PPS|PPTRAN|PPDEN|PPEN|PPDUR|PPBHC|PP16|DXS_[AB]|DERR_[AB]|SPTRAN|BHD|LA?FS|S[DP]EN_[AB]|SCHEN_[AB]|FS_BOTH|D?IFS|FSR|CKRE|OPMODE|SPEN_[AB]|DTYPE|LSBF|SLEN([04-9]|[12][0-9]?|3[0-2])|PACK|ICLK|DXS_[AB]|DERR_[AB]|FRFS|LAFS|SDEN_[AB]|MSTR|[RT]XS(_[AB])?|ROVF(_[AB])?|LMFS|IMFS|TUVF_[AB]|LTDV|MCE[AB]|MFD([02-9]|1[0-5]?)|NCH|SPL|CHNL|DMAS[0-5][AB]|DMACH[0-5][AB]|SPIFE|TXCOL|SPIF|MME|TUNF|DS[0-3]EN|ISSS|SPIFLG[0-3]|TIMOD[12]?|SENDZ|GM|ISSEN|DMISO|WL|MSBF|CPHASE|CLKPL|SPIMS|OPD|SPIEN|PACKEN|SGN|SMLS|TXFLSH|RXFLSH|ILPBK|BAUDR|SPIDEN|SPIRCV|INTEN|SPICHEN|FIFOFLSH|INTERR|SPIOVF|SPIUNF|SPIMME|SPIS[01]|SPIERRS|SPIDMAS|SPICHS|IDP_NSET|IDP_BHD|IDP_CLROVR|IDP_ENABLE|IDP_SMODE[0-7]|IDP_(DMA_)?EN[0-7]?|IDP_PING[0-7]|IDP_FFCLR|LR_STAT|IDP_P(0[1-9]|1[0-9]|20)_PDAPMASK|IDP_PDAP_(EN|RESET|CLKEDGE|PACKINGX|SELECT)|SRC[0-3]_(((HARD|AUTO)_MUTE)|SMODE(IN|OUT)|BYPASS|DEEMPHASIS|SOFTMUTE|DITHER|LENOUT|MPHASE|ENABLE|MUTEOUT|RATIO([02-9]|1[0-5]?))|SPORT[0-5]_CLK_([IO]P_)?[IO]|IDP[0-7]_CLK_I|DIT_(HF)?CLK_I|PCG_SYNC_CLK[AB]_I|SPIB_CLK_I|SPDIF_EXTPLLCLK_I|PCG_EXT[AB]_I|DAI_PB(0[1-9]|1[0-9]|20)_([IO]|PULLUP)|DIR_(TDM)?CLK_O|PCG_CLK[AB]_O|(LOGIC_LEVEL_)?(LOW|HIGH)|SPORT[0-5]_D[AB]_[IO]|SRC[0-3]_DAT_[IO]P_[IO]|DIR_DAT_O|SPORT[0-5]_FS_[IO]|SRC[0-3]_FS_[IO]P_I|PCG_FS[AB]_O|SPDIF_[RT]X_FS_I|IDP[0-7]_FS_I|TIMER[0-2]_O|FLAG1[0-5]_O|PDAP_STRB_O|SPIB_(MISO|MOSI|CLK|FLG[0-3])_O|DIR_LRCLK_(FB|REF)|MISC[AB][0-5]_I(NVERT)?|SPIB_DS_I|DAI_INT_(3[01]|2[2-9])|PBEN(0[1-9]|1[0-9]|20)_I|IDP_FIFOSZ|IDP_DMA[0-7]_(STAT|INT)|IDP_(OVF|PING)[0-7]_STAT|SRU_EXTMISC(A[0-3]|B[0-5])|SRC[0-3]_MUTE_INT|IDP_FIFO_(OVR|GTN)_INT|SPDIF_RX_(VALID|LOCK|START|NO_STREAM|CRC_ERROR|NON_AUDIO|EMPHASIS|PARITY_ERROR|CH_STAT_CHNG)|EN(CLK|FS)[AB]|FS[AB]DIV|FS[AB]PHASE_(HI|LO)|CLKSOURCE|STROBE[AB]|INVFS[AB]|PWFS[AB]|PWM_(SYNC)?(EN|DIS)[0-3]|PWM_STAT[0-3]|PWM_(ALIGN|PAIR|UPDATE|IRQEN|PHASE|PAIRSTAT|(STAT|POL[01])?[AB][HL])|DIT(CTL|CHANL|CHANR)|DIR(CTL|STAT|CHANL|CHANR)|DIT_(AUTO|B[0-4]CHAN[LR][0-7]|EN|FREQ[01]|FREQ(256|512|384|768)|IN_(I2S|LJ|RJ16|RJ18|RJ20|RJ24|TDM)|MUTE|SCDF(_LR)?|SMODEIN[012]|VALID[LR]|BLKSTS)|DIR_(B[0-4]CHAN[LR][0-7]|BIPHASE[01]|BIPHASEERROR|CRCERROR_INT|EMPHASIS_INT|ERROR_INT|LOCK[01]|LOCK_INT|MUTE|NOAUDIO_INT|NOAUDIO(LR?|R)|NOSTREAM(_INT)?|PARITYERROR|PLLDIS|RESET|SCDF(_LR)?|STATCNG_INT|VALID(_INT)?)|TMRPDN|SP[I0-3]PDN|CRAT|SRCPDN|PPPDN|PLLBP|CLKOUTEN|PLLM([07-9]|[1-5][0-9]?|6[0-4])|PLLD[1248]|INDIV|DIVEN|ENBIO[XY]|UMODE|ANDBKP|ENBEP|ENB[IDP]A|NEGIA[1-4]|NEGIO1|NEGEP1|PA1MODE|DA[12]MODE|IO1MODE|EP1MODE|STATPA|STATDA[01]|STATIA[0-3]|STATIO0|STATEP|EEMUOUT(IRQEN|RDY|FULL)|EEMUINFULL|EEMUENS|OSPIDENS|EEMUINENS|STATIO1|P[0-5]I[0-4]?|P1[023578]I([0-4]|MSK?)?|P[6-9]I([0-4]|MSK?)?|PIB?|WL(8|16|32)|BR[08]|SRCU|SRD[12][HL]|SRRF[HL]|NESTM|IRPTEN|ALUSAT|SSE|TRUNCATE|RND32|CSEL|PEYEN|SIMD|BDCST[91]|CBUFEN|IRQ[0-2]E|CADIS|TIMEN|BUSLK|CAFRZ|IIRAE|U64MAE|SP[024]I(MSKP?)?|PPI(MSKP?)?|GPTMR1I(MSKP?)?|DAILI(MSKP?)?|GPTMR2I(MSKP?)?|SPILI(MSKP?)?|L_FIRST|DIR_FS_O|DIR_I)\\b"
+        },
+        {
+            "name": "string.quoted.sharcasm",
+            "match": "([\"].*[\"])|(?<=include )<.*>"
+        },
+        {
+            "comment": "Names registers case insensitive",
+            "name": "entity.name.function.reg", 
+            "match": "\\b(?i:(I|M|L|B|R|F|SF?)([0-9]\\b|1[0-5])|PC(STKP?)?|[FDL]ADDR|(CUR)?LCNTR|PX(1|2)?|TPERIOD|TCOUNT|MODE[12]|IRPTL|IMASK(P)?|MMASK|FLAGS|LIRPTL|ASTAT[xy]|STK[xy]|USTAT[1-4]|SYSCON|SYSTAT|WAIT|VIRPT|MR([0-2])?(F|B)?|SYSCTL|REVPID|EEMU(IN|STAT|OUT)|OSPID|BRKCTL|(PS|DM)A[1-4][ES]|PMDA[SE]|EMUN|IOA[SE]|PPCTL|[RT]XPP|[EI][IMC]PP|[RT]XSPIB?|SPIFLG|SPI(CTLB?|STAT|BAUDB?|MACB?)|I[IM]SPIB?|RXSPIB?_SHADOW|CP?SPIB?|TM[0-2](STAT|CTL|CNT|PRD|W)|PMCTL|I[IM]SP[0-5][AB]|C(P)?SP[0-5][AB]|[RT]XSP[0-5][AB]|SPCTL[0-5]|DIV[0-5]|SPCNT[0-5]|MT[024]CC?S[0-3]|MR[135]CC?S[0-3]|SPMCTL(01|23|45)|SRU_(CLK|PIN(EN)?)[0-3]|SRU_DAT[0-4]|SRU_FS[0-2]|SRU(_EXT)?_MISC[AB]|SRU_PBEN[0-3]|PCG_CTL[AB][01]|PCG_PW|PCG_SYNC|PWMG(CTL|STAT)[0-3]?|PWMPERIOD[0-3]|PWMSEG[0-3]|PWMPOL[0-3]|PWM[AB]L?[0-3]|PWMDT[0-3]||IDP_CTL[01]|DAI_STAT|IDP_FIFO|IDP_DMA_[IMC][0-7]|IDP_DMA_PC[0-7]|IDP_PDAP_CTL|IDP_PP_CTL|DAI_PIN_PULLUP|DAI_PBIN_STAT|DAI_IRPTL_(H|L|PRI|[RF]E)|SRCCTL[01]|SRCMUTE|SRCRAT[01]|DIRCTL|DI[RT]CHAN[LR]|DIRCTL|DIRSTAT|PICR[0-3]|MTMCTL)\\b"
+        },
+        { "name": "keyword.label.sharcasm",
+          "match": "(^(\\s|\\w)*(\\w|\\.|\\$){1}\\w+[:])",
+          "captures": {
+              "0": { "name": "keyword.label.sharcasm" }
+          },
+          "comment": "Assembly label"
+        },
+        { "name": "keyword.preprocessor.sharcasm",
+          "match": "^\\s*(?i:__(ADI|DATE|FILE|LastSuffix|LINE|TIME)__|\\.(ALIGN|ELIF|ELSE|ENDIF|EXTERN|FILE|FILE_ATTR|GLOBAL|IF|IMPORT|LEFTMARGIN|LIST|LIST_DATA|LIST_DATFILE|LIST_DEFTAB|LIST_LOCTAB|LIST_WRAPDATA|NEWPAGE|NOLIST_DATA|NOLIST_DATFILE|NOLIST_WRAPDATA|PAGELENGTH|PAGEWIDTH|PRECISION|ROUND_MINUS|ROUND_NEAREST|ROUND_PLUS|ROUND_ZERO|PREVIOUS|SECTION|STRUCT|VAR|WEAK)|#(include|define|elif|else|endif|error|if(n?def)?|line|pragma|undef|warning|#))",
+          "captures": {
+            "1": { "name": "keyword.preprocessor.sharcasm" }
+          },
+          "comment": "Macros and such"
+        }
+    ], 
+    "uuid": "11ba1c1f-e1d7-47ba-9f65-2dd238b046bc", 
+    "fileTypes": [
+        "asm"
+    ], 
+    "name": "SHARC asm", 
+    "scopeName": "source.asm"
+}

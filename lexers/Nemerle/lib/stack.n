@@ -1,0 +1,238 @@
+/*
+ * Copyright (c) 2003-2008 The University of Wroclaw.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. The name of the University may not be used to endorse or promote
+ *       products derived from this software without specific prior
+ *       written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+ * NO EVENT SHALL THE UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+namespace Nemerle.Collections
+{
+  /**
+   * A stack
+   */
+  public class Stack ['a] : System.Collections.Generic.Stack ['a]
+  {
+    public RemoveLast () : void {
+      _ = Pop ()
+    }
+
+    public Add (x : 'a) : void {
+      Push (x)
+    }
+
+    /* -- PUBLIC CONSTRUCTORS ----------------------------------------------- */
+    
+    public this () {  base ()  }
+
+    public this (capacity : int) { base (capacity) }
+
+    public this (enu : System.Collections.Generic.IEnumerable ['a]) { base (enu) }
+    
+
+    /* -- PUBLIC PROPERTIES ------------------------------------------------- */
+
+    /**
+     * Returns `true' iff the stack is empty.
+     */
+    public IsEmpty : bool
+    {
+      get { Count == 0 }
+    }
+
+    /**
+     * An alias for `Count'.
+     */
+    public Length : int
+    {
+      get { Count }
+    }
+    
+    /**
+     * An alias for `Count'.
+     */
+    public Height : int
+    {
+      get { Count }
+    }
+
+
+    /* -- PUBLIC METHODS ---------------------------------------------------- */
+
+    /**
+     * When read -- peeks at the object on the top of the stack. When
+     * written -- replaces the topmost element with specified value (there
+     * has to be one).
+     */
+    public Top : 'a
+    {
+      get {
+        Peek ()
+      }
+      set {
+        _ = Pop ();
+        Push (value)
+      }
+    }
+
+    
+    /**
+     * Same as Peek, but does not throw an exception
+     * -- instead it returns an optional result.
+     */
+    public First () : option ['a] 
+    { 
+      if (Count > 0)
+        Some (Peek ())
+      else
+        None ()
+    }
+
+    
+    /**
+     * Creates a shallow copy of this stack
+     */
+    public Clone () : Stack ['a]
+    {
+      Stack (this)
+    }
+
+    /// See NList.Iter.
+    public Iter (f : ('a -> void)) : void
+    {
+      foreach (x in this)
+        f (x)
+    }
+
+    
+    /// See NList.Map.
+    public Map ['b] (f : 'a -> 'b) : Stack ['b]
+    {
+      def mapped = array (Count);
+      mutable i = 0;
+      foreach (x in this)
+      {
+        mapped [i] = f (x);
+        i++;
+      }
+      def result = Stack (mapped.Length);
+      for (i = mapped.Length - 1; i >= 0; i--)
+        result.Push (mapped [i]);
+      result
+    }
+
+
+    /// See NList.Filter.
+    public Filter (f : 'a -> bool) : void
+    {
+      def temp = ToArray ();
+      Clear ();
+      for (mutable i = temp.Length - 1; i >= 0; i--)
+        when (f (temp [i]))
+          Push (temp [i]);
+    }
+
+
+    /// See NList.ForAll.
+    public ForAll (f : 'a -> bool) : bool
+    {
+      ret: {
+        foreach (x in this)
+          unless (f (x))
+            ret (false);
+        true
+      }
+    }
+
+
+    /// See NList.Exists.
+    public Exists (f : 'a -> bool) : bool
+    {
+      ret: {
+        foreach (x in this)
+          when (f (x))
+            ret (true);
+        false
+      }
+    }
+
+
+    /// See NList.FoldLeft.
+    public Fold ['b] (f : 'a * 'b -> 'b, mutable x : 'b) : 'b
+    {
+      foreach (el in this)
+        x = f (el, x);
+      x
+    }
+
+
+    /// See NList.Partition.
+    public Partition (f : 'a -> bool) : (Stack ['a] * Stack ['a])
+    {
+      def temp = ToArray ();
+      def sat = Stack ();
+      def nonsat = Stack ();
+      for (mutable i = temp.Length - 1; i >= 0; i--) {
+        def x = temp [i];
+        if (f (x))
+          sat.Push (x)
+        else
+          nonsat.Push (x);
+      }
+      
+      (sat, nonsat)
+    }
+
+    concat_helper (separator : string, sb : System.Text.StringBuilder) : void
+    {
+      unless (IsEmpty) {
+        def e = GetEnumerator ();
+        _ = e.MoveNext ();
+        _ = sb.Append (e.Current);
+        while (e.MoveNext ()) {
+          _ = sb.Append (separator);
+          _ = sb.Append (e.Current);
+        }
+      }
+    }
+
+    /** Returns string representing contents of the queue. */
+    public override ToString () : string
+    {
+      def sb = System.Text.StringBuilder ("[");
+      concat_helper (", ", sb);
+      sb.Append ("]").ToString ();
+    }
+
+    /** Constructs string out of queue contents using given argument as a separator.
+      * <param name="separator">String to use a separator - it will be put between each
+      *  two items of the list.</param>
+      */
+    public ToString (separator : string) : string
+    {
+      def sb = System.Text.StringBuilder ();
+      concat_helper (separator, sb);
+      sb.ToString ();
+    }        
+  }
+}

@@ -1,0 +1,22 @@
+This is a simple desk calculator, that illustrates the use of camllex 
+and camlyacc. It handles integer arithmetics (+, - (unary and binary), *, /).
+
+To compile: either type "make", "make opt" (native code version), or by hand:
+
+        ocamlyacc parser.mly
+        ocamlc -g -c parser.mli
+        ocamllex lexer.mll
+        ocamlc -g -c lexer.ml
+        ocamlc -g -c parser.ml
+        ocamlc -g -c calc.ml
+        ocamlc lexer.cmo parser.cmo calc.cmo -o calc
+
+To run:
+
+        ./calc
+
+To try interactively:
+
+        ocaml               # or ledit ocaml if ledit is installed.
+        #use "loadall.ml";;
+

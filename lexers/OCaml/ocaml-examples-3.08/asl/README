@@ -1,0 +1,5 @@
+This is the implementation of A Small Language, as described in part 3 
+of ``Functional Programming using Caml Light''.
+
+Examples of input to asl are in file example.asl.
+Results for those examples are in file examples.res.

@@ -1,0 +1,38 @@
+/*
+ * @author Alex
+ * @link http://uvviewsoft.com
+ * Adapted from Vizle Lee's script
+ */
+<job id="">
+<script src="emmet.js" type="text/javascript" language="JavaScript"></script>
+<script language="JavaScript">
+if(WScript.Arguments) {
+	var str = WScript.Arguments(0);
+	var type = WScript.Arguments(1);
+	var profile = WScript.Arguments(2);
+	var padding = WScript.Arguments(3);
+	if(str) {
+		str = str.replace(/%Q%/g, "\""); //Dbl quotes passed as %Q%
+        try {
+          str = emmet.expandAbbreviation(str, type, profile) || '';
+          str = /*padding +*/ str.replace(/\n/g, "\n" + padding);
+
+          var tabstopData = emmet.require('tabStops').extract(str, {
+            escape: function(ch) {	return ch;}
+          });
+
+          str = tabstopData.text;
+          var firstTab = tabstopData.tabstops[0];
+          if (firstTab) {
+            str = emmet.require('utils').replaceSubstring(str, '|', firstTab.start);
+          }
+
+          WScript.StdOut.Write(str);
+        }
+        catch (e) {
+        }
+	}
+	WScript.Quit();
+ }
+</script>
+</job>

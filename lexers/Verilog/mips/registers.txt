@@ -1,0 +1,36 @@
+// Initial register values
+
+// Value    Name   Number   Usage
+//------    -----  -------  ------------------------------------
+00000000 // $zero  0  0x00  Constant 0
+00000000 // $at    1  0x01  Reserved for assembler
+00000000 // $v0    2  0x02  Expression evaluation and results of a function
+00000000 // $v1    3  0x03  Expression evaluation and results of a function
+00000000 // $a0    4  0x04  Argument 1
+00000000 // $a1    5  0x05  Argument 2
+00000000 // $a2    6  0x06  Argument 3
+00000000 // $a3    7  0x07  Argument 4
+00000000 // $t0    8  0x08  Temporary (not preserved across call)
+00000000 // $t1    9  0x09  Temporary (not preserved across call)
+00000000 // $t2   10  0x0A  Temporary (not preserved across call)
+00000000 // $t3   11  0x0B  Temporary (not preserved across call)
+00000000 // $t4   12  0x0C  Temporary (not preserved across call)
+00000000 // $t5   13  0x0D  Temporary (not preserved across call)
+00000000 // $t6   14  0x0E  Temporary (not preserved across call)
+00000000 // $t7   15  0x0F  Temporary (not preserved across call)
+00000000 // $s0   16  0x10  Saved temporary (preserved across call)
+00000000 // $s1   17  0x11  Saved temporary (preserved across call)
+00000000 // $s2   18  0x12  Saved temporary (preserved across call)
+00000000 // $s3   19  0x13  Saved temporary (preserved across call)
+00000000 // $s4   20  0x14  Saved temporary (preserved across call)
+00000000 // $s5   21  0x15  Saved temporary (preserved across call)
+00000000 // $s6   22  0x16  Saved temporary (preserved across call)
+00000000 // $s7   23  0x17  Saved temporary (preserved across call)
+00000000 // $t8   24  0x18  Temporary (not preserved across call)
+00000000 // $t9   25  0x19  Temporary (not preserved across call)
+00000000 // $k0   26  0x1A  Reserved for OS kernel
+00000000 // $k1   27  0x1B  Reserved for OS kernel
+00000000 // $gp   28  0x1C  Pointer to global area
+00000000 // $sp   29  0x1D  Stack pointer
+00000000 // $fp   30  0x1E  Frame pointer
+00000000 // $ra   31  0x1F  Return address (used by function call)

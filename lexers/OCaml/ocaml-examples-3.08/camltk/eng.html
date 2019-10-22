@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//FR"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>Caml Examples</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#FFFFFF">
+
+<P>File created 5 July 2004.
+
+<H1 ALIGN=CENTER><IMG SRC="JoeCaml.gif" ALT="">Caml/Tk Examples</H1>
+
+<P>This directories contains graphical user interface examples using
+the Caml interface to Tcl/Tk.
+
+<H2 ALIGN=LEFT>Basic examples</H2>
+
+<UL>
+<LI><A HREF="start.ml"><CODE>start.ml</CODE></A>:<BR>
+ A first program that justs creates a button labelled Hello.
+
+<LI><A HREF="hello.ml"><CODE>hello.ml</CODE></A>:<BR>
+Hello
+ Creates a button with an action attached to it.
+
+<LI><A HREF="stop.ml"><CODE>stop.ml</CODE></A>:<BR>
+ Creates a button a single button with a call back function
+that quits the program.
+
+<LI><A HREF="hello_quit.ml"><CODE>hello_quit.ml</CODE></A>:<BR>
+ Similar to <CODE>hello.ml</CODE>, but with an additional quit button
+ (and a first example of geometry packing specification).
+
+<LI><A HREF="addition.ml"><CODE>addition.ml</CODE></A>:<BR>
+ A simple program that adds 2 numbers typed in two input areas.
+
+<LI><A HREF="rgb.ml"><CODE>rgb.ml</CODE></A>:<BR>
+ The specification of a color using three scales that give the respective
+ amounts of red, green, and blue components of the color.
+
+<LI><A HREF="convert_euro.ml"><CODE>convert_euro.ml</CODE></A>:<BR>
+ Converts a given amount from francs to euros, and converse.
+
+<LI><A HREF="convert.ml"><CODE>convert.ml</CODE></A>:<BR>
+ Converts a given amount from a given currency to another one. Source
+ and target currencies are chosen using a menu.
+
+</UL>
+
+<H2 ALIGN=LEFT>More advanced examples</H2>
+
+<UL>
+
+<LI><A HREF="camleyes.ml"><CODE>camleyes.ml</CODE></A>:<BR>
+ A Caml/Tk (sort of) clone of Xeyes. Introduce the notion of canvas.
+
+<LI><A HREF="taquin.ml"><CODE>taquin.ml</CODE></A>:<BR>
+ A simple game that uses images: cut the image into pieces then add an
+ empty place to move over pieces. You must reconstruct a coherent
+ image. Relatively advanced example.
+
+<LI><A HREF="tetris.ml"><CODE>tetris.ml</CODE></A>:<BR>
+ An interactive game. An advanced example using timers, canvas and images.
+
+<LI><A HREF="mytext.ml"><CODE>mytext.ml</CODE></A>:<BR>
+ An advanced example of widget definition: the basic text widget is
+equipped with scroll-bars and kill/yank facilities ``à la Emacs''.
+
+</UL>
+
+<H2 ALIGN=LEFT>Practice</H2>
+
+<P>To build an interactive toplevel named camltktop, including tk
+
+<PRE>
+ocamlmktop -I +labltk -custom labltk.cma -o ocamltktop
+</PRE>
+
+then load the file loadall.ml, using
+
+<PRE>
+ocamltktop -I +labltk
+</PRE>
+
+Then type in:
+
+<PRE>
+#use "loadall.ml";;
+</PRE>
+
+<P>
+<ADDRESS>Contact the author <A HREF="mailto:Pierre.Weis@inria.fr">Pierre.Weis@inria.fr</A></ADDRESS>
+<HR>
+</UL>
+
+</BODY>
+</HTML>

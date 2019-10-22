@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{94D665CA-D915-4DE1-AA53-913450A1AE2D}") = "SimpleWinForm", "SimpleWinForm\SimpleWinForm.fsharpp", "{DF1E24D5-1BE0-468C-9145-8DA7F637D535}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DF1E24D5-1BE0-468C-9145-8DA7F637D535}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DF1E24D5-1BE0-468C-9145-8DA7F637D535}.Debug|Win32.Build.0 = Debug|Win32
+		{DF1E24D5-1BE0-468C-9145-8DA7F637D535}.Release|Win32.ActiveCfg = Release|Win32
+		{DF1E24D5-1BE0-468C-9145-8DA7F637D535}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

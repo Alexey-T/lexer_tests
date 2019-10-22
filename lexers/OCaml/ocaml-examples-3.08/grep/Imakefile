@@ -1,0 +1,9 @@
+CamlProgP4(grep,expr.cmo auto.cmo ensent.cmo determ.cmo grep.cmo,)
+CamlProgP4Opt(fastgrep,expr.cmx auto.cmx ensent.cmx determ.cmx grep.cmx,)
+CamlCustomProg(cfastgrep,expr.cmo auto.cmo ensent.cmo determ.cmo fastgrep.cmo fastrec.o,)
+
+fastrec.o: fastrec.c
+	$(CAMLC) -c -I $(LIBDIR)/caml fastrec.c
+
+clean::
+	rm -f fastrec.o

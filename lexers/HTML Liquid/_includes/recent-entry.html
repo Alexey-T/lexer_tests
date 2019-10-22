@@ -1,0 +1,14 @@
+<article class="recent-entry">
+	{% for post in site.pages.blog.posts limit:1 %}
+        <h2><a href="{{post.url}}">{{post.title}}</a></h2>
+        <time>{{post.date | date: "%-d %B %Y"}}</time>
+
+        {{post.body}}
+
+        <aside>
+        	<p><a href="{{post.url}}">Click through for comments.</a></p>
+        </aside>
+
+    {% endfor %}
+
+</article>
