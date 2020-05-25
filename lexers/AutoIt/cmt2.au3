@@ -3,12 +3,15 @@
   #comments-start test
                  
     #cs
-  
-      test 
-      test 
-
-      test
+       #cs
+       23
+       #ce 
        
+       #cs
+       'test' 23
+       #ce 
+       
+      $   
     #comments-end
   
   #ce end
