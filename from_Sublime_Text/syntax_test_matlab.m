@@ -41,7 +41,7 @@ x = [ 1.76 ]
 % <- source.matlab meta.variable.other.valid.matlab
 % ^ source.matlab keyword.operator.symbols.matlab
 %   ^ source.matlab punctuation.section.brackets.begin.matlab
-%     ^^^^ source.matlab meta.brackets.matlab constant.numeric.matlab
+%     ^^^^ source.matlab meta.brackets.matlab constant.numeric.float.decimal.matlab
 %          ^ source.matlab punctuation.section.brackets.end.matlab
 
 
@@ -79,7 +79,7 @@ x = 5
 x = 5 %{ not block comment
 % ^ keyword.operator.symbols.matlab
 x = 5
-%   ^ constant.numeric.matlab
+%   ^ constant.numeric.float.decimal.matlab
 
 
 %---------------------------------------------
@@ -145,24 +145,53 @@ end
 %---------------------------------------------
 % Numbers
 
-1
-% <- constant.numeric.matlab
-.1
-% <- constant.numeric.matlab
-1.1
-% <- constant.numeric.matlab
-.1e1
-% <- constant.numeric.matlab
-1.1e1
-% <- constant.numeric.matlab
-1e1
-% <- constant.numeric.matlab
-1i
-% <- constant.numeric.matlab
-1j
-% <- constant.numeric.matlab
-1e2j
-% <- constant.numeric.matlab
+ 1
+%^ constant.numeric.float.decimal.matlab
+ .1
+%^^ constant.numeric.float.decimal.matlab
+%^ punctuation.separator.decimal.matlab
+ 1.1
+%^^^ constant.numeric.float.decimal.matlab
+% ^ punctuation.separator.decimal.matlab
+ .1e1
+%^^^^ constant.numeric.float.decimal.matlab
+%^ punctuation.separator.decimal.matlab
+ 1.1e1
+%^^^^^ constant.numeric.float.decimal.matlab
+% ^ punctuation.separator.decimal.matlab
+ 1e1
+%^^^ constant.numeric.float.decimal.matlab
+ 1i - (4i)
+%^^ constant.numeric.imaginary.decimal.matlab
+% ^ storage.type.numeric.matlab
+%      ^^ constant.numeric.imaginary.decimal.matlab
+%       ^ storage.type.numeric.matlab
+ 1j
+%^^ constant.numeric.imaginary.decimal.matlab
+% ^ storage.type.numeric.matlab
+ 1e2j
+%^^^^ constant.numeric.imaginary.decimal.matlab
+%   ^ storage.type.numeric.matlab
+ 0x2A
+%^^^^ constant.numeric.integer.hexadecimal.matlab
+%^^ punctuation.definition.numeric.base.matlab
+ 0X2A
+%^^^^ constant.numeric.integer.hexadecimal.matlab
+%^^ punctuation.definition.numeric.base.matlab
+ 0b101010
+%^^^^^^^^ constant.numeric.integer.binary.matlab
+%^^ punctuation.definition.numeric.base.matlab
+ 0B101010
+%^^^^^^^^ constant.numeric.integer.binary.matlab
+%^^ punctuation.definition.numeric.base.matlab
+ 0x2Au8
+%^^^^^^ constant.numeric.integer.hexadecimal.matlab
+%^^ punctuation.definition.numeric.base.matlab
+%    ^^ storage.type.numeric.matlab
+ 0x2As32
+%^^^^^^^ constant.numeric.integer.hexadecimal.matlab
+%^^ punctuation.definition.numeric.base.matlab
+%    ^^^ storage.type.numeric.matlab
 
 
 %---------------------------------------------
@@ -173,10 +202,18 @@ a = a' % is the conjugate and transpose
 a = a.' % is the transpose
 %   ^ -keyword.operator.transpose.matlab
 %    ^^ keyword.operator.transpose.matlab
+c = a.b' % is the conjugate and transpose of the field b of structure a
+%    ^ punctuation.accessor.dot.matlab
+%      ^ keyword.operator.transpose.matlab
+c = a.b.' % is the transpose of the field b of structure a
+%    ^ punctuation.accessor.dot.matlab
+%      ^^ keyword.operator.transpose.matlab
 x = a[3]' + b(4)' % is the conjugate and transpose
 %       ^ keyword.operator.transpose.matlab
 %               ^ keyword.operator.transpose.matlab
 
+l = {l.n}';
+%        ^ keyword.operator.transpose.matlab
 
 %---------------------------------------------
 % String
@@ -201,3 +238,7 @@ s1="00:06:57";
 %   ^^^^^^^^ string.quoted.double.matlab
 %           ^ punctuation.definition.string.end.matlab
 
+%---------------------------------------------
+parfor x = 1:10
+%^ keyword.control.matlab
+end

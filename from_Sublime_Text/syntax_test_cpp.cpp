@@ -1,5 +1,36 @@
 /* SYNTAX TEST "Packages/C++/C++.sublime-syntax" */
 
+Task<int> natural_numbers()
+{
+  int n = 0;
+  while (true) {
+    co_yield n;
+    /*     ^ keyword.control */
+    n++;
+  }
+}
+Task<int> foo()
+{
+  co_return 42;
+  /*      ^ keyword.control */
+  /*         ^ constant.numeric */
+}
+Task<void> bar()
+{
+  co_await natural_numbers();
+  /*     ^ keyword.control */
+  /*                     ^ variable.function */
+}
+
+int main(){
+    int a=5,b=0;
+    while(a-->0)++b;
+    /*     ^^ keyword.operator.arithmetic */
+    /*       ^ keyword.operator.comparison */
+    /*        ^ constant.numeric */
+    /*          ^^ keyword.operator.arithmetic */
+}
+
 /////////////////////////////////////////////
 // Preprocessor
 /////////////////////////////////////////////
@@ -49,6 +80,58 @@ int g(int x = 5 \
 /* <- keyword.control.import.define */
 /*      ^ entity.name.constant */
 
+FOOBAR
+hello() {
+    /* <- meta.function entity.name.function */
+    return 0;
+}
+
+EFIAPI
+UserStructCompare (
+  /* <- meta.function entity.name.function */
+  IN CONST VOID *UserStruct1,
+  IN CONST VOID *UserStruct2
+  )
+{
+  const USER_STRUCT *CmpStruct1;
+  /* <- meta.block storage.modifier */
+
+  CmpStruct1 = UserStruct1;
+  return KeyCompare (&CmpStruct1->Key, UserStruct2);
+  /* <- meta.block keyword.control */
+  /*              ^ meta.block meta.function-call variable.function */
+}
+
+LIB_RESULT
+foo()
+/* <- meta.function entity.name.function */
+{
+   return LIB_SUCCESS;
+}
+
+LIB_RESULT bar()
+/*           ^ meta.function entity.name.function */
+{
+    return LIB_SUCCESS;
+}
+
+THIS_IS_REALLY_JUST_A_MACRO_AND_NOT_A_RETURN_TYPE
+/* <- meta.assumed-macro */
+
+int main() {
+/* <- storage.type */
+    /* ^ meta.function entity.name.function */
+    return 0;
+}
+
+// This is a method/function with the return type on a separate line and so should not be a
+// constructor.
+FOOLIB_RESULT
+some_namespace::some_function(int a_parameter, double another_parameter) {
+  /* <- meta.function meta.toc-list.full-identifier */
+  /*            ^ entity.name.function - entity.name.function.constructor */
+  return FOOLIB_SUCCESS;
+}
 
 #pragma foo(bar, \
 "baz", \
@@ -147,6 +230,12 @@ struct FOO1 FOO2 FOO3 Test {
   /*                      ^ storage.modifier          */
   /*                               ^ storage.modifier */
 }
+
+struct X {
+  X();
+   /* <- meta.group */
+  /*^ meta.group - meta.group meta.group */
+};
 
 #define DEPRECATED(msg) [[deprecated(msg)]]
 
@@ -254,6 +343,14 @@ char rawStr2[] = R"A*!34( )" )A*!34";
 /*                           ^ punctuation.definition.string.end */
 /*                                 ^ punctuation.definition.string.end */
 
+const char IncludeRegexPattern[] =
+    R"(^[\t\ ]*#[\t\ ]*(import|include)[^"<]*(["<][^">]*[">]))";
+/*  ^ storage.type.string */
+/*   ^ punctuation.definition.string.begin */
+/*         ^^ - invalid */
+/*                 ^^ - invalid */
+/*                                                            ^ punctuation.definition.string.end */
+
 foo.f<5> /* foo */ ();
 
 /////////////////////////////////////////////
@@ -315,6 +412,51 @@ typedef struct Books {
 } Book;
 /*^ entity.name.type */
 
+using Alias = Foo;
+/* <- keyword.control */
+/*    ^^^^^ entity.name.type.using */
+
+using Alias
+  = NewLineFoo;
+/*^ - entity.name */
+
+template <typename T>
+using TemplateAlias = Foo<T>;
+/*    ^^^^^^^^^^^^^ entity.name.type.using */
+
+using std::cout;
+/* <- keyword.control */
+/*    ^ - entity.name */
+
+using std::
+  cout;
+/*^ - entity.name */
+
+class MyClass : public SuperClass
+{
+    using This = MyClass;
+/*  ^ keyword.control */
+/*        ^^^^ entity.name.type.using */
+
+    using MyInt
+/*  ^ keyword.control */
+        = int32_t;
+
+    using SuperClass::SuperClass;
+/*  ^ keyword.control */
+/*        ^ - entity.name */
+};
+
+class MyClass : public CrtpClass<MyClass>
+{
+    using typename CrtpClass<MyClass>::PointerType;
+/*  ^ keyword.control */
+/*        ^ storage.modifier */
+    using CrtpClass<
+/*  ^ keyword.control */
+        MyClass>::method;
+};
+
 typedef struct Books Book;
 /*             ^ - entity.name.type.struct */
 /*                   ^ entity.name.type.typedef */
@@ -372,25 +514,49 @@ void funcName<C>() {
 }
 bool A::operator<(const A& a) { return false; }
 /* ^ storage.type */
-/*   ^^^^^^^^^^^^ meta.function entity.name.function */
+/*   ^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*      ^^^^^^^^^ entity.name.function */
 /*               ^ meta.function.parameters punctuation.section.group.begin */
 template <class T> bool A<T>::operator<(const A& a) { return false; }
 /*     ^ storage.type.template */
 /*       ^ punctuation.section.generic.begin */
 /*               ^ punctuation.section.generic.end */
-/*                      ^^^^^^^^^^^^^^^ meta.function entity.name.function */
+/*                      ^^^^^^^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*                            ^^^^^^^^^ entity.name.function */
 /*                                     ^ meta.function.parameters meta.group punctuation.section.group.begin */
 template <typename Foo>
 SomeType<OtherType> A<Foo>::foobar(YetAnotherType&& asRValue) {}
-/*                          ^^^^^^ meta.function entity.name.function */
+/*                  ^^^^^^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*                          ^^^^^^ entity.name.function */
 template <typename Foo> SomeType<OtherType> A<Foo>::foobar(YetAnotherType&& asRValue) {}
-/*                                                  ^^^^^^ meta.function entity.name.function */
+/*                                          ^^^^^^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*                                                  ^^^^^^ entity.name.function */
+
+template <typename Foo> A<Foo>::A(YetAnotherType&& asRValue) {}
+/*                      ^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*                              ^ entity.name.function */
+
+template <typename Foo> A<Foo>::A(YetAnotherType&& asRValue) {}
+/*                      ^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*                              ^ entity.name.function.constructor */
+
+template <typename Foo> A<Foo>::~A(YetAnotherType&& asRValue) {}
+/*                      ^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*                              ^ entity.name.function.destructor */
+
 template <class T>
 bool A<T>::operator   >    (const A& other) { return false; }
-/*         ^^^^^^^^^^^^ meta.function entity.name.function */
+/*   ^^^^^^^^^^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*         ^^^^^^^^^^^^ entity.name.function */
 template <class T>
 bool A<T>::operator    ==    (const A& other) { return false; }
-/*         ^^^^^^^^^^^^^^ meta.function entity.name.function */
+/*   ^^^^^^^^^^^^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*         ^^^^^^^^^^^^^^ entity.name.function */
+template <class T>
+bool A<T>::operator   <=>    (const A& other) { return false; }
+/*   ^^^^^^^^^^^^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*         ^^^^^^^^^^^^^^ entity.name.function */
+
 typedef std :: vector<std::vector<int> > Table;
 /*          ^^ punctuation.accessor */
 /*                   ^ punctuation.section.generic.begin */
@@ -404,7 +570,7 @@ template <typename T = float, int a = 3, bool b = true>
                   /*                  ^ meta.template constant.numeric              */
                   /*                            ^ meta.template keyword.operator    */
                   /*                              ^ meta.template constant.language */
-struct Foo 
+struct Foo
 {
 
 /* <- meta.struct - meta.template */
@@ -441,7 +607,7 @@ template<class T, class U = T> class B { /* ... */ };
 /*                            ^ - meta.template            */
 template <class ...Types> class C { /* ... */ };
 
-// templates inside templates... it's templates all the way down 
+// templates inside templates... it's templates all the way down
 template<template<class> class P> class X { /* ... */ };
 /*      ^ meta.template punctuation                              */
 /*               ^ meta.template meta.template punctuation       */
@@ -498,9 +664,50 @@ static bool decode(const Node& node, T& sequence) {
   return true;
 }
 
+#include <functional>
+template <class T> struct A {};
+template <class T> struct B {};
+struct C {};
+A<B<C>> f(std::function<A<B<C>>()> g) {
+    /*   ^ punctuation.section.group.begin */
+    /*       ^^ punctuation.accessor */
+    /*                 ^ punctuation.section.generic.begin */
+    /*                   ^ punctuation.section.generic.begin */
+    /*                     ^ punctuation.section.generic.begin */
+    /*                       ^^ punctuation.section.generic.end */
+    /*                         ^ punctuation.section.group.begin */
+    /*                          ^ punctuation.section.group.end */
+    /*                           ^ punctuation.section.generic.end */
+    /*                             ^ variable.parameter */
+    /*                              ^ punctuation.section.group.end */
+    /*                                ^ punctuation.section.block.begin */
+    return g();
+}
+int main() {
+    std::function<C()> foo1;
+    /*          ^ - variabe.function */
+    std::function<B<C>()> foo2;
+    /*          ^ - variable.function */
+    auto f = [](std::function<A<B<C>>()> g) { return g(); };
+    /*         ^ punctuation.section.group.begin */
+    /*             ^^ punctuation.accessor */
+    /*                       ^ punctuation.section.generic.begin */
+    /*                         ^ punctuation.section.generic.begin */
+    /*                           ^ punctuation.section.generic.begin */
+    /*                             ^^ punctuation.section.generic.end */
+    /*                               ^ punctuation.section.group.begin */
+    /*                                ^ punctuation.section.group.end */
+    /*                                 ^ punctuation.section.generic.end */
+    /*                                    ^ punctuation.section.group.end */
+    /*                                      ^ punctuation.section.block.begin */
+    /*                                                    ^ punctuation.section.block.end */
+    return 0;
+}
+/* <- - invalid.illegal */
+
 // Example from section 14.2/4 of
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3690.pdf
-struct X 
+struct X
 {
     template <std::size_t>
     X* alloc();
@@ -508,12 +715,12 @@ struct X
     template <std::size_t>
     static X* adjust();
 };
-template <class T> 
-void f(T* p) 
+template <class T>
+void f(T* p)
 {
     // Be optimistic: scope it as a template member function call anyway.
     T* p1 = p->alloc<200>(); // ill-formed: < means less than
-    
+
     T* p2 = p->template alloc<200>(); // OK: < starts template argument list
     /*        ^ punctuation.accessor           */
     /*         ^ storage.type - variable.other */
@@ -521,7 +728,7 @@ void f(T* p)
 
     // Be optimistic: scope it as a template member function call anyway.
     T::adjust<100>(); // ill-formed: < means less than
-    
+
     T::template adjust<100>(); // OK: < starts template argument list
     /* <- - variable.function                    */
     /*^ punctuation.accessor                     */
@@ -556,6 +763,20 @@ void f()
     /*                           ^ - meta.method-call */
 };
 
+template<typename T> C<T> f(T t)
+{
+    return C<T> { g<X<T>>(t) };
+    /*     ^ variable.function */
+    /*          ^ punctuation.section.group.begin */
+}
+
+template<typename T> C<X<T>> f(T t)
+{
+    return C<X<T>> { g<X<T>>(t) };
+    /*     ^ variable.function */
+    /*             ^ punctuation.section.group.begin */
+}
+
 struct A { int foo; };
 int main() {
     A a, b;
@@ -585,6 +806,10 @@ int main() {
     /*^^^^^^^^^^^^^ meta.method-call */
     /*^^^^^^^^^^ variable.function.member */
     /*          ^^^ meta.group */
+    a.operator<=>(b);
+    /*^^^^^^^^^^^^^^ meta.method-call */
+    /*^^^^^^^^^^^ variable.function.member */
+    /*           ^^^ meta.group */
     a.operator->();
     /*^^^^^^^^^^^^ meta.method-call */
     /*^^^^^^^^^^ variable.function.member */
@@ -595,7 +820,14 @@ int main() {
 template <typename T>
 struct A<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
     using x = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
-    /*                                ^^ keyword.operator */
+    /*                                ^^ keyword.operator.comparison */
+
+    template<int>
+    struct Y {
+        constexpr int operator<=>(const Y&) { return 0; }
+    };
+    Y<Y<0>{} <=> Y<0>{}> y;
+    /*       ^^^ keyword.operator.comparison */
 };
 /* <- - invalid.illegal */
 
@@ -643,11 +875,11 @@ switch (x)
 case 1:
 /* <- keyword.control */
     break;
-    /* <- keyword.control */
+    /* <- keyword.control.flow.break */
 default:
 /* <- keyword.control */
     break;
-    /* <- keyword.control */
+    /* <- keyword.control.flow.break */
 }
 
 do
@@ -655,7 +887,7 @@ do
 {
     if (y == 3)
         continue;
-        /* <- keyword.control */
+        /* <- keyword.control.flow.continue */
 } while (y < x);
 /*^ keyword.control */
 
@@ -669,14 +901,14 @@ switch (a) {
 }
 
 goto label;
-/* <- keyword.control */
+/* <- keyword.control.flow.goto */
 
 try
 /* <- keyword.control */
 {
     throw std :: string("xyz");
-    /* <- keyword.control */
-    /*    ^^^^^^^^^^^^^ variable.function */
+    /* <- keyword.control.flow.throw */
+    /*           ^^^^^^ variable.function */
     /*        ^^ punctuation.accessor */
 }
 catch (...)
@@ -691,7 +923,7 @@ delete ptr;
 /* <- keyword.control */
 
 return 123;
-/* <- keyword.control */
+/* <- keyword.control.flow.return */
 
 
 /////////////////////////////////////////////
@@ -770,135 +1002,266 @@ std::cout << __LINE__ << '\n';
 /////////////////////////////////////////////
 
 dec1 = 1234567890;
-/*     ^ constant.numeric */
-/*              ^ constant.numeric */
+/*     ^^^^^^^^^^ constant.numeric.integer.decimal */
+/*               ^ punctuation.terminator - constant */
 
 dec2 = 1'924'013;
-/*     ^ constant.numeric */
-/*             ^ constant.numeric */
+/*     ^^^^^^^^^ constant.numeric.integer.decimal */
+/*              ^ punctuation.terminator - constant */
 
 dec3 = 124ul;
-/*     ^ constant.numeric */
-/*         ^ constant.numeric */
+/*     ^^^^^ constant.numeric.integer.decimal */
+/*        ^^ storage.type.numeric */
+/*          ^ punctuation.terminator - constant */
 
 dec4 = 9'204lu;
-/*     ^ constant.numeric */
-/*           ^ constant.numeric */
+/*     ^^^^^^^ constant.numeric.integer.decimal */
+/*          ^^ storage.type.numeric */
+/*            ^ punctuation.terminator - constant */
 
 dec5 = 2'354'202'076LL;
-/*     ^ constant.numeric */
-/*                   ^ constant.numeric */
+/*     ^^^^^^^^^^^^^^^ constant.numeric.integer.decimal */
+/*                  ^^ storage.type.numeric */
+/*                    ^ punctuation.terminator - constant */
 
-int oct1 = 01234567;
-/*         ^ constant.numeric */
-/*                ^ constant.numeric */
+oct1 = 0123_567;
+/*     ^^^^^^^^ constant.numeric.integer.octal */
+/*     ^ punctuation.definition.numeric.base */
+/*         ^^^^ storage.type.numeric */
+/*             ^ punctuation.terminator - constant */
 
-int oct2 = 014'70;
-/*         ^ constant.numeric */
-/*              ^ constant.numeric */
+oct2 = 014'70;
+/*     ^^^^^^ constant.numeric.integer.octal */
+/*     ^ punctuation.definition.numeric.base */
+/*           ^ punctuation.terminator - constant */
 
-int hex1 = 0x1234567890ABCDEF;
-/*         ^ constant.numeric */
-/*                          ^ constant.numeric */
+hex1 = 0x1234567890ABCDEF;
+/*     ^^^^^^^^^^^^^^^^^^ constant.numeric.integer.hexadecimal */
+/*     ^^ punctuation.definition.numeric.base */
+/*                       ^ punctuation.terminator - constant */
 
-int hex2 = 0X1234567890ABCDEF;
-/*         ^ constant.numeric */
-/*                          ^ constant.numeric */
+hex2 = 0X1234567890ABCDEF;
+/*     ^^^^^^^^^^^^^^^^^^ constant.numeric.integer.hexadecimal */
+/*     ^^ punctuation.definition.numeric.base */
+/*                       ^ punctuation.terminator - constant */
 
-int hex3 = 0x1234567890abcdef;
-/*         ^ constant.numeric */
-/*                          ^ constant.numeric */
+hex3 = 0x1234567890abcdef;
+/*     ^^^^^^^^^^^^^^^^^^ constant.numeric.integer.hexadecimal */
+/*     ^^ punctuation.definition.numeric.base */
+/*                       ^ punctuation.terminator - constant */
 
-int hex4 = 0xA7'45'8C'38;
-/*         ^ constant.numeric */
-/*                     ^ constant.numeric */
+hex4 = 0xA7'45'8C'38;
+/*     ^^^^^^^^^^^^^ constant.numeric.integer.hexadecimal */
+/*     ^^ punctuation.definition.numeric.base */
+/*                  ^ punctuation.terminator - constant */
 
-int bin1 = 0b010110;
-/*         ^ constant.numeric */
-/*                ^ constant.numeric */
+hex5 = 0x0+0xFL+0xaull+0xallu+0xfu+0xf'12_4_uz;
+/*     ^^^ constant.numeric.integer.hexadecimal */
+/*     ^^ punctuation.definition.numeric.base */
+/*         ^^^^ constant.numeric.integer.hexadecimal */
+/*         ^^ punctuation.definition.numeric.base */
+/*            ^ storage.type.numeric */
+/*              ^^^^^^ constant.numeric.integer.hexadecimal */
+/*              ^^ punctuation.definition.numeric.base */
+/*                 ^^^ storage.type.numeric */
+/*                     ^^^^^^ constant.numeric.integer.hexadecimal */
+/*                     ^^ punctuation.definition.numeric.base */
+/*                        ^^^ storage.type.numeric */
+/*                            ^^^^ constant.numeric.integer.hexadecimal */
+/*                            ^^ punctuation.definition.numeric.base */
+/*                               ^ storage.type.numeric */
+/*                                 ^^^^^^^^^^ constant.numeric.integer.hexadecimal */
+/*                                 ^^ punctuation.definition.numeric.base */
+/*                                       ^^^^^ storage.type.numeric */
+/*                                            ^ punctuation.terminator - constant */
 
-int bin2 = 0B010010;
-/*         ^ constant.numeric */
-/*                ^ constant.numeric */
+hex2 = 0xc1.01AbFp-1;
+/*     ^^^^^^^^^^^^^ constant.numeric.float.hexadecimal */
+/*     ^^ punctuation.definition.numeric.base */
+/*         ^ punctuation.separator.decimal */
+/*                  ^ punctuation.terminator - constant */
 
-int bin3 = 0b1001'1101'0010'1100;
-/*         ^ constant.numeric */
-/*                             ^ constant.numeric */
+bin1 = 0b010110;
+/*     ^^^^^^^^ constant.numeric.integer.binary */
+/*     ^^ punctuation.definition.numeric.base */
+/*             ^ punctuation.terminator - constant */
 
-units1 = 134h;
-/*       ^ constant.numeric */
-/*          ^ constant.numeric */
+bin2 = 0B010010;
+/*     ^^^^^^^^ constant.numeric.integer.binary */
+/*     ^^ punctuation.definition.numeric.base */
+/*             ^ punctuation.terminator - constant */
 
-units2 = 147min;
-/*       ^ constant.numeric */
-/*            ^ constant.numeric */
+bin3 = 0b1001'1101'0010'1100;
+/*     ^^^^^^^^^^^^^^^^^^^^^ constant.numeric.integer.binary */
+/*     ^^ punctuation.definition.numeric.base */
+/*                          ^ punctuation.terminator - constant */
 
-units3 = 357s;
-/*       ^ constant.numeric */
-/*          ^ constant.numeric */
+f = 1.1+1.1e1+1.1e-1+1.1f+1.1e1f+1.1e-1f+1.1L+1.1e1L+1.1e-1L;
+/*  ^^^ constant.numeric.float.decimal */
+/*   ^ punctuation.separator.decimal */
+/*     ^ keyword.operator.arithmetic */
+/*      ^^^^^ constant.numeric.float.decimal */
+/*       ^ punctuation.separator.decimal */
+/*           ^ keyword.operator.arithmetic */
+/*            ^^^^^^ constant.numeric.float.decimal */
+/*             ^ punctuation.separator.decimal */
+/*                  ^ keyword.operator.arithmetic */
+/*                   ^^^^ constant.numeric.float.decimal */
+/*                    ^ punctuation.separator.decimal */
+/*                      ^ storage.type.numeric */
+/*                       ^ keyword.operator.arithmetic */
+/*                        ^^^^^^ constant.numeric.float.decimal */
+/*                         ^ punctuation.separator.decimal */
+/*                             ^ storage.type.numeric */
+/*                              ^ keyword.operator.arithmetic */
+/*                               ^^^^^^^ constant.numeric.float.decimal */
+/*                                ^ punctuation.separator.decimal */
+/*                                     ^ storage.type.numeric */
+/*                                      ^ keyword.operator.arithmetic */
+/*                                       ^^^^ constant.numeric.float.decimal */
+/*                                        ^ punctuation.separator.decimal */
+/*                                          ^ storage.type.numeric */
+/*                                           ^ keyword.operator.arithmetic */
+/*                                            ^^^^^^ constant.numeric.float.decimal */
+/*                                             ^ punctuation.separator.decimal */
+/*                                                 ^ storage.type.numeric */
+/*                                                  ^ keyword.operator.arithmetic */
+/*                                                   ^^^^^^^ constant.numeric.float.decimal */
+/*                                                    ^ punctuation.separator.decimal */
+/*                                                         ^ storage.type.numeric */
+/*                                                          ^ punctuation.terminator - constant */
 
-units4 = 234_custom;
-/*       ^ constant.numeric */
-/*                ^ constant.numeric */
+f = 1.e1+1.e-1+1.e1f+1.e-1f+1.e1L+1.e-1L;
+/*  ^^^^ constant.numeric.float.decimal */
+/*   ^ punctuation.separator.decimal */
+/*      ^ keyword.operator.arithmetic */
+/*       ^^^^^ constant.numeric.float.decimal */
+/*        ^ punctuation.separator.decimal */
+/*            ^ keyword.operator.arithmetic */
+/*             ^^^^^ constant.numeric.float.decimal */
+/*              ^ punctuation.separator.decimal */
+/*                 ^ storage.type.numeric */
+/*                  ^ keyword.operator.arithmetic */
+/*                   ^^^^^^ constant.numeric.float.decimal */
+/*                    ^ punctuation.separator.decimal */
+/*                        ^ storage.type.numeric */
+/*                         ^ keyword.operator.arithmetic */
+/*                          ^^^^^ constant.numeric.float.decimal */
+/*                           ^ punctuation.separator.decimal */
+/*                              ^ storage.type.numeric */
+/*                               ^ keyword.operator.arithmetic */
+/*                                ^^^^^^ constant.numeric.float.decimal */
+/*                                 ^ punctuation.separator.decimal */
+/*                                     ^ storage.type.numeric */
+/*                                      ^ punctuation.terminator - constant */
 
-fixed1 = 123.456;
-/*       ^ constant.numeric */
-/*             ^ constant.numeric */
+f = 1.+1.f+1.L+1..;
+/*  ^^ constant.numeric.float.decimal */
+/*   ^ punctuation.separator.decimal */
+/*    ^ keyword.operator.arithmetic */
+/*     ^^^ constant.numeric.float.decimal */
+/*      ^ punctuation.separator.decimal */
+/*       ^ storage.type.numeric */
+/*        ^ keyword.operator.arithmetic */
+/*         ^^^ constant.numeric.float.decimal */
+/*          ^ punctuation.separator.decimal */
+/*           ^ storage.type.numeric */
+/*            ^ keyword.operator.arithmetic */
+/*             ^ constant.numeric.integer.decimal */
+/*              ^^ invalid.illegal.syntax */
+/*                ^ punctuation.terminator - constant */
 
-fixed2 = 12.;
-/*       ^ constant.numeric */
-/*         ^ constant.numeric */
+f = 1e1+1e1f+1e1L;
+/*  ^^^ constant.numeric.float.decimal */
+/*     ^ keyword.operator.arithmetic */
+/*      ^^^^ constant.numeric.float.decimal */
+/*         ^ storage.type.numeric */
+/*          ^ keyword.operator.arithmetic */
+/*           ^^^^ constant.numeric.float.decimal */
+/*              ^ storage.type.numeric */
+/*               ^ punctuation.terminator - constant */
 
-fixed3 = .35;
-/*       ^ constant.numeric */
-/*         ^ constant.numeric */
+f = .1+.1e1+.1e-1+.1f+.1e1f+.1e-1f+.1L+.1e1L+.1e-1L;
+/*  ^^ constant.numeric.float.decimal */
+/*  ^ punctuation.separator.decimal */
+/*    ^ keyword.operator.arithmetic */
+/*     ^^^^ constant.numeric.float.decimal */
+/*     ^ punctuation.separator.decimal */
+/*         ^ keyword.operator.arithmetic */
+/*          ^^^^^ constant.numeric.float.decimal */
+/*          ^ punctuation.separator.decimal */
+/*               ^ keyword.operator.arithmetic */
+/*                ^^^ constant.numeric.float.decimal */
+/*                ^ punctuation.separator.decimal */
+/*                  ^ storage.type.numeric */
+/*                   ^ keyword.operator.arithmetic */
+/*                    ^^^^^ constant.numeric.float.decimal */
+/*                    ^ punctuation.separator.decimal */
+/*                        ^ storage.type.numeric */
+/*                         ^ keyword.operator.arithmetic */
+/*                          ^^^^^^ constant.numeric.float.decimal */
+/*                          ^ punctuation.separator.decimal */
+/*                               ^ storage.type.numeric */
+/*                                 ^^^ constant.numeric.float.decimal */
+/*                                 ^ punctuation.separator.decimal */
+/*                                   ^ storage.type.numeric */
+/*                                    ^ keyword.operator.arithmetic */
+/*                                     ^^^^^ constant.numeric.float.decimal */
+/*                                     ^ punctuation.separator.decimal */
+/*                                         ^ storage.type.numeric */
+/*                                          ^ keyword.operator.arithmetic */
+/*                                           ^^^^^^ constant.numeric.float.decimal */
+/*                                           ^ punctuation.separator.decimal */
+/*                                                ^ storage.type.numeric */
+/*                                                 ^ punctuation.terminator - constant */
 
-fixed4 = 1'843'290.245'123;
-/*       ^ constant.numeric */
-/*                       ^ constant.numeric */
+f = 1'843'290.245'123;
+/*  ^^^^^^^^^^^^^^^^^ constant.numeric.float.decimal */
+/*           ^ punctuation.separator.decimal */
+/*                   ^ punctuation.terminator - constant */
 
-fixed5 = 0.3f;
-/*       ^ constant.numeric */
-/*          ^ constant.numeric */
+f = 2'837e1'000;
+/*  ^^^^^^^^^^^ constant.numeric.float.decimal */
+/*             ^ punctuation.terminator - constant */
 
-fixed6 = 0.82L;
-/*       ^ constant.numeric */
-/*           ^ constant.numeric */
+f = 23e-1'000;
+/*  ^^^^^^^^^ constant.numeric.float.decimal */
+/*           ^ punctuation.terminator - constant */
 
-float sci1 = 1.23e10;
-/*           ^ constant.numeric */
-/*                 ^ constant.numeric */
+units1 = 134h + 123.45h;
+/*       ^^^^ constant.numeric.integer.decimal */
+/*          ^ storage.type.numeric */
+/*           ^^^ - constant */
+/*              ^^^^^^^ constant.numeric.float.decimal */
+/*                 ^ punctuation.separator.decimal */
+/*                    ^ storage.type.numeric */
+/*                     ^ punctuation.terminator - constant */
 
-float sci2 = 13e5;
-/*           ^ constant.numeric */
-/*              ^ constant.numeric */
+units2 = 147min + 147.min;
+/*       ^^^^^^ constant.numeric.integer.decimal */
+/*          ^^^ storage.type.numeric */
+/*             ^^^ - constant */
+/*                ^^^^^^^ constant.numeric.float.decimal */
+/*                   ^ punctuation.separator.decimal */
+/*                    ^^^ storage.type.numeric */
+/*                       ^ punctuation.terminator - constant */
 
-float sci3 = 14.23e+14;
-/*           ^ constant.numeric */
-/*                   ^ constant.numeric */
+units3 = 357s + 34.7s;
+/*       ^^^^ constant.numeric.integer.decimal */
+/*          ^ storage.type.numeric */
+/*           ^^^ - constant */
+/*              ^^^^^ constant.numeric.float.decimal */
+/*                ^ punctuation.separator.decimal */
+/*                  ^ storage.type.numeric */
+/*                   ^ punctuation.terminator - constant */
 
-float sci4 = 14e+14;
-/*           ^ constant.numeric */
-/*                ^ constant.numeric */
-
-float sci5 = 18.84e-12;
-/*           ^ constant.numeric */
-/*                   ^ constant.numeric */
-
-float sci6 = 46e-14;
-/*           ^ constant.numeric */
-/*                ^ constant.numeric */
-
-float sci7 = 2'837e1'000;
-/*           ^ constant.numeric */
-/*                     ^ constant.numeric */
-
-float sci8 = 23e-1'000;
-/*           ^ constant.numeric */
-/*                   ^ constant.numeric */
-
-double sci_hex = 0xc1.01AbFp-1;
-/*               ^^^^^^^^^^^^^ constant.numeric */
+units4 = 234_custom + 10e-1_custom;
+/*       ^^^^^^^^^^ constant.numeric.integer.decimal */
+/*          ^^^^^^^ storage.type.numeric */
+/*                 ^^^ - constant */
+/*                    ^^^^^^^^^^^^ constant.numeric.float.decimal */
+/*                         ^^^^^^^ storage.type.numeric */
+/*                                ^ punctuation.terminator - constant */
 
 /////////////////////////////////////////////
 // Functions
@@ -1023,19 +1386,37 @@ static const uint32_t * const MACRO funcname();
 
 void FooBar :: baz(int a)
 /*   ^^^^^^^^^^^^^^^^^^^^ meta.function */
-/*   ^^^^^^^^^^^^^ entity.name.function */
+/*   ^^^^^^^^^^^^^ meta.toc-list.full-identifier */
+/*             ^^^ entity.name.function */
 /*          ^^ punctuation.accessor */
 /*                ^^^^^^^ meta.function.parameters meta.group */
 /*                ^ punctuation.section.group.begin */
 /*                     ^ variable.parameter */
 /*                      ^ punctuation.section.group.end */
 {
-
 }
-
+/* A comment. */ void FooBar :: baz(int a)
+/*                    ^^^^^^^^^^^^^^^^^^^^ meta.function */
+/*                    ^^^^^^^^^^^^^ meta.toc-list.full-identifier */
+/*                              ^^^ entity.name.function */
+/*                           ^^ punctuation.accessor */
+/*                                 ^^^^^^^ meta.function.parameters meta.group */
+/*                                 ^ punctuation.section.group.begin */
+/*                                      ^ variable.parameter */
+/*                                       ^ punctuation.section.group.end */
+{
+}
+// prevent leading comment from function recognition
+/**/ HRESULT A::b()
+/*           ^ meta.function */
+/*              ^ entity.name.function */
+{
+    return S_OK;
+}
 FooBar::FooBar(int a)
 /*^^^^^^^^^^^^^^^^^^^ meta.function */
-/*^^^^^^^^^^^^ entity.name.function */
+/*^^^^^^^^^^^^ meta.toc-list.full-identifier */
+/*      ^^^^^^ entity.name.function */
 /*            ^^^^^^^ meta.function.parameters meta.group */
 /*            ^ punctuation.section.group.begin */
 /*             ^^^ storage.type */
@@ -1045,7 +1426,8 @@ FooBar::FooBar(int a)
 
 FooBar :: FooBar(int a) & =
 /*^^^^^^^^^^^^^^^^^^^^^^^^^ meta.function */
-/*^^^^^^^^^^^^^^ entity.name.function */
+/*^^^^^^^^^^^^^^ meta.toc-list.full-identifier */
+/*        ^^^^^^ entity.name.function */
 /*              ^^^^^^^ meta.function.parameters meta.group */
 /*              ^ punctuation.section.group.begin */
 /*               ^^^ storage.type */
@@ -1057,7 +1439,8 @@ default;
 /*^^^^^ meta.function storage.modifier */
 
 FooBar::~FooBar
-/*^^^^^^^^^^^^^ meta.function entity.name.function */
+/*^^^^^^^^^^^^^ meta.function meta.toc-list.full-identifier */
+/*      ^^^^^^^ entity.name.function */
 () { }
 /* <- meta.function.parameters meta.group punctuation.section.group.begin */
  /* <- meta.function.parameters meta.group punctuation.section.group.end */
@@ -1065,13 +1448,14 @@ FooBar::~FooBar
 
 ThisIsAReallyReallyLongClassNameThatRequiresWrappingCodeInTheMiddleOfAPath::
     ThisIsAReallyReallyLongClassNameThatRequiresWrappingCodeInTheMiddleOfAPath()
-/* <- entity.name.function */
+/* <- meta.function meta.toc-list.full-identifier */
     : var_name(nullptr) {
 }
 
 bool FooBar::operator==() {}
 /*   ^^^^^^^^^^^^^^^^^^^^^^^ meta.function */
-/*   ^^^^^^^^^^^^^^^^^^ entity.name.function */
+/*   ^^^^^^^^^^^^^^^^^^ meta.toc-list.full-identifier */
+/*           ^^^^^^^^^^ entity.name.function */
 /*                     ^^ meta.function.parameters meta.group */
 /*                     ^ punctuation.section.group.begin */
 /*                      ^ punctuation.section.group.end */
@@ -1082,13 +1466,15 @@ bool FooBar::operator==() {}
 
 myns::FooBar::~FooBar() { }
 /*^^^^^^^^^^^^^^^^^^^^^^^^^ meta.function */
+/*^^^^^^^^^^^^^^^^^^^ meta.toc-list.full-identifier */
 /*                   ^^ meta.function.parameters meta.group */
 /*                   ^ punctuation.section.group.begin */
 /*                    ^ punctuation.section.group.end */
 /*                      ^^^ meta.block */
 /*                      ^ punctuation.section.block.begin */
 /*                        ^ punctuation.section.block.end */
-/*^^^^^^^^^^^^^^^^^^^ entity.name.function */
+/*^^^^^^^^^^^^^^^^^^^ meta.toc-list.full-identifier */
+/*            ^^^^^^^ entity.name.function */
 
     extern "C" void test_in_extern_c_block()
 /*                  ^^^^^^^^^^^^^^^^^^^^^^^^ meta.function */
@@ -1180,6 +1566,18 @@ using namespace NAME __attribute__((visibility ("hidden")));
 /*    ^ keyword.control */
 /*                   ^ storage.modifier */
 /*                                               ^ string */
+
+void func() {
+    using namespace NAME __attribute__((visibility ("hidden")));
+/*  ^ keyword.control */
+/*        ^ keyword.control */
+/*                       ^ storage.modifier */
+/*                                                   ^ string */
+}
+
+using namespace
+/* <- keyword.control */
+/*    ^ keyword.control */
 
 using namespace myNameSpace;
 /* <- keyword.control */
@@ -1529,9 +1927,9 @@ private:
     friend int func(int a, int b) {
 /*  ^ storage.modifier */
 /*         ^ storage.type */
-/*             ^ - entity.name.function */
+/*             ^ entity.name.function */
 /*             ^ - meta.function-call */
-/*                                ^ meta.class meta.block meta.block punctuation.section.block.begin */
+/*                                ^ meta.class meta.block meta.method meta.block punctuation.section.block.begin */
         int a = 1;
     }
 /*  ^ meta.class meta.block meta.block punctuation.section.block.end */
@@ -1542,6 +1940,13 @@ private:
 /*         ^ storage.type
 /*               ^^ punctuation.accessor */
 /*                 ^ - entity */
+
+    friend bool operator != (const X& lhs, const X& rhs) {
+    /*          ^^^^^^^^^^^ entity.name.function */
+        int a = 1;
+    }
+/*  ^ meta.class meta.block meta.block punctuation.section.block.end */
+/*   ^ - meta.class meta.block meta.block */
 
     #if 0
     /*  ^ constant.numeric */
@@ -1627,6 +2032,12 @@ class Adapter : public Abstraction
 
 }
 
+struct Base {};
+class Derived final : Base {};
+/*             ^ storage.modifier */
+struct Derived final : Base {};
+/*             ^ storage.modifier */
+
 /* C++11 "uniform initialization" in initializer lists */
 class Foo {
 public:
@@ -1634,7 +2045,7 @@ public:
                                  /* ^ meta.method.constructor.initializer-list   */
                                  /*   ^ - meta.function-call - variable.function */
 private:
-    int var1, var2, var3, var4;    
+    int var1, var2, var3, var4;
 };
 
 class X {
@@ -1801,6 +2212,87 @@ class __declspec(align(8)) SkBitmap {}
 class __declspec(dllimport) SkBitmap {}
 /*               ^ constant.other */
 /*                          ^ entity.name.class */
+
+// Make sure not to match macros that have "too few characters".
+template <class T> class Sample {
+ public:
+  // The T here should not be consumed as a macro.
+  T operator()  (const foo x) {
+    /* <- entity.name.function */
+    /*^^^^^^^^ entity.name.function */
+    return T;
+  }
+  int operator == (const int x) {
+    /*^^^^^^^^^^^ entity.name.function */
+    return 0;
+  }
+  // The T here should not be consumed as a macro.
+  T operator()(int a) {
+    /* <- entity.name.function */
+    /*^^^^^^^^ entity.name.function */
+    return T;
+  }
+  // The T here should not be consumed as a macro.
+  T operator[](int a)  {
+    /* <- entity.name.function */
+    /*^^^^^^^^ entity.name.function */
+     return T;
+  }
+};
+
+class Namespace::MyClass MACRO1 MACRO2 : public SuperClass
+/*               ^^^^^^^ entity.name.class */
+/*             ^^ punctuation.accessor */
+/*                       ^ - entity.name */
+{
+};
+
+struct Namespace::MyStruct
+/*                ^^^^^^^^ entity.name.struct */
+/*              ^^ punctuation.accessor */
+{
+};
+
+union Namespace::MyUnion
+/*               ^^^^^^^ entity.name.union */
+/*             ^^ punctuation.accessor */
+{
+};
+
+enum class Namespace::MyEnum
+/*                    ^^^^^^ entity.name.enum */
+/*                  ^^ punctuation.accessor */
+{
+};
+
+class Namespace::
+MyClass MACRO1
+/* <- entity.name.class */
+/*      ^ - entity.name */
+{
+};
+
+struct Namespace::
+MyStruct MACRO1
+/* <- entity.name.struct */
+/*       ^ - entity.name */
+{
+};
+
+union Namespace::
+MyUnion MACRO1
+/* <- entity.name.union */
+/*      ^ - entity.name */
+{
+};
+
+enum class Namespace::
+MyEnum MACRO1
+/* <- entity.name.enum */
+/*     ^ - entity.name */
+{
+};
+
 
 /////////////////////////////////////////////
 // Test preprocessor branching and C blocks
@@ -2092,7 +2584,7 @@ void sayHi()
     );
 
     if (::std::foo()) {}
-/*      ^^^^^^^^^^ variable.function */
+/*             ^^^ variable.function */
 /*      ^^ punctuation.accessor */
 /*           ^^ punctuation.accessor */
 
@@ -2118,10 +2610,32 @@ void sayHi()
 /*          ^ punctuation.section.generic.end */
 /*           ^^ meta.group */
 
+    ::myns::foo<int>();
+/*  ^^ punctuation.accessor.double-colon */
+/*        ^^ punctuation.accessor.double-colon */
+/*  ^^^^^^^^^^^^^^^^^^ meta.function-call */
+/*          ^^^ variable.function */
+/*              ^^^ storage.type */
+
+    myns::FooClass{42};
+/*      ^^ punctuation.accessor.double-colon */
+/*  ^^^^^^^^^^^^^^^^^^ meta.function-call */
+/*        ^^^^^^^^ variable.function */
+
+    ::myns::BarClass<int>{};
+/*  ^^ punctuation.accessor.double-colon */
+/*        ^^ punctuation.accessor.double-colon */
+/*  ^^^^^^^^^^^^^^^^^^^^^ meta.function-call */
+/*          ^^^^^^^^ variable.function */
+/*                   ^^^ storage.type */
+
     int a[5];
 /*       ^^^ meta.brackets */
 /*       ^ punctuation.section.brackets.begin */
 /*         ^ punctuation.section.brackets.end */
+
+    std::cout << ">> Hi!\n";
+/*            ^^ keyword.operator.arithmetic.c */
 }
 
 /////////////////////////////////////////////
@@ -2153,3 +2667,7 @@ void sayHi()
 /*      ^ punctuation.definition.string.begin */
 /*       ^^^^^^^^ string.quoted.other.lt-gt.include */
 /*               ^ punctuation.definition.string.end */
+
+/**
+      *
+/*    ^ comment.block.c punctuation.definition.comment.c */
