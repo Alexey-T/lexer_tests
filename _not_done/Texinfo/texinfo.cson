@@ -1,0 +1,866 @@
+# Language reference: https://www.gnu.org/software/texinfo/manual/texinfo/texinfo.html
+name: "Texinfo"
+scopeName: "text.texinfo"
+fileTypes: [
+	"texinfo"
+	"texi"
+	"txi"
+]
+firstLineMatch: """(?x)
+	# TeX directive
+	^\\s*\\\\input\\s+texinfo\\s*$
+	|
+	# Modeline
+	(?i:
+		# Emacs
+		-\\*-(?:\\s*(?=[^:;\\s]+\\s*-\\*-)|(?:.*?[;\\s]|(?<=-\\*-))mode\\s*:\\s*)
+			texinfo
+		(?=[\\s;]|(?<![-*])-\\*-).*?-\\*-
+		
+		|
+		
+		# Vim
+		(?:(?:\\s|^)vi(?:m[<=>]?\\d+|m)?|\\sex)(?=:(?=\\s*set?\\s[^\\r\\n:]+:)|:(?!\\s* set?\\s))(?:(?:\\s|\\s*:\\s*)\\w*(?:\\s*=(?:[^\\r\\n\\\\\\s]|\\\\.)*)?)*[\\s:](?:filetype|ft|syntax)\\s*=
+			texinfo
+		(?=\\s|:|$)
+	)
+"""
+injectionSelector: "emacs.lisp"
+patterns: [{
+	# \input texinfo.tex
+	match: "\\A\\s*((\\\\)input)\\s+([^@\\s\\x7F]+)"
+	captures:
+		1: name: "support.function.general.tex"
+		2: name: "punctuation.definition.function.tex"
+		3: name: "support.constant.language.other.tex"
+}, include: "#main"]
+
+repository:
+	main:
+		patterns: [
+			{include: "#comments"}
+			{include: "#dashes"}
+			{include: "#texLine"}
+			{include: "#alias"}
+			{include: "#menu"}
+			{include: "#booleanCommands"}
+			{include: "#symbolCommands"}
+			{include: "#set"}
+			{include: "#definitions"}
+			{include: "#quotation"}
+			{include: "#boldText"}
+			{include: "#italicText"}
+			{include: "#verbatim"}
+			{include: "#codeBlocks"}
+			{include: "#conditionals"}
+			{include: "#blockCommands"}
+			{include: "#lineCommands"}
+			{include: "#ignored"}
+			{include: "#rawTex"}
+			{include: "#rawHTML"}
+			{include: "#rawXML"}
+			{include: "#command"}
+		]
+	
+	
+	# @alias [new]=[existing]
+	alias:
+		name: "meta.command.alias.texinfo"
+		match: "((@)alias)\\s+([^=\\s]+)\\s*(=)\\s*([^=\\s]+)"
+		captures:
+			1: name: "keyword.operator.command.alias.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+			3: name: "entity.name.function.alias.texinfo"
+			4: name: "punctuation.separator.separator.texinfo"
+			5: name: "entity.name.function.source.texinfo"
+	
+	
+	# Block-type commands
+	blockCommands:
+		name:  "meta.command.$3.block.texinfo"
+		begin: """(?x) ((@)
+			(cartouche|copying|direntry|display|documentdescription|enumerate
+			|float|flushleft|flushright|format|ftable|group|itemize|multitable
+			|raggedright|smalldisplay|smallformat|smallindentedblock|table
+			|titlepage|vtable))
+			(?=\\s|$)(.*)
+		"""
+		end: "((@)end\\s+\\3)\\b"
+		beginCaptures:
+			1: name: "keyword.operator.command.$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+			4: patterns: [{include: "#param"}, {include: "#main"}]
+		endCaptures:
+			1: name: "keyword.operator.command.end-$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		patterns: [include: "#main"]
+	
+	
+	# Stuff which Emacs displays in bold (so we probably should too)
+	boldText:
+		patterns: [{
+			# `@braced{args}`
+			name:  "meta.command.$3.braced.texinfo"
+			begin: "((@)(b|strong))({)"
+			end:   "}"
+			contentName: "markup.bold.texinfo"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+				4: name: "punctuation.section.scope.begin.texinfo"
+			endCaptures:
+				0: name: "punctuation.section.scope.end.texinfo"
+			patterns: [include: "#main"]
+		},{
+			# `@line text`
+			name: "meta.command.$3.line.texinfo"
+			begin: """(?x) ^ ((@)
+				(appendixsection|appendixsec|appendixsubsec|appendixsubsubsec|appendix
+				|chapheading|chapter|heading|majorheading|section|subheading|subsection
+				|subsubheading|subsubsection|top|unnumberedsec|unnumberedsubsec
+				|unnumberedsubsubsec|unnumbered))
+				(?=\\s|$)
+			"""
+			end: "$"
+			contentName: "markup.heading.string.unquoted.texinfo"
+			beginCaptures:
+				0: name: "markup.bold.texinfo"
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [include: "#main"]
+		}]
+	
+	
+	# Commands which take boolean-like values as their only argument
+	booleanCommands:
+		patterns: [{
+			# [on|off|single|double]
+			name: "meta.command.headings.texinfo"
+			match: "((@)headings)\\s+(?:(on)|(off)|(single|double))\\b"
+			captures:
+				1: name: "keyword.operator.command.headings.texinfo"
+				2: name: "punctuation.defining.function.texinfo"
+				3: name: "constant.language.boolean.true.texinfo"
+				4: name: "constant.language.boolean.false.texinfo"
+				5: name: "constant.language.heading-type.$5.texinfo"
+		},{
+			# [on|off|odd]
+			name: "meta.command.setchapternewpage.texinfo"
+			match: "((@)setchapternewpage)\\s+(?:(on)|(off)|(odd))\\b"
+			captures:
+				1: name: "keyword.operator.command.headings.texinfo"
+				2: name: "punctuation.defining.function.texinfo"
+				3: name: "constant.language.boolean.true.texinfo"
+				4: name: "constant.language.boolean.false.texinfo"
+				5: name: "constant.language.odd.texinfo"
+		},{
+			# [true|false]
+			name: "meta.command.$3.texinfo"
+			match: "((@)(allowcodebreaks))\\s+(true|false)(?=\\s|$)"
+			captures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+				4: name: "constant.language.boolean.$4.texinfo"
+		},{
+			# [on|off]
+			name: "meta.command.$3.texinfo"
+			match: """(?x) ((@)
+				(codequotebacktick|codequoteundirected|deftypefnnewline
+				|frenchspacing|validatemenus|xrefautomaticsectiontitle))
+				\\s+ (?:(on)|(off)) \\b
+			"""
+			captures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+				4: name: "constant.language.boolean.true.texinfo"
+				5: name: "constant.language.boolean.false.texinfo"
+		}]
+	
+	
+	# Code examples
+	codeBlocks:
+		patterns: [{
+			# Lisp code
+			name: "meta.command.$3.block.texinfo"
+			begin: "((@)(lisp|smalllisp))(?=\\s|$)"
+			end:   "((@)end\\s+\\3)\\b"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			endCaptures:
+				1: name: "keyword.operator.command.end-$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			contentName: "source.embedded.emacs.lisp"
+			patterns: [
+				{include: "source.emacs.lisp"}
+				{include: "#main"}
+			]
+		},{
+			name: "meta.command.$3.block.texinfo"
+			begin: "((@)(example|smallexample|verbatim))(?=\\s|$)"
+			end:   "((@)end\\s+\\3)\\b"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			endCaptures:
+				1: name: "keyword.operator.command.end-$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			contentName: "markup.raw.texinfo"
+			patterns: [include: "#main"]
+		}]
+	
+	
+	# Control flow
+	conditionals:
+		patterns: [{
+			# Conditionals which take arguments
+			name:  "meta.command.$3.conditional.block.texinfo"
+			begin: "((@)(ifclear|ifcommanddefined|ifcommandnotdefined|ifset))\\s+(\\S+)"
+			end:   "((@)end\\s+\\3)\\b"
+			beginCaptures:
+				1: name: "keyword.control.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+				4: name: "variable.parameter.texinfo"
+			endCaptures:
+				1: name: "keyword.control.command.end-$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [include: "#main"]
+		},{
+			# Conditionals which don't
+			name: "meta.command.$3.conditional.block.texinfo"
+			begin: """(?x) ((@)
+				(ifdocbook|ifhtml|ifinfo|ifnotdocbook|ifnothtml|ifnotinfo|ifnotplaintext
+				|ifnottex|ifnotxml|ifplaintext|iftex|ifxml))
+				(?=\\s|$)
+			"""
+			end:   "((@)end\\s+\\3)\\b"
+			beginCaptures:
+				1: name: "keyword.control.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+				4: name: "variable.parameter.texinfo"
+			endCaptures:
+				1: name: "keyword.control.command.end-$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [include: "#main"]
+		}]
+	
+	
+	# Argument delimiter used in some contexts
+	comma:
+		name: "punctuation.separator.delimiter.comma.texinfo"
+		match: ","
+	
+	
+	# Generic command invocation
+	command:
+		patterns: [{
+			# `@command{args}`
+			name:  "meta.command.braced.texinfo"
+			begin: "((@)(\\w+))({)"
+			end:   "}"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+				4: name: "punctuation.section.scope.begin.texinfo"
+			endCaptures:
+				0: name: "punctuation.section.scope.end.texinfo"
+			patterns: [
+				{include: "#param"}
+				{include: "#comma"}
+				{include: "#main"}
+			]
+		},{
+			# `@command`
+			name: "keyword.operator.command.$2.texinfo"
+			match: "(@)(\\w+)"
+			captures:
+				1: name: "punctuation.definition.function.texinfo"
+		}]
+	
+	
+	# Comment lines
+	comments:
+		patterns: [{
+			# `@command` invocation
+			name: "comment.line.at-sign.texinfo"
+			begin: "((@)c(?:omment)?)(?=$|[^-A-Za-z0-9])"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.start-comment.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+		},{
+			# TeX-style comment
+			name: "comment.line.tex-style.texinfo"
+			begin: "\\x7F"
+			end:   "$"
+			beginCaptures:
+				0: name: "punctuation.whitespace.delete.texinfo"
+		}]
+	
+	
+	# Em/en dashes
+	dashes:
+		patterns: [
+			{match: "---", name: "constant.character.dash.em-dash.texinfo"}
+			{match: "--",  name: "constant.character.dash.en-dash.texinfo"}
+		]
+
+
+	# Definition-type commands
+	definitions:
+		patterns: [{
+			# @def* [name]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(defcodeindex|defindex|defopt|defoptx|defvar|defvarx))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				name: "entity.name.var.texinfo"
+				match: "\\G\\s*(?:({)[^}]*(})|\\S+)"
+				captures:
+					1: name: "punctuation.definition.begin.texinfo"
+					2: name: "punctuation.definition.end.texinfo"
+			}, include: "#main"]
+		},{
+			# @def* [category] [class] [name] [...args?]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(defcvx|defcv|defopx|defop))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1: name: "storage.type.var.texinfo"
+					2: name: "punctuation.definition.begin.texinfo"
+					3: name: "punctuation.definition.end.texinfo"
+					4: name: "entity.other.inherited-class.texinfo"
+					5: name: "punctuation.definition.begin.texinfo"
+					6: name: "punctuation.definition.end.texinfo"
+					7: name: "entity.name.var.texinfo"
+					8: name: "punctuation.definition.begin.texinfo"
+					9: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @def* [category] [name] [...args]
+			name: "meta.command.$3.line.texinfo"
+			begin: "((@)(deffnx|deffn|deftpx|deftp|defvrx|defvr))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1: name: "storage.type.var.texinfo"
+					2: name: "punctuation.definition.begin.texinfo"
+					3: name: "punctuation.definition.end.texinfo"
+					4: name: "entity.name.var.texinfo"
+					5: name: "punctuation.definition.begin.texinfo"
+					6: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @definfoenclose [newcmd], [before], [after]
+			name: "meta.command.$3.line.texinfo"
+			begin: "((@)(definfoenclose))(?=\\s|$)"
+			end: "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: "\\G\\s*(({)[^}]*(})|[^\\s,]+)"
+				captures:
+					1: name: "entity.name.var.texinfo"
+					2: name: "punctuation.definition.begin.texinfo"
+					3: name: "punctuation.definition.end.texinfo"
+			},{
+				name: "string.unquoted.texinfo"
+				match: "[^\\s,@]+"
+			}, include: "#comma"]
+		},{
+			# @defivar [class] [instance-variable-name]
+			name: "meta.command.$3.line.texinfo"
+			begin: "((@)(defivarx|defivar|defmethodx|defmethod))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1: name: "entity.other.inherited-class.texinfo"
+					2: name: "punctuation.definition.begin.texinfo"
+					3: name: "punctuation.definition.end.texinfo"
+					4: name: "entity.name.var.texinfo"
+					5: name: "punctuation.definition.begin.texinfo"
+					6: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @defmac [name] [...args]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(defmacx|defmac|defunx|defun|defspecx|defspec))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				name: "entity.name.function.texinfo"
+				match: "\\G\\s*(?:({)[^}]*(})|\\S+)"
+				captures:
+					1: name: "punctuation.definition.begin.texinfo"
+					2: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @def* [category] [class] [data-type] [name] [...args?]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(deftypecvx|deftypecv|deftypevrx|deftypevr))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1:  name: "storage.type.var.category.texinfo"
+					2:  name: "punctuation.definition.begin.texinfo"
+					3:  name: "punctuation.definition.end.texinfo"
+					
+					4:  name: "entity.other.inherited-class.texinfo"
+					5:  name: "punctuation.definition.begin.texinfo"
+					6:  name: "punctuation.definition.end.texinfo"
+					
+					7:  name: "storage.type.var.data-type.texinfo"
+					8:  name: "punctuation.definition.begin.texinfo"
+					9:  name: "punctuation.definition.end.texinfo"
+					
+					10:  name: "entity.name.var.texinfo"
+					11: name: "punctuation.definition.begin.texinfo"
+					12: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @deftypefn [category] [data-type] [name] [...args]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(deftypefnx|deftypefn))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1:  name: "storage.type.var.category.texinfo"
+					2:  name: "punctuation.definition.begin.texinfo"
+					3:  name: "punctuation.definition.end.texinfo"
+					
+					4:  name: "storage.type.var.data-type.texinfo"
+					5:  name: "punctuation.definition.begin.texinfo"
+					6:  name: "punctuation.definition.end.texinfo"
+					
+					7:  name: "entity.name.var.texinfo"
+					8: name: "punctuation.definition.begin.texinfo"
+					9: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @deftypefun [data-type] [function-name] [...args]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(deftypefunx|deftypefun))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1: name: "storage.type.var.data-type.texinfo"
+					2: name: "punctuation.definition.begin.texinfo"
+					3: name: "punctuation.definition.end.texinfo"
+					4: name: "entity.name.var.texinfo"
+					5: name: "punctuation.definition.begin.texinfo"
+					6: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @deftypemethod [class] [data-type] [name] [...args]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(deftypemethodx|deftypemethod|deftypeivarx|deftypeivar))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1: name: "entity.other.inherited-class.texinfo"
+					2: name: "punctuation.definition.begin.texinfo"
+					3: name: "punctuation.definition.end.texinfo"
+					
+					4: name: "storage.type.var.data-type.texinfo"
+					5: name: "punctuation.definition.begin.texinfo"
+					6: name: "punctuation.definition.end.texinfo"
+					
+					7: name: "entity.name.var.texinfo"
+					8: name: "punctuation.definition.begin.texinfo"
+					9: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @deftypeop [category] [class] [data-type] [name] [...args]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(deftypeopx|deftypeop))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1:  name: "storage.type.var.category.texinfo"
+					2:  name: "punctuation.definition.begin.texinfo"
+					3:  name: "punctuation.definition.end.texinfo"
+					
+					4: name: "entity.other.inherited-class.texinfo"
+					5: name: "punctuation.definition.begin.texinfo"
+					6: name: "punctuation.definition.end.texinfo"
+					
+					7: name: "storage.type.var.data-type.texinfo"
+					8: name: "punctuation.definition.begin.texinfo"
+					9: name: "punctuation.definition.end.texinfo"
+					
+					10: name: "entity.name.var.texinfo"
+					11: name: "punctuation.definition.begin.texinfo"
+					12: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		},{
+			# @deftypevar [data-type] [variable-name]
+			name:  "meta.command.$3.line.texinfo"
+			begin: "((@)(deftypevarx|deftypevar))(?=\\s|$)"
+			end:   "$"
+			beginCaptures:
+				1: name: "keyword.operator.command.$3.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			patterns: [{
+				match: """(?x)
+					\\G \\s* (({)[^}]*(})|\\S+)
+					(?: \\s+ (({)[^}]*(})|\\S+))?
+				"""
+				captures:
+					1: name: "storage.type.var.data-type.texinfo"
+					2: name: "punctuation.definition.begin.texinfo"
+					3: name: "punctuation.definition.end.texinfo"
+					4: name: "entity.name.var.texinfo"
+					5: name: "punctuation.definition.begin.texinfo"
+					6: name: "punctuation.definition.end.texinfo"
+			}, {include: "#param"}, {include: "#main"}]
+		}]
+
+	
+	# Stuff that isn't included in the output
+	ignored:
+		patterns: [{
+			# `@ignore` … `@end ignore`
+			name:  "meta.command.ignore.block.texinfo"
+			begin: "((@)ignore)(?=\\s|$)"
+			end:   "((@)end\\s+ignore)\\b"
+			beginCaptures:
+				1: name: "keyword.operator.command.ignore.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			endCaptures:
+				1: name: "keyword.operator.command.end-ignore.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			contentName: "comment.block.ignored.texinfo"
+			patterns: [include: "#main"]
+		},{
+			# `@bye`
+			name:  "meta.command.bye.block.texinfo"
+			begin: "^((@)bye)(?=\\s|$)"
+			end:   "(?=A)B"
+			beginCaptures:
+				1: name: "keyword.operator.command.bye.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+			contentName: "comment.block.ignored.texinfo"
+			patterns: [include: "#main"]
+		}]
+
+
+	# Inline commands that Emacs italicises/underlines
+	italicText:
+		name:  "meta.command.$3.braced.texinfo"
+		begin: "((@)(i|emph|sc|slanted))({)"
+		end:   "}"
+		contentName: "markup.italic.texinfo"
+		beginCaptures:
+			1: name: "keyword.operator.command.$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+			4: name: "punctuation.section.scope.begin.texinfo"
+		endCaptures:
+			0: name: "punctuation.section.scope.end.texinfo"
+		patterns: [include: "#main"]
+	
+	
+	# Commands which read the rest of the line as an argument list
+	lineCommands:
+		name: "meta.command.$3.line.texinfo"
+		begin: """(?x) ^ ((@)
+			(author|centerchap|center|cindex|clear|defcodeindex|defcvx|defcv|deffnx
+			|deffn|defindex|definfoenclose|defivarx|defivar|defmacx|defmac|defmethodx
+			|defmethod|defoptx|defopt|defopx|defop|defspecx|defspec|deftpx|deftp
+			|deftypecvx|deftypecv|deftypefnx|deftypefn|deftypefunx|deftypefun
+			|deftypeivarx|deftypeivar|deftypemethodx|deftypemethod|deftypeopx
+			|deftypeop|deftypevarx|deftypevar|deftypevrx|deftypevr|defunx|defun
+			|defvarx|defvar|defvrx|defvr|dircategory|documentencoding|documentlanguage
+			|enumerate|evenfooting|even|everyfooting|everyexampleindent|exdent|findex
+			|firstparagraphindent|fonttextsize|footnotestyle|ftable|include|itemize
+			|kbdinputstyle|kindex|macro|multitable|need|node|oddfooting|oddpagesizes
+			|paragraphindent|part|pindex|printindex|setfilename|settitle|set
+			|shorttitlepage|sortas|sp|strong|subtitle|sub|sup|syncodeindex|synindex
+			|table|tindex|title|unmacro|urefbreakstyle|verbatiminclude|vindex|vskip|vtable))
+			(?=\\s|$)
+		"""
+		end: "$"
+		beginCaptures:
+			1: name: "keyword.operator.command.$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		contentName: "markup.raw.texinfo"
+		patterns: [{
+			name: "entity.name.function.macro.texinfo"
+			match: "\\G(?<=@macro)\\s*(\\S+)"
+		},{
+			# Argument list which is purely numeric
+			match: "\\G(?:\\s*[-+]?[0-9]+(?:\\.[0-9]+)?,?)+(?=\\s*$)"
+			captures: 0: patterns: [
+				{match: "[-+]?\\d+(?:\\.\\d+)", name: "constant.numeric.float.texinfo"}
+				{match: "[-+]?\\d+",            name: "constant.numeric.int.texinfo"}
+				{include: "#comma"}
+			]
+		},{
+			# `@|` separators used in heading-type commands
+			name: "keyword.operator.command.separator.texinfo"
+			match: "(@)\\|"
+			captures:
+				1: name: "punctuation.definition.function.texinfo"
+		},
+		{include: "#param"}
+		{include: "#comma"}
+		{include: "#main"}]
+		
+	
+	# `@menu` … `@end menu`
+	menu:
+		name: "meta.command.$3.block.texinfo"
+		begin: "((@)(detailmenu|direntry|menu))(?=\\s|$)"
+		end:   "((@)end\\s+\\3)\\b"
+		beginCaptures:
+			1: name: "keyword.operator.command.$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		endCaptures:
+			1: name: "keyword.operator.command.end-$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		patterns: [{
+			name:  "markup.list.texinfo"
+			begin: "^\\*\\s"
+			end:   "^(?=\\S)"
+			beginCaptures:
+				0: name: "punctuation.definition.list.menu.texinfo"
+			patterns: [{
+				# Entry name
+				begin: "\\G"
+				end:   "::?|(?=\\s*$)"
+				endCaptures:
+					0: name: "punctuation.separator.key-value.menu.texinfo"
+				contentName: "entity.name.tag.entry-name.texinfo"
+				patterns: [include: "#main"]
+			},{
+				# Node name
+				begin: "(?<=[^:]:)\\s*"
+				end:   "(\\.)|(?=\\s*$)"
+				endCaptures:
+					1: name: "punctuation.terminator.full-stop.period.texinfo"
+				contentName: "entity.name.node-name.texinfo"
+				patterns: [include: "#main"]
+			},{
+				# Description
+				name: "string.unquoted.description.texinfo"
+				begin: "(?<=::|\\.)"
+				end:   "^(?=\\S)"
+				patterns: [include: "#main"]
+			}]
+		},{
+			name:  "constant.other.menu-comment.texinfo"
+			begin: "^(?=[^\\s*])(?!@end\\s)"
+			end:   "$|(?=\\s*@end\\s)"
+			patterns: [include: "#main"]
+		}, include: "#main"]
+
+
+	# Bareword/unquoted parameter
+	param:
+		name: "variable.parameter.texinfo"
+		match: "[^\\s{}@,]+|(?<=\\s)({)[^\\s{}@,]+(})"
+		captures:
+			1: name: "punctuation.definition.begin.texinfo"
+			2: name: "punctuation.definition.end.texinfo"
+
+
+	# Quote blocks
+	quotation:
+		name: "meta.command.$3.block.texinfo"
+		begin: "((@)(quotation|smallquotation))(?=\\s|$)"
+		end:   "((@)end\\s+\\3)\\b"
+		beginCaptures:
+			1: name: "keyword.operator.command.$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		endCaptures:
+			1: name: "keyword.operator.command.end-$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		contentName: "markup.quote.texinfo"
+		patterns: [include: "#main"]
+
+
+	# `@html` … `@end html`
+	rawHTML:
+		name:  "meta.command.raw-html.block.texinfo"
+		begin: "((@)html)(?=\\s|$)"
+		end:   "((@)end\\s+html)\\b"
+		beginCaptures:
+			1: name: "keyword.operator.command.html.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		endCaptures:
+			1: name: "keyword.operator.command.end-html.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		contentName: "source.embedded.html"
+		patterns: [
+			{include: "#main"}
+			{include: "text.html.basic"}
+		]
+
+
+	# `@tex` … `@end tex`
+	rawTex:
+		name:  "meta.command.raw-tex.block.texinfo"
+		begin: "((@)tex)(?=\\s|$)"
+		end:   "((@)end\\s+tex)\\b"
+		beginCaptures:
+			1: name: "keyword.operator.command.tex.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		endCaptures:
+			1: name: "keyword.operator.command.end-tex.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		contentName: "source.embedded.tex"
+		patterns: [
+			{include: "#main"}
+			{include: "text.tex.latex"}
+		]
+	
+	
+	# `@xml`…`@end xml` / `@docbook …`@end docbook`
+	rawXML:
+		name:  "meta.command.raw-$3.block.texinfo"
+		begin: "((@)(docbook|xml))(?=\\s|$)"
+		end:   "((@)end\\s+\\3)\\b"
+		beginCaptures:
+			1: name: "keyword.operator.command.$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		endCaptures:
+			1: name: "keyword.operator.command.end-$3.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		contentName: "source.embedded.xml"
+		patterns: [
+			{include: "#main"}
+			{include: "text.xml"}
+		]
+
+	# `@set [name] [value]`
+	set:
+		begin: "((@)set)(?=\\s|$)"
+		end:   "$"
+		beginCaptures:
+			1: name: "keyword.operator.command.set.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+		patterns: [{
+			match: "\\G\\s*(\\S+)"
+			captures: 1:
+				name: "entity.name.var.texinfo"
+				patterns: [include: "#main"]
+		}, {include: "#param"}, {include: "#main"}]
+
+
+	# Non-alphabetic commands
+	symbolCommands:
+		patterns: [{
+			name: "keyword.operator.command.non-alphabetic.texinfo"
+			match: "(@)[-!\"'&*./:=?@\\\\^`{}~]"
+			captures:
+				1: name: "punctuation.definition.function.texinfo"
+		},{
+			# “Escaped” whitespace
+			name: "keyword.operator.command.whitespace.texinfo"
+			match: "(@)(?:( |\\t)|$)"
+			captures:
+				1: name: "punctuation.definition.function.texinfo"
+		},{
+			# @, - Generate cedilla accent
+			name: "meta.command.braced.texinfo"
+			begin: "((@),)({)"
+			end:   "}"
+			beginCaptures:
+				1: name: "keyword.operator.command.cedilla-accent.texinfo"
+				2: name: "punctuation.definition.function.texinfo"
+				3: name: "punctuation.section.scope.begin.texinfo"
+			endCaptures:
+				0: name: "punctuation.section.scope.end.texinfo"
+			patterns: [
+				name: "constant.character.texinfo"
+				match: "[^\\s{}@,]+"
+				
+				{include: "#comma"}
+				{include: "#main"}
+			]
+		}]
+
+
+	# Inline code literal: `@verb{|…|}`
+	verbatim:
+		name:  "meta.command.braced.verb.texinfo"
+		begin: "((@)verb)({)([^}])"
+		end:   "(\\4)(})"
+		contentName: "string.quoted.other.verbatim.texinfo"
+		beginCaptures:
+			1: name: "keyword.operator.command.verb.texinfo"
+			2: name: "punctuation.definition.function.texinfo"
+			3: name: "punctuation.section.scope.begin.texinfo"
+			4: name: "punctuation.arbitrary.delimiter.begin.texinfo"
+		endCaptures:
+			1: name: "punctuation.arbitrary.delimiter.end.texinfo"
+			0: name: "punctuation.section.scope.end.texinfo"

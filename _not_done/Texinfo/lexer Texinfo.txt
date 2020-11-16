@@ -1,0 +1,11 @@
+I began to write lexer Texinfo. 
+filetype *.txi *.texi *.texinfo.
+I see in syntax file of VSCode and see many many token kinds.
+
+- simple @cmd w/o braces, for some set of keywords
+- @cmd{...} with many variants and parsing of contents in braces
+- some @cmd{...} have separate styles, e.g. @b @strong
+
+VSCode file is very big.
+so I stopped.
+if any needs this lexer, write here. write what you need to highlight.
