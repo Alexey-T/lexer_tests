@@ -12,13 +12,14 @@
 # Arguments:
 #   a0: color
 #   a1: state
-setLED:
+setLED:    
     addi sp, sp, -16            # Allocate stack frame
     sw ra, 12(sp)               # Store return address
-
+           
+		/*  
     li t0, GPIO_CTRL_ADDR
     lw t1, GPIO_OUTPUT_VAL(t0)  # Get current value of the GPIO pins
-
+    */
     beqz a1, ledOff
     li t2, LEDON
 
@@ -26,7 +27,10 @@ setLED:
 
     li a0, ERROR                # Invalid state, return error
     j exit
-
+		
+<dfdsffds>:
+		sefsdf
+		
 ledOff:
     xor a0, a0, 0xFFFFFFFF      # Set requested pin to 0, others 1
     and t1, t1, a0
