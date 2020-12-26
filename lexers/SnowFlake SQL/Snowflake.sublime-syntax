@@ -1,0 +1,139 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+name: Snowflake
+file_extensions:
+  - snowql
+scope: source.snowflake
+contexts:
+  main:
+    # Strings begin and end with quotes, and use backslashes as an escape
+    # character
+    - match: "'"
+      scope: punctuation.definition.string.begin.snowflake
+      push: single_quoted_string
+
+    - match: '"'
+      scope: punctuation.definition.string.begin.snowflake
+      push: double_quoted_string
+
+    # Comments begin with a '//' and finish at the end of the line
+    - match: '--'
+      scope: punctuation.definition.comment.snowflake
+      push: dash_line_comment
+
+    - match: '\/\/'
+      scope: punctuation.definition.comment.snowflake
+      push: slash_line_comment
+
+    - match: '\/\*'
+      scope: punctuation.definition.comment.snowflake
+      push: multiline_comment
+
+    - match: ';'
+      scope: punctuation.terminator.snowflake
+
+    # Keywords are if, else for and while.
+    # Note that blackslashes don't need to be escaped within single quoted
+    # strings in YAML. When using single quoted strings, only single quotes
+    # need to be escaped: this is done by using two single quotes next to each
+    # other.
+    - match: '\b(?i:alter account|alter api integration|alter column|alter database|alter external function|alter external table|alter file format|alter function|alter integration|alter masking policy|alter materialized view|alter network policy|alter notification integration|alter pipe|alter procedure|alter resource monitor|alter role|alter schema|alter security integration|alter sequence|alter session|alter share|alter stage|alter storage integration|alter stream|alter table|alter task|alter user|alter view|alter warehouse|begin|call|clone|cluster by|comment|commit|constraint|copy into|create api integration|create database|create external function|create external table|create file format|create function|create integration|create managed account|create masking policy|create materialized view|create network policy|create notification integration|create or replace table|create pipe|create procedure|create resource monitor|create role|create schema|create security integration|create sequence|create share|create stage|create storage integration|create stream|create table|create task|create user|create view|create warehouse|delete|describe external table|describe file format|describe function|describe integration|describe masking policy|describe materialized view|describe network policy|describe pipe|describe procedure|describe result|describe sequence|describe share|describe stage|describe stream|describe table|describe task|describe user|describe view|drop database|drop external table|drop file format|drop function|drop integration|drop managed account|drop masking policy|drop materialized view|drop network policy|drop pipe|drop procedure|drop resource monitor|drop role|drop schema|drop sequence|drop share|drop stage|drop stream|drop table|drop task|drop user|drop view|drop warehouse|explain|from role|from share|get|grant ownership|grant role|if not exists|insert into|list|merge|put|remove|resume|revoke|revoke|revoke role|rollback|set|show columns|show databases|show delegated authorizations|show external functions|show external tables|show file formats|show functions|show global accounts|show grants|show integrations|show locks|show managed accounts|show masking policies|show materialized views|show network policies|show objects|show parameters|show pipes|show procedures|show regions|show replication accounts|show replication databases|show resource monitors|show roles|show schemas|show sequences|show shares|show stages|show streams|show tables|show tasks|show transactions|show user functions|show users|show variables|show views|show warehouses|suspend|to role|to share|truncate materialized view|truncate table|undrop database|undrop schema|undrop table|unset|update|use database|use role|use schema|use warehouse)\b'
+      scope: keyword.control.snowflake
+
+    - match: '\b(?i:true|false|null)\b'
+      scope: constant.language.snowflake
+    # Numbers
+    - match: '\b(\d+\.?\d*)\b'
+      scope: constant.numeric.snowflake
+
+    - match: '(\+|\-|\*|\/|\%)'
+      scope: keyword.operator.arithmetic.snowflake
+
+    - match: '(=|!=|<>|<=|<|>=|>)'
+      scope: keyword.operator.comparison.snowflake
+
+    - match: '\b(?i:all|and|any|asc|(not\s+)?between|desc|exists|except|(not\s+)?in|intersect|is\s+(not\s+)?distinct from|is\s+(not\s+)?|minus|not|or|union)\b'
+      scope: keyword.operator.word.snowflake
+
+    - match: '\b(?i:as|at|before|case|changes|connect by|cross|else|end|from|full|group by|group by cube|group by grouping sets|group by rollup|having|ilike|ilike any|insert|join|left|like|like all|like any|limit|natural|order by|pivot|qualify|on|outer|rlike|right|sample|select|tablesample|then|unpivot|using|values|when|where|with)\b'
+      scope: keyword.control.snowflake
+
+    - match: '\b(?i:(top)\s+(\d+))\b'
+      captures :
+        1 : keyword.control.snowflake
+        2 : constant.numeric.integer.snowflake
+
+    - match: '\b(?i:array|bigint|binary|boolean|char|character|date|datetime|decimal|double|double precision|float|float4|float8|geography|int|integer|normal|number|numeric|object|random|randstr|real|seq1|seq2|seq4|seq8|smallint|string|text|time|timestamp|timestamp_ltz|timestamp_ntz|timestamp_tz|uniform|varbinary|varchar|variant|zipf)\b'
+      scope: storage.type.snowflake
+
+    - match: '\b(?i:abs|acos|acosh|asin|asinh|atan|atan2|atanh|cbrt|ceil|cos|cosh|cot|degrees|div0|exp|factorial|floor|haversine|ln|log|mod|pi|pow|power|radians|round|sign|sin|sinh|sqrt|square|tan|tanh|truncate|trunc)\b'
+      scope: support.function.udf.mathematic.snowflake
+
+    - match: '\b(?i:add_months|convert_timezone|current_date|current_time|current_timestamp|date_from_parts|date_part|date_trunc|dateadd|datediff|dayname|extract|hour|minute|second|last_day|monthname|next_day|previous_day|time_from_parts|time_slice|timeadd|timediff|timestamp_from_parts|timestampadd|timestampdiff|trunc|year|yearofweek|yearofweekiso|day|dayofmonth|dayofweek|dayofweekiso|dayofyear|week|weekofyear|weekiso|month|quarter|month|quarter)\b'
+      scope: support.function.udf.date.snowflake
+
+    - match: '\b(?i:any_value|approx_count_distinct|approx_percentile|approx_percentile_accumulate|approx_percentile_combine|approx_percentile_estimate|approx_top_k|approx_top_k_accumulate|approx_top_k_combine|approx_top_k_estimate|approximate_jaccard_index|approximate_similarity|array_agg|avg|bitand_agg|bitor_agg|bitxor_agg|booland_agg|boolor_agg|boolxor_agg|conditional_change_event|conditional_true_event|corr|count|count_if|covar_pop|covar_samp|cume_dist|dense_rank|first_value|grouping|grouping_id|hash_agg|hll|hll_accumulate|hll_combine|hll_estimate|hll_export|hll_import|kurtosis|lag|last_value|lead|listagg|max|median|min|minhash|minhash_combine|mode|nth_value|ntile|object_agg|percent_rank|percentile_cont|percentile_disc|rank|ratio_to_report|regr_avgx|regr_avgy|regr_count|regr_intercept|regr_r2|regr_slope|regr_sxx|regr_sxy|regr_syy|row_number|skew|stddev|stddev_pop|stddev_samp|sum|var_pop|var_samp|variance|variance_pop|variance_samp)\b'
+      scope: support.function.udaf.snowflake
+
+    - match: '\b(?i:ascii|base64_decode_binary|base64_decode_string|base64_encode|bit_length|char|charindex|chr|collate|collation|compress|concat|concat_ws|contains|decompress_binary|decompress_string|decrypt|decrypt_raw|editdistance|encrypt|encrypt_raw|endswith|get_ddl|hash|hex_decode_binary|hex_decode_string|hex_encode|initcap|len|length|lower|lpad|ltrim|md5|md5_binary|md5_hex|octet_length|parse_ip|parse_url|position|regexp|regexp_count|regexp_instr|regexp_like|regexp_replace|regexp_substr|repeat|replace|reverse|rpad|rtrim|rtrimmed_length|sha1|sha1_binary|sha1_hex|sha2|sha2_binary|sha2_hex|soundex|space|split|split_part|split_to_table|startswith|strtok|strtok_split_to_table|substr|substring|translate|trim|try_base64_decode_binary|try_base64_decode_string|try_hex_decode_binary|try_hex_decode_string|unicode|upper|uuid_string)\b'
+      scope: support.function.udf.string.snowflake
+
+    - match: '\b(?i:booland|boolnot|boolor|boolxor|case|coalesce|decode|equal_null|greatest|iff|ifnull|least|nullif|nullifzero|nvl|nvl2|regr_valx|regr_valy|zeroifnull)\b'
+      scope: support.function.udf.conditional.snowflake
+
+    - match: '\b(?i:st_area|st_asewkb|st_asewkt|st_asgeojson|st_aswkb|st_asbinary|st_aswkt|st_astext|st_azimuth|st_centroid|st_collect|st_contains|st_coveredby|st_covers|st_dimension|st_disjoint|st_distance|st_dwithin|st_envelope|st_geogfromgeohash|st_geographyfromwkb|st_geographyfromwkt|st_geohash|st_hausdorffdistance|st_intersects|st_length|st_makeline|st_makepoint|st_point|st_makepolygon|st_polygon|st_npoints|st_numpoints|st_perimeter|st_simplify|st_srid|st_within|st_x|st_xmax|st_xmin|st_y|st_ymax|st_ymin|to_geography)\b'
+      scope: support.function.udf.geography.snowflake
+
+    - match: '\b(?i:bitand|bitnot|bitor|bitshiftleft|bitshiftright|bitxor|getbit)\b'
+      scope: support.function.udf.bitwise.snowflake
+
+    - match: '\b(?i:cast|date|time|to_binary|to_boolean|to_char|to_date|to_decimal|to_double|to_number|to_numeric|to_time|to_timestamp|to_timestamp_ltz|to_timestamp_ntz|to_timestamp_tz|to_varchar|to_variant|try_cast|try_to_boolean|try_to_date|try_to_decimal|try_to_double|try_to_geography|try_to_binary|try_to_number|try_to_numeric|try_to_time|try_to_timestamp|try_to_timestamp_ltz|try_to_timestamp_ntz|try_to_timestamp_tz)\b'
+      scope: support.function.udf.type-cast.snowflake
+
+  # Comments and strings
+
+  single_quoted_string:
+    - meta_scope: string.quoted.single.snowflake
+
+    - match: '\\.'
+      scope: constant.character.escape.snowflake
+
+    - match: "'"
+      scope: punctuation.definition.string.end.snowflake
+      pop: true
+
+  double_quoted_string:
+    - meta_scope: string.quoted.double.snowflake
+
+    - match: '\\.'
+      scope: constant.character.escape.snowflake
+
+    - match: '"'
+      scope: punctuation.definition.string.end.snowflake
+      pop: true
+
+  dash_line_comment:
+    - meta_scope: comment.line.snowflake
+
+    # Within this scope new keywords can be highlighted
+    - match: '\b(BUG|DEV|FIX|FIXME|NOTE|PROD|TODO)\b'
+      scope: keyword.codetag.notation.snowflake
+
+    - match: '$'
+      pop: true
+
+  slash_line_comment:
+    - meta_scope: comment.line.snowflake
+
+    # Within this scope new keywords can be highlighted
+    - match: '\b(BUG|DEV|FIX|FIXME|NOTE|PROD|TODO)\b'
+      scope: keyword.codetag.notation.snowflake
+
+    - match: '$'
+      pop: true
+
+  multiline_comment:
+    - meta_scope: comment.line.snowflake
+    - match: '\*\/'
+      pop: true
