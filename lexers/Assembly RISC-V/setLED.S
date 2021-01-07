@@ -28,8 +28,8 @@ setLED:
     li a0, ERROR                # Invalid state, return error
     j exit
 		
-<dfdsffds>:
-		sefsdf
+<func>:
+	j exit
 		
 ledOff:
     xor a0, a0, 0xFFFFFFFF      # Set requested pin to 0, others 1
