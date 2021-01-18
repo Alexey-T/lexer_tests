@@ -1,0 +1,83 @@
+abc$ed$dfd
+$sdfsdf$sdf$df
+:2000-00-00T,
+        
+//ints
+
+null.int   // A null int value
+0          // Zero.  Surprise!
+-0         //   ...the same value with a minus sign
+123        // A normal int
+-123       // Another negative int
+0xBeef     // An int denoted in hexadecimal
+0b0101     // An int denoted in binary
+1_2_3      // An int with underscores
+0xFA_CE    // An int denoted in hexadecimal with underscores
+0b10_10_10 // An int denoted in binary with underscores
+
++1         // ERROR: leading plus not allowed
+0123       // ERROR: leading zeros not allowed (no support for octal notation)
+1_         // ERROR: trailing underscore not allowed
+1__2       // ERROR: consecutive underscores not allowed
+0x_12      // ERROR: underscore can only appear between digits (the radix prefix is not a digit)
+_1         // A symbol (ints cannot start with underscores)
+     
+//types
+
+null.bool
+true
+false
+
+null.decimal      // A null decimal value
+null.float        // A null float value
+
+//floats
+
+0.123             // Type is decimal
+-0.12e4           // Type is float
+-0.12d4           // Type is decimal
+
+0E0               // Zero as float
+0D0               // Zero as decimal
+0.                //   ...the same value with different notation
+-0e0              // Negative zero float   (distinct from positive zero)
+-0d0              // Negative zero decimal (distinct from positive zero)
+-0.               //   ...the same value with different notation
+-0d-1             // Decimal maintains precision: -0. != -0.0
+
+123_456.789_012   // Decimal with underscores
+
+123_._456         // ERROR: underscores may not appear next to the decimal point
+12__34.56         // ERROR: consecutive underscores not allowed
+123.456_          // ERROR: trailing underscore not allowed
+-_123.456         // ERROR: underscore after negative sign not allowed
+_123.456          // ERROR: the symbol '_123' followed by an unexpected dot
+
+//timestamp
+
+null.timestamp                   // A null timestamp value
+
+2007-02-23T12:14Z                // Seconds are optional, but local offset is not
+2007-02-23T12:14:33.079-08:00    // A timestamp with millisecond precision and PST local time
+2007-02-23T20:14:33.079Z         // The same instant in UTC ("zero" or "zulu")
+2007-02-23T20:14:33.079+00:00    // The same instant, with explicit local offset
+2007-02-23T20:14:33.079-00:00    // The same instant, with unknown local offset
+
+2007-01-01T00:00-00:00           // Happy New Year in UTC, unknown local offset
+2007-01-01                       // The same instant, with days precision, unknown local offset
+2007-01-01T                      //    The same value, different syntax.
+2007-01T                         // The same instant, with months precision, unknown local offset
+2007T                            // The same instant, with years precision, unknown local offset
+
+2007-02-23                       // A day, unknown local offset 
+2007-02-23T00:00Z                // The same instant, but more precise and in UTC
+2007-02-23T00:00+00:00           // An equivalent format for the same value
+2007-02-23T00:00:00-00:00        // The same instant, with seconds precision
+
+2007                             // Not a timestamp, but an int
+2007-01                          // ERROR: Must end with 'T' if not whole-day precision, this results as an invalid-numeric-stopper error
+2007-02-23T20:14:33.Z            // ERROR: Must have at least one digit precision after decimal point.
+
+'''test
+test
+test'''
