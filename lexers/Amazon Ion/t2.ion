@@ -1,0 +1,13 @@
+// comments are allowed in Ion files using the double forward slash 
+{
+  key: "value",   // key here is a symbol, it can also be a string as in JSON
+  nums: 1_000_000, // equivalent to 1000000, use of underscores with numbers is more readable
+  'A float value': -31415e-4,  // key is a value that contains spaces 
+  "An int value": null.int,
+  annotated: age::45,     // age here is the annotation to number 45
+  lists : 'hw grades'::[80, 85, 90], // any symbol can be used as an annotation 
+  many_annot: I::have::many::annotations::true, // annotations are not nested, but rather, a list of annotations
+  sexp: (this (is a [valid] "Ion") last::value 42) // Ion S-expressions, 
+  blob_value: {{OiBTIKUgTyAASb8=}},
+  clob_value: {{"a b"}}
+}
