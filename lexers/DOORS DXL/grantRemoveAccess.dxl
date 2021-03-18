@@ -1,0 +1,746 @@
+//<
+//Title: grantRemoveAccess.dxl
+//Author: Scott Boisvert
+//Date: 20 May 2008
+//Brief:
+/***********************************************************
+* This script allows the user to set or remove access to
+* multiple items in the DOORS database for multiple users
+* and/or groups.
+***********************************************************/
+//Updated: 
+/***********************************************************
+* 05/28/08
+* Corrected issue of modules not being removed correctly
+* from the item list. Also added functionality so deleted
+* items are not populated in the item list.
+***********************************************************/
+
+pragma runLim, 0
+
+DB db
+
+DBE userListView
+DBE groupListView
+DBE accessListView
+DBE moduleList
+
+DBE	treeFrame
+DBE	listFrame
+DBE	itemTree
+DBE	itemList
+
+Skip selectedItems = getSelectedItems ()
+Skip items = createString ()
+
+int numItems
+
+//Call back function to sort listViews.
+int sortListView (string s1, string s2)
+{
+	if (s1 == s2)
+	{
+		return 0
+	}
+	else if (s1 > s2)
+	{
+		return 1
+	}
+	else if (s1 < s2)
+	{
+		return -1
+	}
+}//End sortListView.
+
+Permission getPermission ()
+{
+	Permission perm = null
+	
+	//Access = Full Access (RMCDA)
+	if (getCheck (accessListView, 2))
+	{
+		perm = read|modify|create|delete|control
+	}
+	//Access = Read (R)
+	if (getCheck (accessListView, 3))
+	{
+		perm = read	
+	}
+	//Access = Modify (M)
+	if (getCheck (accessListView, 4))
+	{
+		if (perm == null)
+		{
+			perm = modify	
+		}	
+		else
+		{
+			perm = perm|modify	
+		}
+	}
+	//Access = Create (C)
+	if (getCheck (accessListView, 5))
+	{
+		if (perm == null)
+		{
+			perm = create 	
+		}	
+		else
+		{
+			perm = perm|create	
+		}
+	}
+	//Access = Delete (D)
+	if (getCheck (accessListView, 6))
+	{
+		if (perm == null)
+		{
+			perm = delete
+		}
+		else
+		{
+			perm = perm|delete	
+		}
+	}
+	//Access = Admin (A)
+	if (getCheck (accessListView, 7))
+	{
+		if (perm == null)
+		{
+			perm = control	
+		}	
+		else
+		{
+			perm = perm|control	
+		}
+	}
+	
+	return perm
+}//End getPermission.
+
+void applyAccess (DB win)
+{
+	Item I 
+	
+	string err
+	
+	Permission itemPerm = getPermission ()
+	
+	Buffer userName = create (1)
+	
+	//Remove is selected.
+	if (itemPerm == null && getCheck (accessListView, 0))
+	{
+		//Loop through the items to remove access.
+		for I in items do
+		{
+			//Loop through the users to remove access from the item.
+			for i in userListView do
+			{
+				if (selected (userListView, i))
+				{
+					userName = get (userListView, i)
+					err = unset (I, tempStringOf (userName))
+				}	
+			}	
+			
+			//Loop through the groups to remove access from the item.
+			for i in groupListView do
+			{
+				if (selected (groupListView, i))
+				{
+					userName = get (groupListView, i)
+					
+					if (tempStringOf (userName) != "Everyone else")
+					{
+						err = unset (I, tempStringOf (userName))	
+					}
+					else
+					{
+						err = unset (I, null)	
+					}
+				}	
+			}
+		}
+	}
+	//Permission other than remove is selected.
+	else
+	{
+		//Apply permissions to selected items.
+		for I in items do
+		{
+			//Set the item's access to specific.
+			err = specific (I)
+			
+			//Set permissions for each selected user.
+			for i in userListView do
+			{
+				if (selected (userListView, i))
+				{
+					userName = get (userListView, i)
+					err = set (I, itemPerm, tempStringOf (userName))
+				}
+			}
+			
+			//Set permissions for each selected group.
+			for i in groupListView do
+			{
+				if (selected (groupListView, i))
+				{
+					userName = get (groupListView, i)
+					
+					if (tempStringOf (userName) != "Everyone else")
+					{
+						err = set (I, itemPerm, tempStringOf (userName))	
+					}
+					else
+					{
+						err = set (I, itemPerm, null)	
+					}
+				}
+			}
+		}
+	}
+}//End applyAccess.
+
+void setInherited (DB win)
+{
+	Item I
+	
+	string set_inherited
+	
+	//Set the inherit from parent check on the selected items.
+	for I in items do
+	{
+		set_inherited = inherited (I)
+	}
+}//End setInherited.
+
+void accessCallback (DBE win, int check)
+{
+	//Remove is selected.
+	if (check == 0 && getCheck (win, check))
+	{
+		for (i = 1; i < 8; i++)
+		{
+			setCheck (win, i, false)	
+		}
+		
+		setCheck (win, 1, false)
+		setCheck (win, 0, true)
+	}
+	//None is selected.
+	else if (check == 1 && getCheck (win, check))
+	{
+		setCheck (win, 0, false)
+		
+		for (i = 2; i < 8; i++)
+		{
+			setCheck (win, i, false)	
+		}	
+	}
+	//Full access is selected.
+	else if (check == 2 && getCheck (win, check))
+	{
+		setCheck (win, 0, false)
+		setCheck (win, 1, false)
+		
+		for (i = 3; i < 8; i++)
+		{
+			setCheck (win, i, true)	
+		}	
+	}
+	//Read is selected.
+	else if (check == 3 && getCheck (win, check))
+	{
+		setCheck (win, 0, false)
+		setCheck (win, 1, false)
+	}
+	//Modify is selected.
+	else if (check == 4 && getCheck (win, check))
+	{
+		setCheck (win, 0, false)
+		setCheck (win, 1, false)		
+		setCheck (win, 3, true)	
+	}
+	//Create is selected.
+	else if (check == 5 && getCheck (win, check))
+	{
+		setCheck (win, 0, false)
+		setCheck (win, 1, false)		
+		setCheck (win, 3, true)
+	}
+	//Delete is selected.
+	else if (check == 6 && getCheck (win, check))
+	{
+		setCheck (win, 0, false)
+		setCheck (win, 1, false)		
+		setCheck (win, 3, true)
+		setCheck (win, 4, true)	
+	}
+	//Admin is selected.
+	else if (check == 7 && getCheck (win, check))
+	{
+		setCheck (win, 0, false)
+		setCheck (win, 1, false)
+				
+		for (i = 3; i < 7; i++)
+		{
+			setCheck (win, i, true)	
+		}	
+	}
+	//If Read is deselected.
+	else if (check == 3 && !getCheck (win, check))
+	{
+		setCheck (win, 1, true)	
+	}
+	//If Modify is deselected.
+	else if (check == 4 && !getCheck (win, check))
+	{
+		setCheck (win, 2, false)
+			
+		for (i = 5; i < 8; i++)
+		{
+			setCheck (win, i, false)
+		}	
+	}
+	//If Create is deselected.
+	else if (check == 5 && !getCheck (win, check))
+	{
+		setCheck (win, 2, false)
+		setCheck (win, 7, false)	
+	}
+	//If Delete is deselected.
+	else if (check == 6 && !getCheck (win, check))
+	{
+		setCheck (win, 2, false)	
+	}
+	//If Admin is deselected.
+	else if (check == 7 && !getCheck (win, check))
+	{
+		setCheck (win, 2, false)	
+	}
+}//End accessCallback.
+
+void addItemToList (Item I)
+{
+	string ugName = null
+	
+	ModName_ modRef
+	
+	LockList lList
+	
+	Lock lck
+	
+	int rowNum = 0	
+	
+	Item I2
+	
+	bool itemExists = false
+	
+	//Check the item isn't all ready in the list.
+	for I2 in items do
+	{
+		if (name (I) == (string key (items)))
+		{
+			itemExists = true	
+		}
+	}
+	
+	//If not in the list all ready.
+	if (!itemExists)
+	{
+		//Add the formal module.
+		if (type (I) == "Formal")
+		{
+			modRef = module (fullName (I))
+			
+			//Get the locks on the module if any.
+			lList = getLocksInModule (modRef, true)
+			
+			for lck in lList do
+			{
+				ugName = lck.user
+			}			
+		
+			//Insert the module in the list with with normal icon if not locked.
+			if (!isLocked (modRef) || (isLocked (modRef) && ugName == null))
+			{
+				insert (moduleList, rowNum, name (I), iconFormal)
+				set (moduleList, rowNum, 1, ugName)
+				put (items, name (I), I)			
+			}
+			//Insert the item in the list with the deleted icon indicating it is locked
+			//and will not be processed.
+			else
+			{
+				insert (moduleList, rowNum, name (I), iconFormalDeleted)
+			}
+		}
+		//Add the link module.
+		else if (type (I) == "Link")
+		{
+			modRef = module (fullName (I))
+			
+			//Get the locks on the module if any.
+			lList = getLocksInModule (modRef, true)
+			
+			for lck in lList do
+			{
+				ugName = lck.user
+			}			
+			
+			//Insert the module in the list with the normal icon if not locked.			
+			if (!isLocked (modRef) || (isLocked (modRef) && ugName == null))
+			{
+				insert (moduleList, rowNum, name (I), iconLink)
+				set (moduleList, rowNum, 1, ugName)
+				put (items, name (I), I)			
+			}
+			//Insert the item in the list with the deleted icon indicating it is locked
+			//and will not be processed.
+			else
+			{
+				insert (moduleList, rowNum, name (I), iconLinkDeleted)	
+			}
+		}
+		//Add the folder.
+		else if (type (I) == "Folder")
+		{
+			//Insert the folder in the list.
+			insert (moduleList, rowNum, name (I), iconFolder)
+			put (items, name (I), I)
+		}
+		//Add the project.
+		else if (type (I) == "Project")
+		{
+			//Insert the project in the list.
+			insert (moduleList, rowNum, name (I), iconProject)
+			put (items, name (I), I)
+		}
+		//Add the descriptive module.
+		else if (type (I) == "Descriptive")
+		{
+			modRef = module (fullName (I))
+			
+			//Get the locks in the module if any.
+			lList = getLocksInModule (modRef, true)
+				
+			for lck in lList do
+			{
+				ugName = lck.user
+			}			
+			
+			//Insert the module in the list with the normal icon if not locked.	
+			if (!isLocked (modRef) || (isLocked (modRef) && ugName == null))
+			{
+				insert (moduleList, rowNum, name (I), iconDescriptive)
+				set (moduleList, rowNum, 1, ugName)
+				put (items, name (I), I)
+			}
+			//Insert the item in the list with the deleted icon indicating it is locked
+			//and will not be processed.
+			else
+			{
+				insert (moduleList, rowNum, name (I), iconDescriptiveDeleted)	
+			}
+		}
+		
+		rowNum++	
+	}
+}//End addItemToList.
+
+void listViewSelect (DBE win, int i)
+{
+	//Do nothing.	
+}//End listViewSelect.
+
+void listViewDeselect (DBE win, int i)
+{
+	//Do nothing.
+}//End listViewDeselect.
+
+void treeSelect (DBE win)
+{
+	//Do nothing.
+}//End treeSelect
+
+void listActivate (DBE win, int i)
+{
+	//Delete the item from the list.
+	delete (itemList, i)
+	numItems--
+}//End listActivate.
+
+void treeActivate (DBE win)
+{
+	Buffer temp = create (1)
+	
+	bool itemSelected = false
+	
+	Item I
+	
+	temp += "/" get (win)
+	
+	I  = item (tempStringOf (temp))
+	
+
+	//Make sure the item hasn't been selected all ready.
+	for (i = 0; i < numItems; i++)
+	{
+		if (tempStringOf (temp) == (get (itemList, i)))
+		{
+			itemSelected = true	
+		}
+	}
+	
+	if (!itemSelected)
+	{
+		if (type (I) == "Formal")
+		{
+			//Enter the module in the items list.
+			insert (itemList, numItems, tempStringOf (temp), iconFormal)
+		}
+		else if (type (I) == "Folder")
+		{
+			//Enter the folder in the items list.
+			insert (itemList, numItems, tempStringOf (temp), iconFolder)
+		}
+		else if (type (I) == "Link")
+		{
+			//Enter the link module in the items list.
+			insert (itemList, numItems, tempStringOf (temp), iconLink)
+		}
+		else if (type (I) == "Descriptive")
+		{
+			//Enter the descriptive module in the items list.
+			insert (itemList, numItems, tempStringOf (temp), iconDescriptive)
+		}	
+		else if (type (I) == "Project")
+		{
+			//Enter the project in the items list.
+			insert (itemList, numItems, tempStringOf (temp), iconProject)
+		}	
+			
+		numItems ++
+	}
+	else
+	{
+		//Let the user know the module was all ready selected.
+		ack ("Item has all ready been selected.")
+	}
+
+	delete (temp)
+}//End treeActivate.
+
+void addItemsCallback (DB win)
+{
+	Item I
+	
+	//Loop through the items in the list and add them to the selected items on the main DB.
+	for (i = 0; i < numItems; i++)
+	{
+		I = item (get (itemList, i))
+		
+		addItemToList (I)
+	}
+}//End addItemsCallback.
+
+void addItemToList (DB win)
+{
+	string listViewItems []
+	
+	//Create the Add Items dialog box.
+	DB addItems = create ("Add Items", styleCentered|styleStandard|styleFloating)
+	
+	Project p
+	
+	Item I
+	
+	//Set the number of items to 0.
+	numItems = 0
+	
+	//Create the dialog box elements.
+	treeFrame = frame (addItems, "Select Items:", 350, 250)
+	listFrame = frame (addItems, "Selected Items:", 500, 250)
+	itemTree = treeView (addItems, treeViewOptionSorted, 250, 10)
+	itemList = listView (addItems, 0, 35, 15, listViewItems)
+	
+	set (itemTree, treeSelect, treeActivate)
+	set (itemList, listViewSelect, listViewDeselect, listActivate)
+	
+	//Position the dialog box elements.
+	treeFrame->"right"->"unattached"
+	treeFrame->"bottom"->"form"
+	listFrame->"top"->"aligned"->treeFrame
+	listFrame->"right"->"form"
+	listFrame->"left"->"spaced"->treeFrame
+	listFrame->"bottom"->"form"
+	itemTree->"top"->"inside"->treeFrame
+	itemTree->"left"->"inside"->treeFrame
+	itemTree->"right"->"inside"->treeFrame
+	itemTree->"bottom"->"inside"->treeFrame
+	itemList->"top"->"inside"->listFrame
+	itemList->"left"->"inside"->listFrame
+	itemList->"right"->"inside"->listFrame
+	itemList->"bottom"->"inside"->listFrame
+
+	//Add the OK Button.
+	ok (addItems, "Add Items", addItemsCallback)
+	
+	//Show the DB.
+	realize (addItems)
+
+	//Insert a column in the itemList listView.
+	insertColumn (itemList, 0, "Items", 480, iconNone)	
+		
+	//Loop through all the items in the database by project and 
+	//insert them into the treeView.
+	for p in database do
+	{
+		insert (itemTree, fullName (p), iconProject, iconProjectOpen)
+		
+		for I in p do
+		{
+			if (type (I) == "Folder")
+			{
+				insert (itemTree, fullName (I), iconFolder, iconFolderOpen)
+			}
+			else if (type (I) == "Formal")
+			{
+				insert (itemTree, fullName (I), iconFormal, iconFormal)
+			}
+			else if (type (I) == "Link")
+			{
+				insert (itemTree, fullName (I), iconLink, iconLink)
+			}
+			else if (type (I) == "Descriptive")
+			{
+				insert (itemTree, fullName (I), iconDescriptive, iconDescriptive)
+			}	
+		}	
+	}
+}//End addItemToList.
+
+void removeItemFromList (DB win)
+{
+	int i
+	
+	//Loop through the module list.
+	for (i = noElems (moduleList); i >= 0; i--)
+	{	
+		//If the item is selected then remove it from list to process.
+		if (selected (moduleList, i))
+		{	
+			print get (moduleList, i) "\n"
+			delete (items, get (moduleList, i))
+			delete (moduleList, i)
+		}	
+	}
+}//End removeItemFromList.
+
+void createDB ()
+{
+	User u
+	
+	Group g
+	
+	bool ugDisabled	
+	
+	string temp []
+	string access [8] = {"Remove", "None", "Full Access (RMCDA)", "Read (R)", "Modify (M)", "Create (C)", "Delete (D)", "Admin (A)"}
+	string ugName
+	
+	int rowNum = 0
+	
+	Item I
+	
+	//Start building the dialog box.
+	db = create ("Grant/Remove Access", styleStandard|styleCentered)
+	userListView = listView (db, listViewOptionMultiselect, 225, 15, temp)
+	groupListView = listView (db, listViewOptionMultiselect, 225, 15, temp)
+	accessListView = listView (db, listViewOptionCheckboxes, 155, 8, access)
+	moduleList = listView (db, listViewOptionMultiselect, 200, 7, temp)
+	apply (db, "Add Item(s)", addItemToList)
+	apply (db, "Remove Item(s)", removeItemFromList)
+	apply (db, "Apply", applyAccess)
+	apply (db, "Set Inherited", setInherited)
+	
+	//Placement of the DBE's on the dialog box.
+	userListView->"right"->"unattached"
+	userListView->"bottom"->"unattached"
+	groupListView->"top"->"aligned"->userListView
+	groupListView->"left"->"spaced"->userListView
+	groupListView->"bottom"->"unattached"
+	accessListView->"top"->"spaced"->userListView
+	accessListView->"right"->"unattached"
+	accessListView->"bottom"->"form"
+	moduleList->"top"->"aligned"->accessListView
+	moduleList->"left"->"spaced"->accessListView
+	
+	realize (db)
+
+	//Put the appropriate columns in the list views.
+	insertColumn (userListView, 0, "Username", 100, iconNone)
+	insertColumn (userListView, 1, "User", 100, iconNone)
+	insertColumn (groupListView, 0, "Groups", 200, iconNone)
+	insertColumn (accessListView, 0, "Access", 150, iconNone)
+	insertColumn (moduleList, 0, "Selected Items", 200, iconNone)
+	insertColumn (moduleList, 1, "Locked By", 90, iconNone)
+	
+	//Add the users to the user list view.
+	for u in userList do
+	{
+		ugDisabled = u.disabled
+		
+		if (!ugDisabled)
+		{
+			ugName = u.name
+			insert (userListView, rowNum, ugName, iconUser)
+			ugName = u.fullName
+			set (userListView, rowNum, 1, ugName)
+			rowNum++
+		}
+	}
+	
+	rowNum = 1
+	
+	insert (groupListView, 0, "Everyone else", iconGroup)
+	
+	//Add the groups to the group list view.
+	for g in groupList do
+	{
+		ugDisabled = g.disabled
+		
+		if (!ugDisabled)
+		{
+			ugName = g.name
+			insert (groupListView, rowNum, ugName, iconGroup)
+			rowNum++
+		}	
+	}
+	
+	rowNum = 0
+	
+	//Get the selected items and add them to the module list view.
+	for I in selectedItems do
+	{
+		if (!isDeleted (I))
+		{
+			addItemToList (I)
+		}
+	}
+	
+	//Set the sort on the list views.
+	set (userListView, 0, sortListView)
+	set (userListView, 1, sortListView)
+	set (groupListView, 0, sortListView)
+	
+	//Set the callback for the access list view.
+	set (accessListView, accessCallback)
+	
+	//Show the dialog box.
+	show (db)
+}//End createDB.
+
+createDB ()

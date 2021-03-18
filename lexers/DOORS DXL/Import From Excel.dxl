@@ -1,0 +1,1898 @@
+//< Import from Excel
+/*
+ * Copyright (c) 2007-2008
+ * AAI Services Inc.
+ * A Textron Systems Subsidiary
+ * 
+ * Author: David Pechacek
+ * Date: 6/27/2007
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * or contact http://www.gnu.org
+ *
+ * This tool is designed to be used to import data directly from an Excel spreadsheet, into a DOORS
+ * module.  It offers many of the same features and feel of the DOORS spreadsheet import tool.  In
+ * addition, it also features the ability to import Rich Text, create DOORS Object Level, and auto-
+ * update the key that is selected to uniquely identify each row/object in Excel/DOORs. 
+ *
+ * Selecting to import Rich Text will pop up a dialog box asking what the user wishes to do in the
+ * event of a truncation involving rich text.  This can occur when a cell has over 1024 characters
+ * in it.  The options are to maintain the rich text formatting despite the truncation, copy the 
+ * non-RTF value of the cell, or to cause the import to fail at the first truncation.  The option
+ * to log truncation errors to a file is also present.
+ *
+ * In order to import Object Level during the import, the user must select to create new objects. 
+ * When they do this and select to import the level, they are given a warning message.  Once they
+ * confirm the selection, the Auto-Update Key option is automatically selected.  This is because 
+ * the script must ensure that the proper identifier for the object is in the Excel file when the 
+ * level is created (this mainly applies when the Object Identifier is the key).  
+ *
+ * The user also has three choices on how to tell the import tool the number of rows and columns in
+ * the Excel file.  They can use the Print Area recorded in Excel if it is set.  Or they can have the 
+ * tool count down and to the right from the upper left cell in the sheet.  It stops once a blank cell is 
+ * reached so the user must ensure there are no blanks in the first column and row until there should
+ * be.  The final option is to manually enter the number of rows and columns in the file, including the
+ * column header.
+ *
+ * Finally, the user is able to specify which Sheet of the Excel file data is to be imported from.
+ * The tool can either use the Active Sheet when the file is opened, or it can use the sheet that is
+ * specified by the name the user enters.  The import cannot work across multiple sheets.
+ */
+pragma runLim, 0
+
+// live path
+#include <ExcelFunctions.inc>	// you need to change this to where you put the Excel Functions file
+#include <utils/attrutil.inc>
+
+DB importExcel
+DBE mainLabel
+DBE importOptions
+DBE updateOptions
+DBE levelOptions
+DBE richTextOptions
+DBE autoUpdateKey
+DBE getRowsCols
+DBE fieldRows
+DBE fieldColumns
+DBE sheetOptions
+DBE fieldSheet
+DBE chooseFile
+
+DB selectKey
+DB selectLevel
+DBE keyChoicesLabel
+DBE keyChoices
+
+DB rtf
+DBE rtfLabel
+DBE rtfChoices
+DBE logTruncations
+
+Module currentMod = current Module
+Skip excelColumnHeaderList = create
+Skip excelObjectList = create
+Skip doorsObjectList = createString
+Stream truncationLog = null
+
+// constants for import
+const int usePrintArea = 0
+const int autoCount = 1
+const int enterManually = 2
+const int useActiveSheet = 0
+const int specifySheet = 1
+const string errorStr = "error"
+const int importLevel = 1
+const int filteringOff = 0
+const int createObjects = 0
+const int yes = 1
+const int no = 0
+const string logFileName = "Truncation Errors Log"
+
+
+// globals for import
+int totalRows = 1
+int totalColumns = 1
+string sheetName = ""
+string objectKey = ""
+int objectKeyColumn = 1
+string levelKey = ""
+int levelKeyColumn = 1
+int objectsUpdated = 0
+int objectsCreated = 0
+bool ignoreAllBadType = false
+bool ignoreAllBadRange = false
+int rtfChoice = -1
+bool logTruncationErrors = false
+int truncationErrors = 0
+string ignoreOptions[3] = {"Ignore All", "Ignore", "Cancel"}
+Regexp isTrunc = regexp "truncated"
+
+/*
+ * Closes the main import dialog box.
+ */
+void closeMainDB(DB dbox) {
+   hide(dbox)
+   destroy(dbox)
+   dbox = null
+   // clean up the skips 
+   delete(excelColumnHeaderList)
+   delete(excelObjectList)
+   delete(doorsObjectList)
+   
+   if(!null(truncationLog)) {
+      closeLogFile(truncationLog)
+   }
+}
+
+/*
+ * Closes the two key selection dialog boxes releasing back to where the block command was called from.
+ */
+void closeKeyDB(DB dbox) {
+   release(dbox)
+}
+
+/*
+ * Resets all the values used in the import.
+ */
+void resetImport() {
+   delete(excelColumnHeaderList)
+   delete(excelObjectList)
+   delete(doorsObjectList)
+   excelColumnHeaderList = create
+   excelObjectList = create
+   doorsObjectList = createString
+   totalRows = 1
+   totalColumns = 1
+   sheetName = ""
+   objectKey = ""
+   objectKeyColumn = 1
+   levelKey = ""
+   levelKeyColumn = 1
+   objectsUpdated = 0
+   objectsCreated = 0
+   ignoreAllBadType = false
+   ignoreAllBadRange = false
+   ack("Import Aborted.")
+}
+
+/*
+ * Loads the string values of the passed in skip list into the passed in DBE.
+ */
+void loadListFromSkip(DBE listDBE, Skip skip) {
+   string s
+   
+   for s in skip do {
+      insert(listDBE, noElems(listDBE), s)
+   }
+}
+
+/*
+ * Converts an Excel column in letter format(AA) to an integer
+ */
+int colToInt(string cl) {
+   int i, j
+   
+   // for each character in the string(max should be 2)
+   for(i = 0; i < length(cl); i++) {
+      char c = cl[i]   // get the character
+      j = 1
+      // increments until reaching the ascii value that matches the character
+      while(charOf(j+64) != c) {
+         j++
+      }
+   }
+   j = j + ((i-1) * 26)   // if there were two characters, add 26
+   return j
+}
+
+/*
+ * Checks to see if an error occurred when a cell's value was retrieved.
+ */
+bool excelGetCellTextError(int rowNumber, int columnNumber, string value) {
+   if(value == errorStr) {
+      errorBox(importExcel, "Error getting value of cell " intToCol(columnNumber) "" rowNumber "")
+      return true
+   }
+   
+   return false
+}
+
+/*
+ * Reports a bad value type for the given attribute.  Allows the user to select to Ignore, Ignore All,
+ * or Cancel the import.
+ */
+bool reportBadType(string type, string value, string name) {
+   // if the user has not already selected to ignore bad type errors
+   if(!ignoreAllBadType) {
+      int result = query(importExcel, "Data value beginning '" value[0:30] "' does not match type (" type ") of \n"   //-
+                              "attribute '" name "'.\n\nIgnore entry?", ignoreOptions)
+
+      if (result == 1) {      // Ignore All
+         ignoreAllBadType = true
+      }
+      else if (result == 2) {   // Cancel
+         return false
+      }
+   }
+   
+   return true
+}
+
+/*
+ * Reports an invalid data value for the attribute type in the given attribute.
+ */
+bool reportBadRange(string type, string value, string name) {
+   // if the user has not already selected to ignore bad range errors
+   if(!ignoreAllBadRange) {
+      int result = query(importExcel, "Data value " value[0:30] " is outside the range for type " type "\n"   //-
+                              "of attribute " name ".\n\nIgnore entry?", ignoreOptions)
+      
+      if(result == 1) {   // Ignore All
+         ignoreAllBadRange = true
+      }
+      else if(result == 2) {   // Cancel
+         return false
+      }
+   }
+   
+   return true
+}
+
+/*
+ * Reports an error that is not a bad range or bad type error asking if the user wishes to continue.
+ */
+bool reportUnknownError(string value, string attrName) {
+   if(!confirm(importExcel, "Failed to import data value beginning " value[0:30] " into attribute "   //-
+                       attrName ".\n\nContinue anyway?", msgQuery)) {
+      return false
+   }
+   else {
+      return true
+   }
+}
+
+/*
+ * Reports that a value is too long for a string attribute and will be truncated.  Asks if the user
+ * wishes to continue.
+ */
+bool reportTruncationError(string value, string attrName) {
+   if(!confirm(importExcel, "Data value beginning " value[0:30] " is too long for the string "   //-
+                      "attribute " attrName " and will be truncated.\n\nContinue anyway?", msgQuery)) {
+      return false
+   }
+   else {
+      return true
+   }
+}
+
+/*
+ * Returns whether or not the RTF text gotten from Excel matches the actual text in the cell.
+ */
+bool richTextTruncated(int rowNumber, int columnNumber) {
+   Buffer rtfValue = create
+   Buffer nonRTFValue = create
+   
+   rtfValue = ""
+   nonRTFValue = ""
+   
+   rtfValue = copyRichTextFromCell(""intToCol(columnNumber) "" rowNumber"")   // get the rich text
+   rtfValue = trimWhitespace(stripRichText(tempStringOf(rtfValue)))   // strip off RTF formatting.
+   nonRTFValue = trimWhitespace(getCellValue(rowNumber, columnNumber))
+   
+   if(tempStringOf(rtfValue) != tempStringOf(nonRTFValue)) {   // if the two strings aren't equal
+      delete(rtfValue)
+      delete(nonRTFValue)
+      return true                           // return that text was truncated
+   }
+   
+   delete(rtfValue)
+   delete(nonRTFValue)
+   return false
+}
+
+/*
+ * Checks if the passed in object level is valid.
+ */
+bool isValidObjectLevel(int objectLevel) {
+   if(objectLevel < 1) {   // if the object level is less than 1, return false
+      return false
+   }
+   return true
+}
+
+/*
+ * Gets the set Excel file print area and parses it to get the number
+ * of rows and columns in the file.
+ */
+bool getFilePrintArea() {
+   Buffer printArea = create
+   Buffer columns = create
+   printArea = (string getPrintArea())   // returns the format of $A$1:$B$2
+   
+   if(tempStringOf(printArea) == errorStr || tempStringOf(printArea) == "") {
+      return false
+   }
+   
+   printArea = printArea[contains(printArea, ':')+2:]         // get the second set of row and column data
+   columns = printArea[0:contains(printArea, '$')-1]         // get the columns
+   totalColumns = colToInt(tempStringOf(columns))            // convert the letter to an integer
+   totalRows = intOf(printArea[contains(printArea, '$')+1:])   // get the rows
+   delete(printArea)
+   delete(columns)
+   return true
+}
+
+/*
+ * Gets the number of rows and columns from the Excel sheet.  Counts by the first
+ * row and column until it finds a blank.
+ */
+bool getFileRowsAndCols() {
+   int i = 0
+   Buffer temp = create
+   // get the number of rows
+   while(true) {
+      temp = trimWhitespace(getCellText(++i, 1))
+      
+      if(tempStringOf(temp) == errorStr) {
+         delete(temp)
+         return false
+      }
+      else if(tempStringOf(temp) == "") {
+         break
+      }
+   }
+   
+   totalRows = i-1
+   i = 0
+   // get the number of columns
+   while(true) {
+      temp = trimWhitespace(getCellText(1, ++i))
+      
+      if(tempStringOf(temp) == errorStr) {
+         delete(temp)
+         return false
+      }
+      else if(tempStringOf(temp) == "") {
+         break
+      }
+   }
+   
+   delete(temp)
+   totalColumns = i-1
+   return true
+}
+
+/*
+ * Opens the excel file getting the sheet that the user selected to get.
+ */
+bool openExcelFile(string filename, int selectedSheetOption) {
+   if(!openExcel()) {   // open excel
+      return false
+   }
+   if(!getWorkBooks()) {   // get the workbooks collection
+      return false
+   }
+   if(!openWorkBook(filename)) {   // open the file the user selected
+      return false
+   }
+   if(!getSheets()) {   // get the sheets collection
+      return false
+   }
+   if(selectedSheetOption == useActiveSheet) {   // get the active sheet if the user choose to
+      if(!getActiveSheet()) {
+         return false
+      }
+   }
+   else {   // otherwise find the sheet with the name the user entered.
+      int numberOfSheets = getNumberOfSheets()   // get the number of sheets in the file
+      int i = 0
+      Buffer tempSheetName = create
+      bool found = false
+      
+      if(numberOfSheets == -1) {   // if -1 is returned there was an error
+         return false
+      }
+      
+      // loop through all the sheets
+      for(i = 1; i <= numberOfSheets; i++) {
+         if(!getSheet(i)) {   // get the sheet at the current index
+            return false
+         }
+         tempSheetName = (string getSheetName())   // get the sheet name
+         
+         if(tempStringOf(tempSheetName) != errorStr) {   // check that the name was gotten successfully
+            if(tempStringOf(tempSheetName) == sheetName) {   // if the sheet name matches the one you're looking for
+               found = true   // say that you found it
+               break   // and break
+            }
+         }
+         else {   // otherwise there was an error
+            errorBox(importExcel, "Error getting Sheet name")
+            delete(tempSheetName)
+            return false
+         }
+      }
+      
+      if(!found) {   // if the sheet wasn't found, tell the user.
+         errorBox(importExcel, "Failed to find the specified sheet named " sheetName "")
+         delete(tempSheetName)
+         return false
+      }
+      delete(tempSheetName)
+   }
+   if(checkSheetFilterStatus()) {   // check the sheet filter status
+      if(!turnSheetFiltersOff()) {   // if they're on, turn them off.
+         ack("Failed to turn of active sheet filters.  Data may be skipped.")
+         return false
+      }
+      return true
+   }
+   else {
+      return true
+   }
+}
+
+/*
+ * Gets the column headers of the Excel file.
+ */
+bool getExcelColumnHeaders() {
+   int cnt = 1
+   Buffer columnHeading = create
+   
+   // for each Column
+   for(cnt = 1; cnt <= totalColumns; cnt++) {
+      columnHeading = trimWhitespace(getCellText(1, cnt)) // get the value of the excel cell.
+      
+      if(excelGetCellTextError(1, cnt, tempStringOf(columnHeading))) {   // if the function returned an error, stop.
+         errorBox(importExcel, "Failed to get column heading in column " intToCol(cnt) "")
+         delete(columnHeading)
+         return false
+      }
+      if(tempStringOf(columnHeading) == "") {      // if the column heading is blank, stop.
+         warningBox(importExcel, "Blank column heading found in column " intToCol(cnt) ".\n"   //-
+                           "Please fix and try again.")
+         delete(columnHeading)
+         return false
+      }
+      put(excelColumnHeaderList, cnt, stringOf(columnHeading)) // otherwise put the header in the list.
+   }
+   delete(columnHeading)
+   return true
+}
+
+/*
+ * Do checks on the choices made and file selected
+ */
+bool doPreProcessing(int selectedRowColMethod, int selectedSheetOption, string filename) {
+   if(filename[length(filename)-4:] != ".xls") {   // check that the file is an excel file
+      errorBox(importExcel, "The file must be an Excel file.")
+      return false
+   }
+   
+   if(selectedRowColMethod == enterManually) {   // if the user entered the number of rows and columns
+      totalRows = intOf(get(fieldRows))      // manually, check that its not too low
+      totalColumns = intOf(get(fieldColumns))
+      
+      if(totalRows < 2 || totalColumns < 2) {
+         errorBox(importExcel, "Not enough rows and columns entered.  There must be at least two rows and columns.")
+         return false
+      }
+   }
+   
+   if(selectedSheetOption == specifySheet) {   // check that the user entered a sheet name if they
+      sheetName = get(fieldSheet)            // selected to specify it
+      if(sheetName == "") {
+         errorBox(importExcel, "Invalid sheet name")
+         return false
+      }
+   }
+   
+   if(!openExcelFile(filename, selectedSheetOption)) {   // stop if the excel file fails to open properly
+      errorBox(importExcel, "Failed to successfully open the Excel file.  Please try again.")
+      closeExcel()
+      return false
+   }
+   
+   if(selectedRowColMethod != enterManually) {   // if didn't enter manually
+      if(selectedRowColMethod == usePrintArea) {   // get the print area from excel if selected
+         if(!getFilePrintArea()) {
+            return false
+         }
+      }
+      if(selectedRowColMethod == autoCount) {   // count the rows and columns if selected.
+         if(!getFileRowsAndCols()) {
+            return false
+         }
+      }
+   }
+   
+   if(!getExcelColumnHeaders()) {   // get the column headers
+      closeExcel()
+      return false
+   }
+   return true
+}
+
+/*
+ * Checks that all the attributes found in the Excel column headers exist.
+ */
+bool checkAttributes() {
+   string attrName
+   
+   for attrName in excelColumnHeaderList do {   // loop through the headers
+      AttrDef ad = find(currentMod, attrName)
+      
+      // if the attribute name found is a module attribute, skip it
+      if(attrName == "Object Identifier" || attrName == "Object Number" || attrName == "Object Level" ||
+         attrName == "Ignore" || attrName == "Absolute Number") {
+            continue
+      }
+      
+      // otherwise check that it exists
+      if(!exists(attribute(attrName))) {   // if not, report and stop the import.
+         errorBox(importExcel, "Attribute " attrName " does not exist.  Please create it or fix the column heading and try again.")
+         return false
+      }
+      else {
+         AttrDef ad = find(currentMod, attrName)      // find the attribute defintion
+         if(!null(ad)) {
+            if(!canWrite(currentMod, attrName) && !ad.module) {   // check that the user can write to the attribute
+               errorBox(importExcel, "No write permission to attribute " attrName "")
+               return false
+            }
+         }
+      }
+   }
+   return true
+}
+
+/*
+ * Callback for the dialog box to pick the unique key that identifies each row in the excel file.
+ */
+void assignObjectKey(DB dbox) {
+   string s
+
+   objectKey = get(keyChoices)   // get the users choice
+   
+   for s in excelColumnHeaderList do {   // loop through the headers
+      if(s == objectKey) {   // find the selected key
+         objectKeyColumn = (int key(excelColumnHeaderList))   // get the key of the skip list which 
+         break                                    // identifies its column number in excel
+      }
+   }
+   closeKeyDB(dbox)
+}
+
+/*
+ * Callback for the dialog box to pick the column that identifies the level at which the objects should be in DOORS.
+ */
+void assignLevelKey(DB dbox) {
+   string s
+   
+   levelKey = get(keyChoices)   // get the users choice
+   
+   for s in excelColumnHeaderList do {   // loop through the headers
+      if(s == levelKey) {      // find the selected key
+         levelKeyColumn = (int key(excelColumnHeaderList))   // get the key of the skip list which
+         break                                    // identifies its column number in excel
+      }
+   }
+   closeKeyDB(dbox)
+}
+   
+/*
+ * Creates the dialog box for the user to select the key that identifies each row.
+ */
+void createKeyDB() {
+   string dummy[]
+   selectKey = create("Select Key", styleCentered|styleFixed|styleFloating)
+   
+   keyChoicesLabel = label(selectKey, "Select a column/attribute that \n"  //-
+                                      "uniquely identifies each Object:")
+   keyChoicesLabel   -> "left"   -> "form"
+   keyChoicesLabel   -> "right"  -> "form"
+   keyChoicesLabel   -> "top"    -> "form"
+   keyChoicesLabel   -> "bottom" -> "unattached"
+   
+   keyChoices = list(selectKey, "", 10, dummy)
+   keyChoices      -> "left"   -> "form"
+   keyChoices      -> "right"   -> "form"
+   keyChoices      -> "top"   -> "spaced" -> keyChoicesLabel
+   keyChoices      -> "bottom"   -> "form"
+   
+   apply(selectKey, "OK", assignObjectKey)
+   close(selectKey, true, closeKeyDB)
+   
+   realize(selectKey)
+   setSize(selectKey, 240, 320)
+}
+
+/*
+ * Creates the dialog box for the user to select the column that indicates the object level for each row
+ */
+void createLevelDB() {
+   string dummy[]
+   selectLevel = create("Select Level Key", styleCentered|styleFixed|styleFloating)
+   
+   keyChoicesLabel = label(selectLevel, "Select a column/attribute that\n" //-
+                                      "defines the level for each Object:")
+   keyChoicesLabel   -> "left"   -> "form"
+   keyChoicesLabel   -> "right"  -> "form"
+   keyChoicesLabel   -> "top"    -> "form"
+   keyChoicesLabel   -> "bottom" -> "unattached"
+   
+   keyChoices = list(selectLevel, "", 10, dummy)
+   keyChoices      -> "left"   -> "form"
+   keyChoices      -> "right"   -> "form"
+   keyChoices      -> "top"   -> "spaced" -> keyChoicesLabel
+   keyChoices      -> "bottom"   -> "form"
+   
+   apply(selectLevel, "OK", assignLevelKey)
+   close(selectLevel, true, closeKeyDB)
+   
+   realize(selectLevel)
+   setSize(selectLevel, 240, 320)
+}
+
+/*
+ * Creates and calls the dialog box to select the key that identifies each row.
+ */
+bool selectObjectKey() {
+   createKeyDB()   // create the dialog box
+   loadListFromSkip(keyChoices, excelColumnHeaderList)   // load the column headers into the list
+   
+   block(selectKey)   // show the box
+   destroy(selectKey)   // after released, destroy it
+   selectKey = null
+   
+   if(objectKey != "") {   // if the object key is no longer null (meaning selection succeeded),
+                     // remove it from the list if it cannot be written to and return true
+      AttrDef ad = find(currentMod, objectKey)
+      
+      // if the attribute is one thats a unique, DOORS created attribute, delete it
+      if(objectKey == "Object Identifier" || objectKey == "Absolute Number" || 
+         objectKey == "Object Number" || objectKey == "Object Level") {
+            delete(excelColumnHeaderList, objectKeyColumn)
+      }
+      
+      return true
+   }
+   else {   // otherwise return false (if close button is pressed)
+      return false
+   }
+}
+
+/*
+ * Creates and calls the dialog box to select the column that contains the object level for each row
+ */
+bool selectLevelKey() {
+   createLevelDB()      // create the dialog box
+   loadListFromSkip(keyChoices, excelColumnHeaderList)   // load the column headers into the list
+   
+   block(selectLevel)   // show the box
+   destroy(selectLevel)   // after released, destroy it
+   selectLevel = null
+   
+   if(levelKey != "") {   // if the object key is no longer null (meaning selection succeeded), remove from list and return true
+      delete(excelColumnHeaderList, levelKeyColumn)
+      return true
+   }
+   else {   // otherwise return false (if close button is pressed)
+      return false
+   }
+}
+
+/*
+ * Builds the list of rows in Excel using the row number in Excel as the key and the key value selected
+ * as the data in the skip list.
+ */
+bool buildExcelObjectList() {
+   int i
+   
+   progressStart(importExcel, "Please wait...", "Loading Excel Cells...", totalRows-1)
+   progressMessage("Loading Excel Cells...")
+   for(i = 2; i <= totalRows; i++) {   // loop through each row.
+      progressStep(i-1)
+      Buffer currentKeyValue = create
+      currentKeyValue = getCellText(i, objectKeyColumn)   // get the key value for the row
+      // return if there's an error getting a value from a cell in Excel
+      if(excelGetCellTextError(i, objectKeyColumn, tempStringOf(currentKeyValue))) {
+         delete(currentKeyValue)
+         return false
+      }
+      
+      put(excelObjectList, i, stringOf(currentKeyValue))   // put the info in the skip list
+      
+      delete(currentKeyValue)   // delete the buffer
+      if(progressCancelled()) {   // stop the import if the cancel button on the progress bar is pressed
+         progressStop()
+         return false
+      }
+   }
+   progressStop()
+   return true
+}
+
+/*
+ * Builds the list of current DOORS objects using the key attribute selected by the user as the key for
+ * the skip list and the object as the data.
+ */
+bool buildDoorsObjectList(int updateOption) {
+   Object o
+   int numberOfObjects = 0
+   int currentObject = 1
+   
+   if(updateOption == 0) {
+      for o in entire(currentMod) do {
+         if(!isDeleted(o)) {
+            numberOfObjects++
+         }
+      }
+      
+      progressStart(importExcel, "Please wait...", "Loading DOORS Objects...", numberOfObjects)
+      for o in entire(currentMod) do {
+         if(isDeleted(o)) {
+            continue
+         }
+         
+         // get the key value from doors for each object
+         Buffer keyValue = create
+      
+         if(objectKey == "Object Identifier") {
+            keyValue = identifier(o)""
+         }
+         else if(objectKey == "Object Number") {
+            keyValue = number(o)""
+         }
+         else if(objectKey == "Object Level") {
+            keyValue = level(o)""
+         }
+         else {
+            keyValue = o.objectKey""
+         }
+         
+         if(tempStringOf(keyValue) == "") {
+            delete(keyValue)
+            continue
+         }
+         
+         // check to make sure the value doesn't already exist in the list.
+         if(!find(doorsObjectList, stringOf(keyValue))) {
+            put(doorsObjectList, stringOf(keyValue), o)   // if not put it in the list
+         }
+         // otherwise report that the key selected is not a unique key.
+         else {
+            errorBox(importExcel, "Duplicate key value found at object " identifier(o) ".  All key values must be unique.")
+            progressStop()
+            return false
+         }
+      
+         delete(keyValue)
+         
+         if(progressCancelled()) {
+            progressStop()
+            return false
+         }
+         else {
+            progressStep(currentObject++)
+         }
+      }
+      progressStop()
+   }
+   else {
+      for o in currentMod do {
+         if(!isDeleted(o)) {
+            numberOfObjects++
+         }
+      }
+      
+      progressStart(importExcel, "Please wait...", "Loading DOORS Objects...", numberOfObjects)
+      for o in currentMod do {
+         if(isDeleted(o)) {
+            continue
+         }
+         
+         // get the key value from doors for each object
+         Buffer keyValue = create
+      
+         if(objectKey == "Object Identifier") {
+            keyValue = identifier(o)""
+         }
+         else if(objectKey == "Object Number") {
+            keyValue = number(o)""
+         }
+         else if(objectKey == "Object Level") {
+            keyValue = level(o)""
+         }
+         else {
+            keyValue = o.objectKey""
+         }
+         // check to make sure the value doesn't already exist in the list.
+         if(!find(doorsObjectList, stringOf(keyValue))) {
+            put(doorsObjectList, stringOf(keyValue), o)   // if not put it in the list
+         }
+         // otherwise report that the key selected is not a unique key.
+         else {
+            errorBox(importExcel, "Duplicate key value found.  All key values must be unique.")
+            return false
+         }
+      
+         delete(keyValue)
+         
+         if(progressCancelled()) {
+            progressStop()
+            return false
+         }
+         else {
+            progressStep(currentObject++)
+         }
+      }
+      progressStop()
+   }
+   
+   return true
+}
+
+/*
+ * Loads a real value into the specified attribute for the passed object.
+ */
+bool loadRealValue(Object currentObject, string cellValue, string attrName, AttrDef ad, bool &updated) {
+   if(!isValidReal(cellValue)) {   // check that the string value corresponds to a valid real value
+      if(reportBadType("Real", cellValue, attrName)) {   // report the bad type and ask to continue or not
+         return true      // return true if the user chooses to ignore the error and keep going
+      }
+      else {
+         return false   // return false if the user chooses to cancel the import.
+      }
+   }
+   
+   real oldValue = realOf(probeAttr_(currentObject, attrName))   // get the real value of the current DOORS value
+   real newValue = realOf(cellValue)   // convert the excel value to a real
+   
+   if(newValue != oldValue) {   // if the values don't match
+      noError()   // turn off errors
+      currentObject.attrName = newValue   // assign the value to the attribute
+      
+      if(lastError != null) {      // if any errors occurred
+         bool rangeError = false
+         AttrType at = ad.type   // get the type of the attribute
+         
+         if(isRanged(at)) {   // if the type has range limits
+            bool minValueSet = at.minValue   // get if the minimum value is set
+            bool maxValueSet = at.maxValue   // get if the maximum value is set
+            
+            // if the value is below the minimum or above the maximum report bad range error
+            if((minValueSet && newValue < at.minValue) || (maxValueSet && newValue > at.maxValue)) {
+               if(!reportBadRange(at.name, cellValue, attrName)) {   // report the bad range 
+                  return false   // return false if the user chooses to cancel the import.
+               }
+               rangeError = true;
+            }
+         }
+         // if the error was not a range error
+         if(!rangeError) {
+            if(!reportUnknownError(cellValue, attrName)) {   // report the unknown error
+               return false   // return false if the user chooses to cancel the import.
+            }
+         }
+      }
+      updated = true   // state that the objects attribute was updated
+   }
+   return true
+}
+
+/*
+ * Loads an integer value into the specified attribute for the passed object.
+ */
+bool loadIntValue(Object currentObject, string cellValue, string attrName, AttrDef ad, bool &updated) {
+   if(!isValidInt(cellValue)) {   // check that the string value is a value integer
+      if(reportBadType("Integer", cellValue, attrName)) {   // if not report bad type
+         return true      // return true if the user chooses to ignore the error and keep going
+      }
+      else {
+         return false   // return false if the user chooses to cancel the import.
+      }
+   }
+   
+   int oldValue = intOf(probeAttr_(currentObject, attrName))   // get the int value of the current DOORS value
+   int newValue = intOf(cellValue)      // convert the excel value to a real
+   
+   if(newValue != oldValue) {   // if the values don't match
+      noError()      // turn off errors
+      currentObject.attrName = newValue   // assign the value to the attribute
+      
+      if(lastError != null) {      // if an error occurred
+         bool rangeError = false
+         AttrType at = ad.type   // if the type has range limits
+         bool minValueSet = at.minValue   // get if the minimum value is set
+         bool maxValueSet = at.maxValue   // get if the maximum value is set
+            
+         // if the value is below the minimum or above the maximum report bad range error
+         if((minValueSet && newValue < at.minValue) || (maxValueSet && newValue > at.maxValue)) {
+            if(!reportBadRange(at.name, cellValue, attrName)) {   // report the bad range 
+               return false   // return false if the user chooses to cancel the import.
+            }
+            rangeError = true;
+         }
+         
+         // if the error was not a range error
+         if(!rangeError) {
+            if(!reportUnknownError(cellValue, attrName)) {   // report the unknown error
+               return false   // return false if the user chooses to cancel the import.
+            }
+         }
+      }
+      updated = true   // state that the objects attribute was updated
+   }
+   return true
+}
+
+/*
+ * Loads a data value into the specified attribute for the passed object.
+ */
+bool loadDateValue(Object currentObject, string cellValue, string attrName, AttrDef ad, bool &updated) {
+   if(!attributeValue(ad, cellValue, true)) {   // check if the value is a valid value for the attribute
+      if(reportBadType("Date", cellValue, attrName)) {   // if not report bad type
+         return true      // return true if the user chooses to ignore the error and keep going
+      }
+      else {
+         return false   // return false if the user chooses to cancel the import.
+      }
+   }
+   
+   Date oldValue = date(probeAttr_(currentObject, attrName))   // get the date value of the current DOORS value
+   Date newValue = date(cellValue)      // convert the excel value to a date
+   
+   if(newValue != oldValue) {   // if the values don't match
+      currentObject.attrName = newValue   // assign the value to the attribute
+      updated = true      // state that the objects attribute was updated
+   }
+   
+   return true
+}
+
+/*
+ * Loads a value into the specified attribute for the passed in object that was of another type or
+ * user defined type.
+ */
+bool loadOtherValue(Object currentObject, Buffer cellValue, string attrName, AttrDef ad, bool &updated,
+               int rowNumber, int columnNumber, int importRichText) {
+   Buffer richTextValue = create
+   
+   // if the attribute type is not a string and the value is not a valid value for the type of the attribute
+   if(ad.typeName != "String" && !attributeValue(ad, tempStringOf(cellValue), true)) {
+      if(reportBadType(ad.typeName, tempStringOf(cellValue), attrName)) {   // report bad type error
+         delete(richTextValue)
+         return true      // return true if the user chooses to ignore the error and keep going
+      }
+      else {
+         delete(richTextValue)
+         return false   // return false if the user chooses to cancel the import.
+      }
+   }
+   
+   // if the attribute is a string and the length for the attribute is longer than the maximum length
+   // for a string attribute
+   if(ad.typeName == "String" && (length(cellValue) > maximumAttributeLength)) {
+      if(!reportTruncationError(tempStringOf(cellValue), attrName)) {   // report truncation error
+         delete(richTextValue)
+         return false   // return false if the user chooses to cancel the import.
+      }
+   }
+   
+   //noError      // turn off errors
+   if(ad.type.type == attrDate) {   // if the attribute is a date
+      currentObject.attrName = date(tempStringOf(cellValue))   // assign as a date
+   }
+   else if(ad.multi || ad.type.type == attrEnumeration) {      // if the attribute is an enumerated attribute
+      currentObject.attrName = tempStringOf(cellValue)         // assign the value
+   }
+   else if((ad.typeName == "String" || ad.type.type == attrString) ||
+         ((ad.typeName == "Text" || ad.type.type == attrText) && (length(cellValue) < 256))) {
+      if(importRichText != yes) {
+         // otherwise just use the text value provided it wasn't truncated by Excel to #s
+         
+         if(cellValue[0:5] != "######") {
+            currentObject.attrName = trimWhitespace(tempStringOf(cellValue))   
+         }
+         else {
+            currentObject.attrName = getCellValue(rowNumber, columnNumber)
+            truncationLog << "Unable to import cell text for cell " intToCol(columnNumber) "" rowNumber //-
+                             " due to cell format being 'Text' and causing value to be incorrect.\n"
+         }
+      }
+      else { // if the user selected to import rich text
+         // no need to check as below since we've already verified its not too long
+         
+         if(cellValue[0:5] != "######") {
+            currentObject.attrName = richText(copyRichTextFromCell(""intToCol(columnNumber) rowNumber ""))
+         }
+         else {
+            currentObject.attrName = getCellValue(rowNumber, columnNumber)
+            truncationLog << "Unable to copy rich text for cell " intToCol(columnNumber) "" rowNumber //-
+                             " due to cell format being text and causing value to be incorrect.\n"
+         }
+      }
+   }
+   else {   // otherwise its a text attribute with a value that might be over the limit of truncation
+      if(importRichText == yes) {
+         // anything longer than 1025 will be truncated.
+         if(length(cellValue) > 1010) {
+            Buffer truncationMsg = create
+            truncationMsg = "Rich Text Data in cell " intToCol(columnNumber) rowNumber " was likely truncated"
+            if(rtfChoice == 0) {   // if the user selected to copy the truncated value with RTF
+                                   // formatting anyway
+               currentObject.attrName = richText(copyRichTextFromCell(intToCol(columnNumber) rowNumber ""))
+               truncationMsg = tempStringOf(truncationMsg) " in Object " identifier(currentObject) ".\n"
+            }
+            else if(rtfChoice == 1) {   // if the user selected to instead copy the non-RTF value
+               currentObject.attrName = trimWhitespace(getCellValue(rowNumber, columnNumber))
+               truncationMsg = tempStringOf(truncationMsg) ".  Non-RTF value copied in place.\n"
+            }
+            else {   // if the user selected to abort the import on the first truncation.
+               errorBox(importExcel, "Truncation when copying Rich Text Value in Cell " intToCol(columnNumber) rowNumber".\n"   //-
+                                     "Aborting import.")
+               delete(truncationMsg)
+               return false
+            }
+            
+            truncationErrors++   // increment the number of truncation errors.
+            if(logTruncationErrors) {   // if the user selected to log truncation errors
+               truncationLog << tempStringOf(truncationMsg)
+            }
+            delete(truncationMsg)
+         }
+         else {      // if the user selected to import rich text
+            if(cellValue[0:5] != "######") {
+               currentObject.attrName = richText(copyRichTextFromCell(""intToCol(columnNumber) rowNumber ""))
+            }
+            else {
+               currentObject.attrName = getCellValue(rowNumber, columnNumber)
+               truncationLog << "Unable to copy rich text for cell " intToCol(columnNumber) "" rowNumber //-
+                                " due to cell format being text and causing value to be incorrect.\n"
+            }
+         }
+      }
+      else {   // otherwise just copy the value of the cell without rich text formatting
+         if(cellValue[0:5] != "######") {
+            currentObject.attrName = trimWhitespace(tempStringOf(cellValue))
+         }
+         else {
+            currentObject.attrName = getCellValue(rowNumber, columnNumber)
+            truncationLog << "Unable to import cell text for cell " intToCol(columnNumber) "" rowNumber //-
+                             " due to cell format being 'Text' and causing value to be incorrect.\n"
+         }
+      }
+   }
+   updated = true
+   
+   string errorMessage = lastError   // get any error message that might have occurred
+   if(!null(errorMessage) && (!isTrunc errorMessage)) {   // if there was an error and it was a truncation error, tell the user
+      errorBox(importExcel, "Error assigning " tempStringOf(cellValue) " to attribute " attrName ":" errorMessage)
+      return false
+   }
+   
+   return true
+}
+
+/*
+ * Loads the data from Excel into the Object
+ */
+bool loadDataIntoObject(int rowNumber, Object currentObject, bool &updated, int importRichText) {
+   string atrName;
+   int columnNumber;
+   Buffer attrType = create();
+   Buffer cellValue = create();
+   Buffer curAttrValue = create();
+   AttrDef ad;
+   
+   // loop through each attribute name in the excel column header list
+   for atrName in excelColumnHeaderList do {
+      ad = find(currentMod, atrName);      // get a handle to the attribute definition
+      
+      if(null(ad)) {      // if it does not exist, report error and return false
+         errorBox(importExcel, "Attribute Definition for Attribute named " atrName " not found");
+         delete(cellValue);
+         delete(attrType);
+         return(false);
+      }
+      
+      if(atrName == "Object Identifier" || atrName == "Object Number" ||
+         atrName == "Object Level" || atrName == "Ignore" || atrName == "Absolute Number") {
+         continue;
+      }
+      
+      attrType = (string ad.typeName);      // get the name of the attribute type
+      columnNumber = (int key(excelColumnHeaderList));   // the column number of the attribute in excel
+      cellValue = trimWhitespace(getCellText(rowNumber, columnNumber));   // get the cell value
+      curAttrValue = (string probeAttr_(currentObject, atrName));
+      
+      if(length(cellValue) > 255 && (getCellNumberFormat(rowNumber, columnNumber) == cNumberFormat_Text)) {
+         truncationLog << "Check for possible truncation at " identifier(currentObject) " for attribute " atrName "\n";
+         //cellValue = getCellValue(rowNumber, columnNumber)
+      }
+      
+      // if there was an error getting the value of the cell, return false
+      if(excelGetCellTextError(rowNumber, columnNumber, tempStringOf(cellValue))) {
+         delete(cellValue);
+         delete(attrType);
+         delete(curAttrValue);
+         return(false);
+      }
+      
+      // if the attribute is a module attribute with no user access or the user does not have
+      // permissions to modify the attribute value, return false
+      if((ad.module && !ad.useraccess) || !canWrite(currentMod, atrName)) {
+         errorBox(importExcel, "No write permission to attribute " atrName "");
+         delete(cellValue);
+         delete(attrType);
+         delete(curAttrValue);
+         return(false);
+      }
+      
+      // if the attribute is of type real
+      if(tempStringOf(attrType) == "Real") {
+         if(!null(tempStringOf(cellValue))) {   // if the value is not null
+            // attempt to load the value into the attribute as a real
+            if(!loadRealValue(currentObject, tempStringOf(cellValue), atrName, ad, updated)) {
+               return(false);   // return false if the operation fails
+            }
+         }
+         // otherwise if the attribute is not already null, assign it to be
+         else if(tempStringOf(curAttrValue) != "") {
+            currentObject.atrName = "";
+            updated = true;
+         }
+      }
+      // if the attribute is of type integer
+      else if(tempStringOf(attrType) == "Integer") {
+         if(!null(tempStringOf(cellValue))) {   // if the value is not null
+            // attempt to load the value into the attribute as an int
+            if(!loadIntValue(currentObject, tempStringOf(cellValue), atrName, ad, updated)) {
+               delete(cellValue);
+               delete(attrType);
+               delete(curAttrValue);
+               return(false);   // return false if the operation fails
+            }
+         }
+         // otherwise if the attribute is not already null, assign it to be
+         else if(tempStringOf(curAttrValue) != "") {
+            currentObject.atrName = "";
+            updated = true;
+         }
+      }
+      // if the attribute is of type Date
+      else if(tempStringOf(attrType) == "Date") {
+         if(!null(tempStringOf(cellValue))) {   // if the value is not null
+            if(!loadDateValue(currentObject, tempStringOf(cellValue), atrName, ad, updated)) {
+               delete(cellValue);
+               delete(attrType);
+               delete(curAttrValue);
+               return(false);   // return false if the operation fails
+            }
+         }
+         // otherwise if the attribute is not already null, assign it to be
+         else if(tempStringOf(curAttrValue) != "") {
+            currentObject.atrName = "";
+            updated = true;
+         }
+      }
+      // else
+      else {
+         // if the value of the cell does not match the current value of the attribute
+         if(tempStringOf(cellValue) != tempStringOf(curAttrValue)) {
+            if(!null(tempStringOf(cellValue))) {   // if the value of the cell is not null
+               // load the value as a string, text, or date type
+               if(!loadOtherValue(currentObject, cellValue, atrName, ad, updated, //-
+                              rowNumber, columnNumber, importRichText)) {
+                  delete(cellValue);
+                  delete(attrType);
+                  delete(curAttrValue);
+                  return(false);   // return false if the operation fails
+               }
+            }
+            // otherwise if the attribute is not already null, assign it to be
+            else if(tempStringOf(curAttrValue) != "") {
+               currentObject.atrName = "";
+               updated = true;
+            }
+         }
+      }
+   }
+   
+   delete(cellValue);
+   delete(attrType);
+   delete(curAttrValue);
+   return(true);
+}
+
+/*
+ * Performs the actual import of the data from Excel.
+ */
+bool doImport(int importOption, int updateOption, int importObjectLevel, int importRichText, int updateKey) {
+   Object currentObject = null
+   Object previousObject = null
+   Object parentObject
+   string currentRow
+   int rowNumber = 0
+   int cnt = 1
+   bool updated = false
+   bool objectCreated = false
+   
+   // build the object list for excel
+   if(!buildExcelObjectList()) {
+      return false   // return false if the operation fails
+   }
+   
+   if(!buildDoorsObjectList(updateOption)) {   // build the DOORS object list.
+      return false   // return false if the operation fails
+   }
+   
+   progressStart(importExcel, "Importing Excel File", "Importing row " cnt " of " (totalRows-1) "", (totalRows-1))
+   for currentRow in excelObjectList do {      // for each key ID in the Excel list
+      updated = false
+      objectCreated = false
+      rowNumber = (int key(excelObjectList))
+      
+      if(importOption == createObjects) {      // if the user selected to create new objects
+         
+         previousObject = last(currentMod)   // assign the previous object to be the last object in
+                                    // the module
+         
+         if(null(previousObject)) {         // if the previous object is null 
+            currentObject = create(currentMod)      // create a new object in the module
+         }
+         else {   // otherwise
+            if(level(previousObject) > 1) {    // if the previous object is not at level 1
+               parentObject = parent(previousObject)   // get the parent of the previous object
+               
+               while(parentObject != null) {   // loop up the tree until you get to the top
+                  previousObject = parentObject
+                  parentObject = parent(parentObject)
+               }
+            }
+            // create the new object after the previous object at the same level (1)
+            currentObject = create(after(previousObject))
+         }
+         
+         objectCreated = true
+      }
+      else {
+         if(!find(doorsObjectList, currentRow, currentObject)) {
+            if(!null(previousObject)) {         // if the previous Object is not null
+               //print " - created new object after " identifier(previousObject) "\n"
+               currentObject = create(after(previousObject))   // create after at same level
+            }
+            else {
+               currentObject = create(currentMod)   // otherwise create new object at the beginning of the module
+            }
+            objectCreated = true
+         }
+      }
+      
+      // load the data from excel into the object
+      if(!loadDataIntoObject(rowNumber, currentObject, updated, importRichText)) {
+         progressStop()   // if fails stop the progress bar
+         return false   // and return false
+      }
+         
+      if(objectCreated) {   // if an object was created
+         objectsCreated++   // increment object created counter
+      }
+      else if(updated) {   // else if the object found was updated
+         objectsUpdated++   // increment the object updated counter
+      }
+      
+      if(updateKey == yes) {   // if the user selected to update object ID keys in the excel file
+         if(objectKey == "Object Identifier") {
+            setCellValue(rowNumber, objectKeyColumn, identifier(currentObject)"")
+         }
+         else if(objectKey == "Object Number") {
+            setCellValue(rowNumber, objectKeyColumn, number(currentObject)"")
+         }
+         else if(objectKey == "Object Level") {
+            setCellValue(rowNumber, objectKeyColumn, level(currentObject)"")
+         }
+         else {
+            setCellValue(rowNumber, objectKeyColumn, currentObject.objectKey"")
+         }
+      }
+      
+      
+      previousObject = currentObject   // set the previous object to be the current object
+      parentObject = null      // null the parent object
+      
+      if(progressCancelled()) {   // stop progress bar and return false if progress cancelled
+         progressStop()
+         return false
+      }
+      else {   // otherwise update progress bar
+         cnt++
+         progressMessage("Importing row " cnt " of " (totalRows-1) "")
+         progressStep(cnt)
+      }
+   }
+   
+   progressStop()
+   return true
+}
+
+/*
+ * This function creates the proper hierarchy for the current object.
+ */
+bool createHierarchy(Object parentObj, int parentObjLevel, int parentRowNumber, int &currentRowNumber) {
+   Object currentObject, lastObject
+   Buffer currentRowKey = create
+   Buffer cellObjectLevel = create
+   int objectLevel = 0
+   int lastObjectLevel = 0
+   int lastRowNumber = 0
+
+   currentRowKey = getCellText(currentRowNumber, objectKeyColumn)   // get the current row key from excel
+   
+   // return error if there was a problem getting the row key from excel
+   if(excelGetCellTextError(currentRowNumber, objectKeyColumn, tempStringOf(currentRowKey))) {
+      errorBox(importExcel, "Error getting value of cell " intToCol(objectKeyColumn) "" currentRowNumber "")
+      delete(currentRowKey)
+      delete(cellObjectLevel)
+      return false
+   }
+   
+   cellObjectLevel = getCellText(currentRowNumber, levelKeyColumn)
+   
+   // check that the level was gotten successfully
+   if(excelGetCellTextError(currentRowNumber, objectKeyColumn, tempStringOf(cellObjectLevel))) {
+      errorBox(importExcel, "Invalid value for Object Level found in cell " intToCol(levelKeyColumn) "" currentRowNumber ".")
+      delete(currentRowKey)
+      delete(cellObjectLevel)
+      return false
+   }
+   
+   objectLevel = intOf(tempStringOf(cellObjectLevel))   // get the desired object level
+   
+   if(!isValidObjectLevel(objectLevel)) {   // check that the object level is valid, returning false if not
+      errorBox(importExcel, "Invalid object level in cell " intToCol(levelKeyColumn) "" currentRowNumber "")
+      delete(currentRowKey)
+      delete(cellObjectLevel)
+      return false
+   }
+   
+   // while the object level for the current row is greater than the current parent and
+   // the current row number is less than the number of total rows.   
+   while(objectLevel > parentObjLevel && currentRowNumber <= totalRows) {
+      // try to find the object pertaining to the current excel row
+      if(!find(doorsObjectList, tempStringOf(currentRowKey)"", currentObject)) {
+         // if not found report error and return false
+         errorBox(importExcel, "Object with " objectKey " of " tempStringOf(currentRowKey) " was not found in the module.\n"   //-
+                          "An error must have occurred during the import.  Please try again.")
+         delete(currentRowKey)
+         delete(cellObjectLevel)
+         return false
+      }
+      // if the current objects level is 2 over the current parent
+      if(objectLevel == parentObjLevel+2) {
+         // recursively call the function changing the previous object to being the new parent and 
+         // start again at the same place
+         if(!createHierarchy(lastObject, lastObjectLevel, lastRowNumber, currentRowNumber)) {
+            delete(currentRowKey)   // return false if the call (or any subsequent call) fails
+            delete(cellObjectLevel)
+            return false
+         }
+      }
+      else {   // otherwise
+         move(currentObject, last(below(parentObj)))   // move the current object to be the last child of the parent
+         lastObject = currentObject   // make the last object the current object
+         lastObjectLevel = objectLevel   // change the last object level to be the current object level
+         lastRowNumber = currentRowNumber  // make the last row number the current
+         currentRowNumber++   // increment to the next row in excel
+         
+         // if the current row is greater than the total number of rows, end the loop
+         if(currentRowNumber > totalRows) {
+            break
+         }
+      }
+      
+      // get the next rows key id
+      currentRowKey = getCellText(currentRowNumber, objectKeyColumn)
+      
+      // check if an error occurred getting the key
+      if(excelGetCellTextError(currentRowNumber, objectKeyColumn, tempStringOf(currentRowKey))) {
+         delete(currentRowKey)
+         delete(cellObjectLevel)
+         return false
+      }
+      
+      cellObjectLevel = getCellText(currentRowNumber, levelKeyColumn)
+   
+      // check that the level was gotten successfully
+      if(excelGetCellTextError(currentRowNumber, objectKeyColumn, tempStringOf(cellObjectLevel))) {
+         errorBox(importExcel, "Invalid value for Object Level found in cell " intToCol(levelKeyColumn) "" currentRowNumber ".")
+         delete(currentRowKey)
+         delete(cellObjectLevel)
+         return false
+      }
+   
+      objectLevel = intOf(tempStringOf(cellObjectLevel))   // get the desired object level
+   }
+   
+   delete(currentRowKey)
+   delete(cellObjectLevel)
+   return true
+}
+
+/*
+ * This function builds the object hierarachy based on the Object Level key that the user selected.
+ */
+bool doObjectLevel(int updateOption) {
+   Object currentObject = null
+   Object previousObject = null
+   Object parentObject, masterParent
+   string currentRow
+   int rowNumber = 0
+   int currentRowNumber = 1
+   int objectLevel = 0
+   Buffer cellLevelValue = create
+   Skip levelOneObjects = create
+   
+   delete(excelObjectList)      // delete the excel list
+   excelObjectList = create   
+   if(!buildExcelObjectList()) {   // and recreate, this ensures accuracy. 
+      return false   // return false if theres an error
+   }
+   
+   delete(doorsObjectList)   // delete the doors object list
+   doorsObjectList = create
+   if(!buildDoorsObjectList(updateOption)) {   // and recreate, this ensures accuracy.
+      return false
+   }
+   
+   // for each level key ID in the excel list
+   for currentRow in excelObjectList do {
+      rowNumber = (int key(excelObjectList))   // get the row number
+      cellLevelValue = getCellText(rowNumber, levelKeyColumn)   // get the level value of the current cell
+      
+      // check that the level value is a valid integer, returning false if its not
+      if(!isValidInt(tempStringOf(cellLevelValue))) {
+         errorBox(importExcel, "Invalid value for Object Level found in cell " intToCol(levelKeyColumn) "" rowNumber ".")
+         delete(cellLevelValue)
+         delete(levelOneObjects)
+         return false
+      }
+      
+      objectLevel = intOf(tempStringOf(cellLevelValue))   // convert the value to an integer
+      
+      if(!isValidObjectLevel(objectLevel)) {   // check that the object level is valid, returning false if not
+         errorBox(importExcel, "Invalid object level in cell " intToCol(levelKeyColumn) "" rowNumber "")
+         delete(cellLevelValue)
+         delete(levelOneObjects)
+         return false
+      }
+      
+      // if the object level is level 1, put it in the list of level 1 objects
+      if(objectLevel == 1) {
+         put(levelOneObjects, rowNumber, currentRow)
+      }
+   }
+   
+   // go through the list of level 1 objects
+   progressStart(importExcel, "Building Object Level", "Building object level at " currentRowNumber " of " (totalRows-1) " objects", (totalRows-1))
+   for currentRow in levelOneObjects do {
+      rowNumber = (int key(levelOneObjects))      // get the row number for the level 1 object
+      currentRowNumber = rowNumber + 1   // get the next row number
+      
+      cellLevelValue = getCellText(rowNumber, levelKeyColumn)      // get the level for the next row
+      
+      // make sure that getting the level didn't return an error
+      if(excelGetCellTextError(currentRowNumber, levelKeyColumn, tempStringOf(cellLevelValue))) {
+         errorBox(importExcel, "Invalid value for Object Level found in cell " intToCol(levelKeyColumn) "" rowNumber ".")
+         delete(cellLevelValue)
+         delete(levelOneObjects)
+         progressStop()
+         return false
+      }
+      objectLevel = intOf(tempStringOf(cellLevelValue))   // convert it to an int
+      
+      // find the current object in DOORS and assign it as the parent object      
+      if(!find(doorsObjectList, currentRow, parentObject)) {
+         // if not found return false
+         errorBox(importExcel, "Object with " objectKey " of " currentRow " was not found in the module.\n"   //-
+                          "An error must have occurred during the import.  Please try again.")
+         delete(cellLevelValue)
+         delete(levelOneObjects)
+         progressStop()
+         return false
+      }
+      
+      // create the hierarchy for the doors objects until get to a level 1 object
+      if(!createHierarchy(parentObject, objectLevel, rowNumber, currentRowNumber)) {
+         delete(cellLevelValue)
+         delete(levelOneObjects)
+         progressStop()
+         return false
+      }
+      if(progressCancelled()) {   // stop progress bar and return false if progress cancelled
+         progressStop()
+         return false
+      }
+      else {   // otherwise update progress bar
+         progressMessage("Importing row " currentRowNumber " of " (totalRows-1) "")
+         progressStep(currentRowNumber)
+      }
+   }
+   progressStop()
+   
+   delete(cellLevelValue)
+   delete(levelOneObjects)
+   return true
+}
+   
+/*
+ * Main callback for import.
+ */
+void importExcelFile(DB dbox) {
+   int importOption = get(importOptions)
+   int updateOption = get(updateOptions)
+   int levelOption = get(levelOptions)
+   int importRichText = get(richTextOptions)
+   int rowColMethod = get(getRowsCols)
+   int updateKey = get(autoUpdateKey)
+   int sheetOption = get(sheetOptions)
+   string filename = get(chooseFile)
+   
+   // do checks and open the excel file
+   if(!doPreProcessing(rowColMethod, sheetOption, filename)) {
+      resetImport()
+      return
+   }
+   
+   // check that the attributes exist
+   if(!checkAttributes()) {
+      closeExcel()
+      resetImport()
+      return
+   }
+   
+   // get the object key to identify each row.
+   if(!selectObjectKey()) {
+     closeExcel()
+     resetImport()
+     return
+   }
+   
+   // get the column that states the object level
+   if(levelOption == importLevel) {
+      if(!selectLevelKey()) {
+         closeExcel()
+         resetImport()
+         return
+      }
+   }
+   
+   // turn off filtering (if there is any) if the user selected to do all objects
+   if(updateOption == filteringOff) {
+      filtering(off)
+   }      
+   
+   // do the import
+   if(!doImport(importOption, updateOption, levelOption, importRichText, updateKey)) {
+      closeExcel()
+      resetImport()
+      return
+   }
+   
+   // if the user selected to create objects and import the object level
+   if(levelOption == yes && importOption == createObjects) {
+      if(!doObjectLevel(updateOption)) {   // create the object level
+         closeExcel()
+         resetImport()
+         return
+      }
+   }
+   
+   // if the object ID keys in excel were updated, save the changes to the file
+   if(updateKey == yes) {
+      saveFile()
+   }
+   
+   closeExcel()   // close excel
+   closeMainDB(dbox)   // close the dialog box
+   ack("Updated " objectsUpdated " Objects and Created " objectsCreated " Objects.")
+}
+
+/*
+ * Pops up a message stating the following when the option import with object level
+ * is selected.
+ */
+void warnLevelImport(DBE clicked) {
+   int selectedOption = get(levelOptions)
+   
+   if(selectedOption == yes) {   // if the user selected to import object level from excel, confirm they
+                        // wish to do so and have the proper information in the file.
+      if(!confirm(importExcel, "Using this option requires that you have a column in your Excel file\n"   //-
+                         "that indicates the object level desired for each row.")) {
+         set(levelOptions, no)   // if they don't confirm, set the option back to no
+      }
+      else {
+         set(autoUpdateKey, yes)   // otherwise, set to autoupdate the object ID key in each row during
+                           // the import.
+      }
+   }
+}
+
+/*
+ * Pops up a message stating what will happen when the Update Key option is left as yes for the import.
+ */
+void warnUpdateKey(DBE clicked) {
+   int selectedOption = get(autoUpdateKey)
+   
+   if(selectedOption == yes) {
+      if(!confirm(importExcel, "Checking this option will make the tool automatically update the\n"   //-
+                         "column that contains the unique key that identifies each object\n"   //-
+                         "when an object is created during the import.  This saves you the\n"   //-
+                         "time of having to go do this yourself and is required when      \n"   //-
+                         "importing the object level.")) {
+         set(autoUpdateKey, no)   // if they don't confirm set back to no
+      }
+   }
+}
+
+/*
+ * Sets the desired RTF import options
+ */
+void setRTFOptions(DB dbox) {
+   rtfChoice = get(rtfChoices)
+   int log = get(logTruncations)
+   
+   if(log == 1) {
+      logTruncationErrors = true
+   }
+   
+   closeKeyDB(dbox)
+}
+
+/*
+ * Pops up a dialog box informing the users of the issues regarding importing rich text
+ */
+void warnRichText(DBE clicked) {
+   int selection = get(clicked)
+   
+   if(selection != yes) {   // if the selection was not yes, return
+      return
+   }
+   
+   string rtfOptions[3] = {"Maintain RTF formatting despite truncation",
+                     "Copy text without RTF formatting.",
+                     "Cancel import at first truncation."}
+   string logErrors[1] = {"Log truncation errors to file"}
+   // create the DB
+   rtf = create("Export Rich Text", styleCentered|styleFloating|styleFixed)
+   
+   rtfLabel = label(rtf, "This tool is able to import text into DOORS with rich text formatting.  However,\n"      //-
+                    "DOORS has issues with copying and pasting text from Excel into DOORS.  When a\n"         //-
+                    "cell contains more than 1024 characters, and is copied and pasted into DOORS,\n"         //-
+                    "the text is truncated to the first 1024 characters.  How do you wish to handle\n"      //-
+                    "this issue?")
+   rtfLabel      -> "left"   -> "form"
+   rtfLabel      -> "right"   -> "unattached"
+   rtfLabel      -> "top"   -> "form"
+   rtfLabel      -> "bottom"   -> "unattached"
+   
+   rtfChoices = verticalRadioBox(rtf, "", rtfOptions, 1)
+   rtfChoices      -> "left"   -> "form"
+   rtfChoices      -> "right"   -> "unattached"
+   rtfChoices      -> "top"   -> "spaced"      -> rtfLabel
+   rtfChoices      -> "bottom" -> "unattached"
+   
+   logTruncations = checkBox(rtf, "", logErrors, 0)
+   logTruncations   -> "left"   -> "form"
+   logTruncations   -> "right"   -> "unattached"
+   logTruncations   -> "top"   -> "spaced"      -> rtfChoices
+   logTruncations   -> "bottom"   -> "form"
+   
+   apply(rtf, "OK", setRTFOptions)
+   close(rtf, true, closeKeyDB)
+   realize(rtf)
+   block(rtf)   // call the DB using block so code execution resumes here
+   
+   if(rtfChoice == -1) {   // if no choice was made (Close pressed)
+      set(clicked, no)   // set the option back to no
+   }
+   
+   openLogFile(truncationLog, logFileName)   // open the log file
+   
+   // close and destroy the dialog box
+   hide(rtf)
+   destroy(rtf)
+   rtf = null
+}
+
+/*
+ * Toggles the row and column fields inactive and active based on the current
+ * choice of how to get the number of rows and columns in the Excel file.
+ */
+void toggleRowColFields(DBE clicked) {
+   int selection = get(clicked)
+   
+   // if not set to manually enter, make inactive
+   if(selection == 0 || selection == 1) {
+      inactive(fieldRows)
+      inactive(fieldColumns)
+   }
+   // if set to enter manually, make active.
+   else {
+      active(fieldRows)
+      active(fieldColumns)
+   }
+}
+
+/*
+ * Toggles the sheet name field on and off.
+ */
+void toggleSheetField(DBE clicked) {
+   int selection = get(clicked)
+   
+   if(selection == no) {
+      inactive(fieldSheet)
+   }
+   else {
+      active(fieldSheet)
+   }
+}
+
+/*
+ * Toggles the Import level option on and off.
+ */
+void toggleImportLevel(DBE clicked) {
+   int selection = get(clicked)
+   
+   if(selection == yes) {
+      inactive(levelOptions)
+   }
+   else {
+      active(levelOptions)
+   }
+}
+
+void buildDB() {
+   string importChoices[2] = {"Create new objects", "Update existing objects"}
+   string updateChoices[2] = {"All objects", "Display set only"}
+   string yesno[2] = {"No", "Yes"}
+   string rowColChoices[3] = {"Excel Print Area(must have been set manually)",    //-
+                        "Count down and right from first cell until blank",  //-
+                        "Enter rows and columns manually"}
+   string sheetChoices[2] = {"Active sheet when file opened", "Specify Sheet"}
+   string dummy[]
+   
+   importExcel = create("Import Excel File", styleFixed|styleCentered)
+   
+   importOptions = radioBox(importExcel, "Import options: ", importChoices, 1)
+   importOptions   -> "left"   -> "form"
+   importOptions   -> "right"   -> "unattached"
+   importOptions   -> "top"   -> "form"
+   importOptions   -> "bottom"   -> "unattached"
+   
+   set(importOptions, toggleImportLevel)
+   
+   updateOptions = radioBox(importExcel, "Update: ", updateChoices, 0)
+   updateOptions   -> "left"   -> "form"
+   updateOptions   -> "right"   -> "unattached"
+   updateOptions   -> "top"   -> "spaced"      -> importOptions
+   updateOptions   -> "bottom"   -> "unattached"
+   
+   levelOptions = radioBox(importExcel, "Import Object Level: ", yesno, 0)
+   levelOptions   -> "left"   -> "form"
+   levelOptions   -> "right"   -> "unattached"
+   levelOptions   -> "top"   -> "spaced"      -> updateOptions
+   levelOptions   -> "bottom"   -> "unattached"
+   
+   richTextOptions = radioBox(importExcel, "Import Rich Text: ", yesno, 0)
+   richTextOptions   -> "left"   -> "form"
+   richTextOptions   -> "right"   -> "unattached"
+   richTextOptions   -> "top"   -> "spaced"      -> levelOptions
+   richTextOptions -> "bottom"   -> "unattached"
+   
+   set(richTextOptions, warnRichText)
+   
+   autoUpdateKey = radioBox(importExcel, "Auto Update Key?: ", yesno, 0)
+   autoUpdateKey   -> "left"   -> "form"
+   autoUpdateKey   -> "right"   -> "unattached"
+   autoUpdateKey   -> "top"   -> "spaced"      -> richTextOptions
+   autoUpdateKey   -> "bottom"   -> "unattached"
+   
+   set(levelOptions, warnLevelImport)
+   set(autoUpdateKey, warnUpdateKey)
+   
+   DBE sep1 = separator(importExcel)
+   sep1         -> "left"   -> "form"
+   sep1         -> "right"   -> "form"
+   sep1         -> "top"   -> "spaced"      -> autoUpdateKey
+   sep1         -> "bottom"   -> "unattached"
+   
+   getRowsCols = verticalRadioBox(importExcel, "Get Excel data range by:", rowColChoices, 1)
+   getRowsCols      -> "left"   -> "form"
+   getRowsCols      -> "right"   -> "unattached"
+   getRowsCols      -> "top"   -> "spaced"      -> sep1
+   getRowsCols      -> "bottom"   -> "unattached"
+   
+   fieldRows = field(importExcel, "Rows(including column headers):", "", 7, false)
+   fieldRows      -> "left"   -> "spaced"      -> getRowsCols
+   fieldRows      -> "right"   -> "form"
+   fieldRows      -> "top"   -> "spaced"      -> sep1
+   fieldRows      -> "bottom"   -> "unattached"
+   
+   fieldColumns = field(importExcel, "                                      Columns:", "", 5, false)
+   fieldColumns      -> "left"   -> "spaced"      -> getRowsCols
+   fieldColumns      -> "right"   -> "form"
+   fieldColumns      -> "top"   -> "spaced"      -> fieldRows
+   fieldColumns      -> "bottom"   -> "unattached"
+   
+   set(getRowsCols, toggleRowColFields)
+   
+   sheetOptions = radioBox(importExcel, "Import from Sheet: ", sheetChoices, 0)
+   sheetOptions   -> "left"   -> "form"
+   sheetOptions   -> "right"   -> "unattached"
+   sheetOptions   -> "top"   -> "spaced"      -> getRowsCols
+   sheetOptions   -> "bottom"   -> "unattached"
+   
+   fieldSheet = field(importExcel, "Sheet Name: ", "", 10, false)
+   fieldSheet      -> "left"   -> "form"
+   fieldSheet      -> "right"   -> "unattached"
+   fieldSheet      -> "top"   -> "spaced"      -> sheetOptions
+   fieldSheet      -> "bottom"   -> "unattached"
+   
+   set(sheetOptions, toggleSheetField)
+   
+   DBE sep2 = separator(importExcel)
+   sep2         -> "left"   -> "form"
+   sep2         -> "right"   -> "form"
+   sep2         -> "top"   -> "spaced"      -> fieldSheet
+   sep2         -> "bottom"   -> "unattached"
+   
+   chooseFile = fileName(importExcel, "Filename: ", "C:\\Documents and Settings\\" username() "\\Desktop", "*.xls", "Excel File", false)
+   chooseFile      -> "left"   -> "form"
+   chooseFile      -> "right"   -> "form"
+   chooseFile      -> "top"   -> "spaced"      -> sep2
+   chooseFile      -> "bottom"   -> "form"
+   
+   apply(importExcel, "Import", importExcelFile)
+   close(importExcel, true, closeMainDB)
+   
+   realize(importExcel)
+   
+   inactive(fieldRows)
+   inactive(fieldColumns)
+   inactive(fieldSheet)
+   inactive(levelOptions)
+}
+
+// make sure the user is in a module
+if(!null(currentMod)) {
+   if(isEdit(currentMod)) {   // make sure its in exclusive edit
+      buildDB()   // build the dialog box
+      show(importExcel)   // start the import.
+   }
+   else {
+      delete(excelColumnHeaderList)
+      delete(excelObjectList)
+      delete(doorsObjectList)
+      ack("The module must be open in exclusive edit.")
+   }   
+}
+else {
+   delete(excelColumnHeaderList)
+   delete(excelObjectList)
+   delete(doorsObjectList)
+   ack("Please run from a module.")
+}

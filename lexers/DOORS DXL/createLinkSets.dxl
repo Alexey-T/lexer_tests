@@ -1,0 +1,342 @@
+//<
+//Title: createLinkSets.dxl
+//Author: Scott Boisvert
+//Date: January 30, 2008
+//Brief:
+/**********************************************************
+* Script is used to easily create multiple link sets from
+* a source module. Allows the user to select a specific 
+* link module as well as multiple target modules within
+* the same project as the source module. Will also create
+* the link module descriptor in the source module.
+**********************************************************/
+
+pragma runLim, 0
+
+DB createLS = create ("Create Link Sets", styleStandard|styleCentered)
+
+DBE sourceMod
+DBE linkMod
+DBE linkModBrowse
+DBE frame1
+DBE frame2
+DBE frame3
+DBE lsLabel
+DBE selectTargetMods
+DBE selectedTargetMods
+
+string items []
+
+int numItems = 0
+
+void browseLinkMod (DBE win)
+{
+	//Link module browse button call back function.
+	//Sets the link module in the Link Module field.
+	Buffer linkModule = create (1)
+	
+	linkModule = fnMiniExplorer (createLS, current Folder, MINI_EXP_LINK_MODS, null, null)	
+	
+	set (linkMod, tempStringOf (linkModule))
+	
+	delete (linkModule)
+}//End browseLinkMod.
+
+void treeSelect (DBE win)
+{
+	//Do nothing.
+}//End treeSelect
+
+void listActivate (DBE win)
+{
+	//Get the index of the item activated.
+	int index = get (selectedTargetMods)
+	
+	//Delete the item from the list.
+	delete (selectedTargetMods, index)
+	numItems--
+}//End listActivate.
+
+void treeActivate (DBE win)
+{
+	Buffer temp = create (1)
+	
+	bool itemSelected = false
+	
+	Item I
+	
+	temp += "/" get (win)
+	
+	I  = item (tempStringOf (temp))
+	
+	if (type (I) == "Formal")
+	{
+		//Make sure the module hasn't been selected all ready.
+		for (i = 0; i < numItems; i++)
+		{
+			if (tempStringOf (temp) == (get (selectedTargetMods, i)))
+			{
+				itemSelected = true	
+			}
+		}
+		
+		if (!itemSelected)
+		{
+			//Enter the module in the Target Modules list.
+			insert (selectedTargetMods, numItems, tempStringOf (temp))
+	
+			numItems ++
+		}
+		else
+		{
+			//Let the user know the module was all ready selected.
+			ack ("Module has all ready been selected.")
+		}
+	}
+	
+	delete (temp)
+}//End treeActivate.
+
+void createLinkSets (DB win)
+{
+	Module srcM
+	Module lm
+	
+	Linkset ls
+	
+	Folder fol
+	
+	Buffer srcModName = create (1)
+	Buffer linkModName = create (1)
+	Buffer targetModName = create (1)
+	
+	int steps = 0
+	
+	//Get the source and link modules from the DB.
+	srcModName += get (sourceMod)
+	linkModName += get (linkMod)
+
+	if (tempStringOf (linkModName) != null && numItems > 0)
+	{	
+		//Open the source and link modules for edit.
+		srcM = edit (tempStringOf (srcModName), false)
+		lm = edit (tempStringOf (linkModName), false)
+		
+		//Get the source module's parent folder.
+		fol = getParentFolder (srcM)
+		
+		progressStart (createLS, "Create Link Sets", "Creating link sets.", numItems)
+		progressMessage ("Creating link sets.")
+		
+		//Loop through the items in the selected target modules list.
+		for (i = 0; i < numItems; i++)
+		{
+			progressStep ++steps
+			
+			if (progressCancelled)
+			{
+				if (confirm ("Are you sure you wish to quit?"))
+				{
+					close (srcM, false)
+					close (lm, false)
+					progressStop
+					halt	
+				}	
+			}
+			targetModName += get (selectedTargetMods, i)
+			
+			//Create the link set from the source to target modules.
+			ls = create (lm, tempStringOf (srcModName), tempStringOf (targetModName))
+			//Create the link module descriptor in the source module.
+			addLinkModuleDescriptor (fol, tempStringOf (srcModName), tempStringOf (targetModName), false, true, tempStringOf (linkModName), "")	
+			
+			setempty (targetModName)
+		}
+		
+		progressStop
+		
+		delete (srcModName)
+		delete (linkModName)
+		delete (targetModName)
+		
+		save (lm)
+		save (srcM)
+		
+		close (lm)
+		close (srcM)
+		
+		hide (createLS)
+		destroy (createLS)
+		createLS = null
+		halt
+	}
+	else if (tempStringOf (linkModName) == null)
+	{
+		ack ("You must select a link module.")	
+	}
+	else
+	{
+		ack ("You must select at least one target module.")	
+	}
+}//End createLinksSets.
+
+void closeCallback (DB win)
+{
+	hide (createLS)
+	destroy (createLS)
+	createLS = null
+	
+	close (current Module)
+}//End closeCallback.
+
+void createDB ()
+{
+	//Get the currently selected item in the DOORS Explorer.
+	Item I = getSelectedItem ()
+	
+	ModName_ mn = module (fullName (I))
+	
+	/*********************************************************************
+	* Create the DB if the selected item meets the following conditions: *
+	*   - Item is a formal module.                                       *
+	*   - The user has the rights to modify the module.                  *
+	*   - The module is not locked by another user.                      *
+	*********************************************************************/
+	if (!isDeleted (I) && type (I) == "Formal" && canModify (I) && (!isLocked (mn) || (isLocked (mn) && open (mn))))
+	{	
+		Module m = edit (fullName (I), false)
+		
+		Folder f = getParentFolder (I)
+				
+		sourceMod = field (createLS, "Source Module:", fullName (I), 75, true)
+		
+		//Get the default link module for the selected module.
+		for I in f do
+		{
+			if (type (I) == "Link")
+			{
+				break
+			}	
+		}
+		
+		if (type (I) == "Link")
+		{
+			linkMod = field (createLS, "Link Module:", fullName (I), 65, false)
+		}
+		//If a default link module couldn't be found.
+		else
+		{
+			linkMod = field (createLS, "Link Module:", "", 65, false)
+		}
+	
+		linkModBrowse = button (createLS, "Browse...", browseLinkMod)
+		frame1 = frame (createLS, "Select Target Modules:", 350, 250)
+		frame2 = frame (createLS, "Selected Target Modules:", 500, 250)
+		frame3 = frame (createLS, "", 200, 75)
+		lsLabel = label (createLS, "1. Select the link module for the link set(s).\n2. Select the target modules (double click).\n3. Click \"OK\"")
+		selectTargetMods = treeView (createLS, treeViewOptionSorted, 250, 10)
+		selectedTargetMods = list (createLS, "", 35, 15, items)
+
+		set (selectTargetMods, treeSelect, treeActivate)
+		set (selectedTargetMods, treeSelect, listActivate)
+
+		//Place the DBE's.
+		sourceMod->"left"->"form"
+		linkMod->"left"->"form"
+		linkMod->"right"->"unattached"
+		linkModBrowse->"top"->"aligned"->linkMod
+		linkModBrowse->"left"->"spaced"->linkMod
+		frame1->"right"->"unattached"
+		frame1->"bottom"->"form"
+		frame2->"top"->"aligned"->frame1
+		frame2->"left"->"spaced"->frame1
+		frame2->"bottom"->"form"
+		frame3->"top"->"form"
+		frame3->"left"->"spaced"->sourceMod
+		lsLabel->"top"->"inside"->frame3
+		lsLabel->"bottom"->"inside"->frame3
+		lsLabel->"left"->"inside"->frame3
+		lsLabel->"right"->"inside"->frame3
+		selectTargetMods->"left"->"inside"->frame1
+		selectTargetMods->"top"->"inside"->frame1
+		selectTargetMods->"right"->"inside"->frame1
+		selectTargetMods->"bottom"->"inside"->frame1
+		selectedTargetMods->"left"->"inside"->frame2
+		selectedTargetMods->"top"->"inside"->frame2
+		selectedTargetMods->"right"->"inside"->frame2
+		selectedTargetMods->"bottom"->"inside"->frame2
+
+		apply (createLS, "OK", createLinkSets)
+		close (createLS, true, closeCallback)
+						
+		realize (createLS)
+		
+		insert (selectTargetMods, fullName (current Project), iconProject, iconProjectOpen)				
+		
+		//Populate the treeView with the folders and modules within the current project.
+		for I in current Project do
+		{
+			if (type (I) == "Folder")
+			{
+				insert (selectTargetMods, fullName (I), iconFolder, iconFolderOpen)	
+			}	
+			else if (type (I) == "Formal")
+			{
+				insert (selectTargetMods, fullName (I), iconFormal, iconFormal)
+			}
+		}
+			
+		show (createLS)
+	}
+	else
+	{
+		//Warning message if the item is deleted.
+		if (isDeleted (I))
+		{
+			ack ("The item selected is deleted.")
+		}
+		//Warning message if the selected item is not a formal module.
+		else if (type (I) != "Formal")
+		{
+			ack ("You must select a formal module.")	
+		}
+		//Warning message if the user does not have permissions to modify the module.
+		else if (!canModify (I))
+		{
+			ack ("You do not have permissions to create link sets in this module.")	
+		}
+		//Warning message if the module is locked by another user.
+		else if (isLocked (mn) || (!isLocked (mn) && !open (mn)))
+		{
+			//Get the locklist for the module.
+			LockList ls = getLocksInModule (mn, true)
+			
+			Lock lck
+			
+			string temp
+			
+			User usr
+			
+			//Find the user the that has the lock on the module
+			for lck in ls do
+			{
+				//Get the user name.
+				temp = lck.user
+
+				//Find the user.
+				usr = find (temp)
+				
+				//If the name attribute is set on the user, then use it
+				//otherwise just use the user name.	
+				if (usr.name != null)
+				{
+					temp = usr.name
+				}
+			}
+			
+			ack (temp " currently has a lock on this module.")
+		}
+	}
+}//End createDB.
+
+createDB ()
