@@ -1,0 +1,21 @@
+:root {
+  --first-color: #16f;
+  --second-color: #ff7;
+  --bad1
+--good1: #ff7;
+bad--too: ttt;
+}
+
+#firstParagraph {
+  background-color: var(--first-color);
+  color: var(--second-color);
+}
+
+#container {
+  --new-color: #290;
+}
+
+#thirdParagraph {
+  background-color: var(--second-color);
+  color: var(--second-color);
+}
