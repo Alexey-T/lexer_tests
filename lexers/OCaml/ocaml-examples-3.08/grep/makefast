@@ -1,6 +1,0 @@
-
-ocamlc -c -I /usr/local/lib/objective-caml/caml fastrec.c
-
-fastgrep: expr.cmo auto.cmo ensent.cmo determ.cmo fastgrep.cmo fastrec.o
-        $(CAMLC) $(LINKFLAGS) -custom  expr.cmo auto.cmo ensent.cmo determ.cmo fastgrep.cmo fastrec.o  -o fastgrep
-
