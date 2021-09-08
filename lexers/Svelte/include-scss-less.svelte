@@ -18,6 +18,13 @@
   }
 </style>                                               
 
+<style lang="sass">
+  h1:
+    color: $color;
+  h2:
+    color: $color;
+</style>                                               
+
 <style lang='less'>
   isstring(lighten(1,2,3))
 </style>
