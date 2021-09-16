@@ -1,28 +1,28 @@
 - - -
 Good style markers:
-*italic text* and **bold**
+*пitalic textп* and **пboldп**
 
-*italic text <span>HTML element</span> end of italic text*
-_italic text <SPAN>HTML element</SPAN> end of italic text_
-**bold text <span>HTML element</span> end of bold text**
-__bold text <span>HTML element</span> end of bold text__
+*пitalic text <span>HTML element</span> end of italic textп*
+_пitalic text <SPAN>HTML element</SPAN> end of italic textп_
+**пbold text <span>HTML element</span> end of bold textп**
+__пbold text <span>HTML element</span> end of bold textп__
 
-This is ***bold italic***
-This is ***bold italic* and just bold**
-This is **_bold italic_**
-This is __*bold italic*__
-This is ___bold italic___
-This is ___bold italic_ and just bold__
-This is _**italic bold**_
-This is *__italic bold__*
+This is ***пbold italicп***
+This is ***пbold italicп* and just boldп**
+This is **_пbold italicп_**
+This is __*пbold italicп*__
+This is ___пbold italicп___
+This is ___пbold italicп_ and just boldп__
+This is _**пitalic boldп**_
+This is *__пitalic boldп__*
 
-__~~bold striked~~__
-**~~bold striked~~**
-_~~italic striked~~_
-*~~italic striked~~*
-___~~bold italic striked~~___
-***~~bold italic striked~~***
-~Hi~ Hello, world!
+__~~пbold strikedп~~__
+**~~пbold strikedп~~**
+_~~пitalic strikedп~~_
+*~~пitalic strikedп~~*
+___~~пbold italic strikedп~~___
+***~~пbold italic strikedп~~***
+~пHiп~ Hello, world!
 
 - - - -
 Bad style markers:
