@@ -1,0 +1,2 @@
+@property --light-blue { syntax: '<color>'; inherits: false; initial-value: #ace; }
+p { syntax: '<color>'; inherits: false; initial-value: #123; }
