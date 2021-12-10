@@ -6,8 +6,7 @@
 ```
 
 ```` css
-  /* dd */
-  div {
+  div { /* dd */
     color: #ff0;
   }
 ````
@@ -29,3 +28,12 @@
   rem test 
   echo text text
   ~~~
+
+```php
+$foo = "bar";
+echo "string";
+```
+
+```sql
+FROM a SELECT b;
+```
