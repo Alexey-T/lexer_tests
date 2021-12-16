@@ -1,0 +1,136 @@
+VAR
+    tskCycleTimeMs : TIME;
+    stopGoRatioFUB : ARRAY[0..6] OF StopGoRatio;
+    status : UINT;
+    startUpTimerSet : TIME;
+    startUpTimerEnd : ARRAY[0..6] OF bool;
+    startUpTimerAct : ARRAY[0..6] OF TIME;
+END_VAR
+VAR RETAIN
+	disturbanceCnt : ARRAY[0..6] OF UINT;
+END_VAR
+
+PROGRAM _INIT
+    ;-------- Task-Klasse Wert bestimmen ------------
+    aRTInfo.enable = 1
+    aRTInfo FUB RTInfo()
+    tskCycleTimeMs = (aRTInfo.cycle_time / 1000)
+
+    ;-------- Zugriff auf globale Strukturen --------
+    dCmdZone	    ACCESS PA11CmdZone
+    dCmdVis     	access PA11CmdVis
+
+    ; Konstanten
+    ;---------------------------------------------------------------------------------
+    startUpTimerSet           := T#5s
+    deliveryControlTimerSet   := T#2s
+END_PROGRAM
+
+PROGRAM _CYCLIC
+    (************************************************************************************************************
+
+    =============================================================================================================
+    				UNIfloc A11 1-6
+    =============================================================================================================
+    Änderungen:
+    ===========
+      Version  Date        Author                 Beschreibung / Grund
+      01.00	   27.10.2004  Reto Lüthard ATA       created
+    ************************************************************************************************************)
+
+    ;Test Variable
+    brsstrcpy(adr(StrTask), "mp_a11")
+
+    ;************************************************************************************************************
+    ;Digitale Inputs
+    ;************************************************************************************************************
+    ;UNIfloc 1
+    a11DigInput[1].emergency            := diEmergencyStop
+
+    if ColdStartFlag or WarmStartFlag then
+    	A11InstMach := 0
+    else
+    	A11InstMach := 287
+    endif
+
+    loop i := 1 to A11MaxIdx do
+    	case sMachine[i] of
+
+    	  ;======================================================================================================
+    	  ;======= S-00 Dummy ===================================================================================
+    	  action S0_DUMMY:
+    	    brsstrcpy(adr(sMachineText[i]), "S00 Dummy") ; Schritt Text
+    		  mainState[i] := 0
+    	    ; -------->> S-01 Initialiserung --------------------------------------------------------------------
+    	    if (dCmdZone[i].cmd.init or not a11DigInput[i].mainSwitchOn or not a11DigInput[i].emergency) then
+    		    sMachine[i] :=  S1_INITIALISIERUNG
+
+    	    ; -------->> S-04 Eingeschaltet ---------------------------------------------------------------------
+    	    else if (not dCmdZone[i].cmd.init and not dCmdZone[i].cmd.serviceMode \
+    	    		and a11DigInput[i].mainSwitchOn) then
+    	    	sMachine[i] :=  S4_EINGESCHALTET
+    		  endif
+    	  endaction
+    	  ;======= S-09 Stoppen =================================================================================
+    	  action S9_STOPPEND:
+    	    brsstrcpy(adr(sMachineText[i]), "S09 Stoppen") ; Schritt Text
+    		mainState[i] := 3
+
+    	    ; -------->> S-01 Initialiserung --------------------------------------------------------------------
+    	    if (dCmdZone[i].cmd.init or (not a11DigInput[i].emergency)) then
+    			sMachine[i] :=  S1_INITIALISIERUNG
+
+    	    ; -------->> S-05 Startend --------------------------------------------------------------------------
+    	    else if dCmdZone[i].cmd.start then
+    			sMachine[i] :=  S5_STARTEND
+    		endif
+    	  endaction
+
+    	  ; Darf nie auftretten, Applikationsfehler
+    	  elseaction:
+    		; Statemachine neu initialisieren
+    		sMachine[i] := S0_DUMMY
+    	  endaction
+    	endcase
+
+    	;Variablen initialisieren
+    	brsmemset(adr(dCmdZone[i]), 0, sizeof(dCmdZone[i]))
+	
+    	; FUB Aufruf für SPIDERweb History
+    	  spiderWebHisFUB[i].shiftNr		:= ShiftNr
+    	  spiderWebHisFUB[i].shiftStart		:= ShiftStart
+    	  spiderWebHisFUB[i].machType		:= machType
+    	spiderWebHisFUB[i] FUB SpiderWebHis()				; FUB Aufruf
+
+    	brsstrcpy(adr(dHisLogEntry[i]), "0")
+    	brsstrcat(adr(dHisLogEntry[i]), adr(strTemp))
+    	brsstrcat(adr(dHisLogEntry[i]), " Voltage failure 24VDC")
+
+    	dStateVis[i].actFlowOrPress	:= uint(1000 * SQRT(2 * (real(airFlowSensor[i])) / (airDensity * coefficient)))
+    	gainTime[i] := time(ABS(gain[i]))
+
+    	IF (dPlantConfList.eFpMachNo[i] < 31) THEN
+    		fanNr[i] := dPlantConfList.eFpMachNo[i]
+    	ELSE IF (dPlantConfList.eFpMachNo[i] > 220) THEN
+    		a21Nr[i] := dPlantConfList.eFpMachNo[i] MOD 20
+    	ENDIF
+
+    	;Ausgänge Bereit und Prod.reduziert setzen
+    	IF (NOT (BIT_TST(dStateVis[i].cardProdRedEnable, 0)) AND BIT_TST(dStateVis[i].cardProdRedEnable, (5 + y))) THEN	;nicht Karde aus + Enable für Karde
+    		afDigOutput.prodReduceCard[dStateVis[i].cardInLine[y]] := (prodReduceCardLine[i] OR prodReduceWarnStore[i])
+    	ELSE
+    		afDigOutput.prodReduceCard[dStateVis[i].cardInLine[y]] := FALSE
+    	ENDIF
+
+    (* initialize stings *)
+    strcpy(ADR(string1), "ABC")
+    strcpy(ADR(string2), "xyz")
+    (* call function *)
+    resultString = CONCAT(string1, string2)
+
+    ;********************************************************************************************************
+    ;                                  Bausteinende
+    ;********************************************************************************************************
+    endloop
+END_PROGRAM
+

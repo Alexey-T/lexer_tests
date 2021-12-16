@@ -1,0 +1,48 @@
+VAR
+	tskCycleTimeMs : TIME;
+	stopGoRatioFUB : ARRAY[0..6] OF StopGoRatio;
+	status : UINT;
+	startUpTimerSet : TIME;
+	startUpTimerEnd : ARRAY[0..6] OF bool;
+	startUpTimerAct : ARRAY[0..6] OF TIME;
+	spiderWebHisFUB : ARRAY[0..6] OF SpiderWebHis;
+	sMachineText : ARRAY[0..6] OF STRING[80];
+	sMachine : ARRAY[0..6] OF USINT;
+	sirenQuitt : ARRAY[0..6] OF BOOL;
+	sirenOn : ARRAY[0..6] OF BOOL;
+	sirenFlagDisturbance : ARRAY[0..6] OF BOOL;
+	mainState : ARRAY[0..6] OF USINT;
+	machType : UDINT;
+	i : USINT;
+	dStateZone : REFERENCE TO ARRAY[0..6] OF maStateZone_s;
+	dStateVis : REFERENCE TO ARRAY[0..6] OF a11StateVis_s;
+	dSpiderWebShift : REFERENCE TO spiderWebShift_s;
+	dSpiderWebHis : REFERENCE TO ARRAY[0..200] OF spiderWebHis_s;
+	dSpiderWebConf : REFERENCE TO spiderWebConf_s;
+	dSpiderWebAct : REFERENCE TO spiderWebAct_s;
+	dPlantConfList : REFERENCE TO plantConfList_s;
+	dPlantCmd : REFERENCE TO plantCmd_s;
+	dParameterListUserNr : REFERENCE TO parameterListUserNr_s;
+	dMatFeed : REFERENCE TO ARRAY[0..6] OF matFeed_s;
+	disturbanceOld : ARRAY[0..6] OF BOOL;
+END_VAR
+VAR RETAIN
+	disturbanceCnt : ARRAY[0..6] OF UINT;
+END_VAR
+VAR
+	deliveryControlTimerSet : TIME;
+	deliveryControlTimerAct : ARRAY[0..6] OF TIME;
+	deliveryControlError : ARRAY[0..6] OF BOOL;
+	dCmdZone : REFERENCE TO ARRAY[0..6] OF maCmdZone_s;
+	dCmdVis : REFERENCE TO ARRAY[0..6] OF a11CmdVis_s;
+END_VAR
+VAR RETAIN
+	dateDisturbCntReset : ARRAY[0..6] OF DATE_AND_TIME;
+END_VAR
+VAR
+	cycleCountFUB : ARRAY[0..6] OF CycleCount;
+	aRTInfo : RTInfo;
+	a11InstMachArray : ARRAY[0..6] OF BOOL;
+	a11DigOutput : ARRAY[0..6] OF a11_o_s;
+	a11DigInput : ARRAY[0..6] OF a11_i_s;
+END_VAR
