@@ -1,0 +1,32 @@
+﻿# Heading
+
+## Smaller heading
+
+### Smallest heading
+
+This is an example paragraph! Make sure you type paragraphs on one long line. They will be word-wrapped automatically by the Gemini client.
+
+This is a Gemtext Link:
+
+=> gemini://gemini.circumlunar.space Link to Project Gemini
+
+Lists are also supported:
+
+* Item 1
+* Item 2
+* Item 3
+
+```
+Finally, you can add 'raw' text by placing it between sets of '```',
+just like this example text.
+```
+
+> I contend 
+
+```
+Finally, you can add 'raw' text by placing it between sets of '```',
+just like this example text.
+```
+
+You can find a cheatsheet here:
+=> https://gemini.circumlunar.space/docs/cheatsheet.gmi Gemini Cheatsheet
