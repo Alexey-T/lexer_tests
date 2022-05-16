@@ -1,0 +1,15 @@
+rgb(255, 255, 255) /* white */
+rgb(255, 255, 255,.5) /* white with 50% opacity */
+rgb(255 255 255) /* CSS Colors 4 space-separated values */
+rgb(255 255 255 / .5); /* white with 50% opacity, using CSS Colors 4 space-separated values */
+
+hwb(194 0% 0%) /* #00c3ff */
+hwb(194 0% 0% / .5) /* #00c3ff with 50% opacity */
+
+lab(29.2345% 39.3825 20.0664);
+lab(52.2345% 40.1645 59.9971);
+lab(52.2345% 40.1645 59.9971 / .5);
+
+lch(29.2345% 44.2 27);
+lch(52.2345% 72.2 56.2);
+lch(52.2345% 72.2 56.2 / .5);
