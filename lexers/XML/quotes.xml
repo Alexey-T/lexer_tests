@@ -1,0 +1,3 @@
+<cmd>"</cmd>
+<cmd>sh -c "ddddd \"dddddd\""</cmd>
+<display-name "dd" abc="123" def =  "true">
