@@ -1,0 +1,26 @@
+body{
+
+    background: rgba(0%, 50%, 0%);    /* underline_color: not OK, cuda_html_tooltips: not OK */
+    background: rgba(72 122 180 / .2);  /* underline_color: OK, cuda_html_tooltips: not OK     */
+    background: rgba(190, 80, 120);     /* underline_color: OK, cuda_html_tooltips: OK         */
+    background: rgba(72, 122, 180, .7); /* underline_color: OK, cuda_html_tooltips: OK         */
+    
+    background: hsla(210 60% 60%);
+    background: hsla(90deg 40% 50%);
+    background: hsla(0.66turn 40% 55% / .6);    
+    background: hsla(0 100% 70% / 30%);
+    background: hsla(2.093rad 100% 50% / .6);    
+    background: hsla(-2.093rad 100% 50% / .6);    
+    background: hsla(133grad 100% 50% / .6);    
+
+    background: hsla(100, 100%, 50%, 1); /* #5f0 */
+    background: hsla(235, 100%, 50%, .5); /* #0015ff with 50% opacity */
+    background: hsla(235 100% 50% / 1); /* CSS Colors 4 space-separated values */
+    background: hsl(100, 100%, 50%); /* #5f0 */
+    background: hsl(235, 100%, 50%); /* #0015ff with 50% opacity */
+    background: hsl(235 100% 50%); /* CSS Colors 4 space-separated values */
+
+    background: hsl(0,50%,100%);
+    background: hsla(0,50%,100%,0.5);
+    
+}
