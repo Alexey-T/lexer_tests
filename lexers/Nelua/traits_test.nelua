@@ -1,0 +1,38 @@
+require 'traits'
+
+do -- type
+  assert(type(1) == 'number')
+  assert(type(false) == 'boolean')
+  assert(type(true) == 'boolean')
+  assert(type(nilptr) == 'pointer')
+  assert(type(nil) == 'nil')
+  assert(type('a') == 'string')
+  local function f() end
+  local R = @record{x:integer}
+  local r: R
+  assert(type(r) == 'record')
+  assert(r.x == 0)
+  assert(type(f) == 'function')
+  assert(type(R) == 'type')
+  assert(type(r) == 'record')
+  assert(type(&r) == 'pointer')
+
+  local x = 1
+  assert(type(x) == 'number')
+end
+
+do -- traits.typeidof
+  assert(traits.typeidof(@niltype) == 0)
+  assert(traits.typeidof(@string) == traits.typeidof('a'))
+  assert(traits.typeidof(@integer) == traits.typeidof(1))
+  assert(traits.typeidof(@integer) == traits.typeidof(1))
+end
+
+do -- traits.typeinfoof
+  local niltype_typeinfo = traits.typeinfoof(@niltype)
+  assert(niltype_typeinfo.id == 0)
+  assert(niltype_typeinfo.name == 'niltype')
+  assert(niltype_typeinfo.codename == 'nlniltype')
+end
+
+print 'traits OK!'

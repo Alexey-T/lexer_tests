@@ -1,0 +1,143 @@
+require 'string'
+
+local sb: stringbuilder
+local s: string
+
+-- return
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'd' end
+  defer sb:write'c' end
+  sb:write'b'
+  return
+end
+f(&sb)
+assert(sb:view() == 'abcd')
+
+-- do block
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'd' end
+  do
+    defer sb:write'b' end
+  end
+  sb:write'c'
+end
+f(&sb)
+assert(sb:view() == 'abcd')
+
+-- nested do blocks
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'e' end
+  do
+    defer sb:write'c' end
+    do
+      defer sb:write'b' end
+    end
+  end
+  sb:write'd'
+end
+f(&sb)
+assert(sb:view() == 'abcde')
+
+-- return in middle nested
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'd' end
+  if true then
+    defer sb:write'c' end
+    if true then
+      defer sb:write'b' end
+    end
+    return
+  end
+end
+f(&sb)
+assert(sb:view() == 'abcd')
+
+-- middle return
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'd' end
+  if true then
+    defer sb:write'c' end
+    return
+    if true then
+      defer sb:write'b' end
+    end
+  end
+end
+f(&sb)
+assert(sb:view() == 'acd')
+
+-- while and break
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'c' end
+  while true do
+    defer sb:write'b' end
+    break
+  end
+end
+f(&sb)
+assert(sb:view() == 'abc')
+
+-- for and continue
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'c' end
+  for i=1,3 do
+    defer sb:write'b' end
+    continue
+    defer sb:write' ' end
+  end
+end
+f(&sb)
+assert(sb:view() == 'abbbc')
+
+-- repeat
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write'a'
+  defer sb:write'c' end
+  repeat
+    defer sb:write'b' end
+    local x = true
+  until x
+end
+f(&sb)
+assert(sb:view() == 'abc')
+
+sb:destroy()
+
+do -- issue #46
+  local n = 0
+  do
+    defer n = n+1 end
+    local r = (do
+      in 0
+    end)
+    n = n + r
+  end
+  assert(n == 1)
+
+  n = 0
+  do
+    defer n = n+1 end
+    local function x()
+      return 0
+    end
+    local r = x()
+  end
+  assert(n == 1)
+end
+
+print 'defer OK!'

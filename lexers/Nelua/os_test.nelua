@@ -1,0 +1,109 @@
+require 'os'
+
+do -- os.clock
+  assert(os.clock() >= 0)
+end
+
+do -- os.difftime
+  assert(os.difftime(0,0) == 0 and os.difftime(1,0) == 1)
+end
+
+do -- os.getenv/os.setenv
+  ## if not ccinfo.is_wasm then
+  os.setenv('TESTVAR')
+  assert(os.setenv('TESTVAR', 'TEST'))
+  local value: string <close> = os.getenv('TESTVAR')
+  assert(value == 'TEST')
+  assert(os.setenv('TESTVAR'))
+  assert(os.getenv('TESTVAR') == '')
+  ## end
+end
+
+do -- os.date
+  local date = os.date()
+  date:destroy()
+
+  date = os.date('%Y/%m/%d %H:%M:%S')
+  assert(date:find('^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+:[0-9]+$') > 0)
+  date:destroy()
+
+  date = os.date('!%c', 0)
+  assert(date:find('00:00:00') > 0)
+  date:destroy()
+
+  date = os.date('')
+  assert(date == '')
+end
+
+do -- os.execute
+  ## if not ccinfo.is_wasm then
+    assert(os.execute() == true)
+  ## else
+    assert(os.execute() == false)
+  ## end
+end
+
+do -- os.tmpname
+  ## if not ccinfo.is_wasm then
+    local tmpname = os.tmpname()
+    os.remove(tmpname)
+    tmpname:destroy()
+  ## end
+end
+
+do -- os.rename
+  assert(os.rename('my_invalid_file', 'my_invalid_file') == false)
+end
+
+do -- os.remove
+  assert(os.remove('my_invalid_file') == false)
+end
+
+do -- os.locale
+  local deflocale: string = os.setlocale()
+  local locale: string = os.setlocale(deflocale)
+  assert(locale == deflocale)
+  locale:destroy()
+
+  locale = os.setlocale(deflocale, 'all')
+  assert(locale == deflocale)
+  locale:destroy()
+
+  deflocale:destroy()
+end
+
+do -- os.time
+  assert(os.time() >= 0)
+  assert(os.time(os.timedesc{year=2020,month=7,day=18,hour=12,isdst=false}) > 0)
+end
+
+do -- os.realtime
+  if os.realtime() >= 0 then -- os.realtime is supported
+    local t1 = os.time()
+    local t2, t2ns = os.realtime()
+    assert(t2 - t1 <= 1)
+    assert(t2ns >= 0)
+  end
+end
+
+do -- os.now/os.sleep
+  local start = os.now()
+  if start >= 0 then -- os.now is supported
+    assert(start == 0.0)
+    assert(os.sleep(-1) == false)
+    if os.sleep(0.02) then -- os.sleep succeeded
+      assert(os.now() >= 0.01)
+    end
+  end
+end
+
+print 'os OK!'
+
+do -- os.exit
+  local function f(): integer
+    os.exit(true)
+    return 0
+  end
+  f()
+  assert(false)
+end

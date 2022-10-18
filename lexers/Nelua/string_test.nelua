@@ -1,0 +1,688 @@
+require 'string'
+require 'span'
+require 'hashmap'
+
+local maxi: isize <comptime> = #[primtypes.isize.max]#
+local mini: isize <comptime> = #[primtypes.isize.min]#
+
+local function assert_string_eq(a: string, b: string)
+  assert(a == b)
+  a:destroy()
+end
+
+do -- string initialization
+  local arr: [6]byte = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00}
+  local a: string = (@cstring)(&arr[0])
+  local b: string = (@cstring)('hello')
+  assert('a' == 'a')
+  assert('' == '')
+  assert(not ('a' == 'b'))
+  assert(a == b)
+  local c: string = 'hello'
+  local d: string = (@cstring)('hello')
+  assert(a == c and a == d)
+  assert(a == b)
+  a = (@cstring)(nilptr)
+  assert(a == '')
+  assert('a' == 'a')
+end
+
+do -- string casting
+  local sstr = (@string)("hello")
+  local scstr = (@cstring)("hello")
+  local dstr: string
+  local dcstr: cstring
+
+  -- implicit
+  dstr = scstr assert(dstr == "hello")   -- cstring -> string
+  dcstr = sstr assert(dcstr == "hello")  -- string -> cstring
+
+  -- explicit
+  dstr = (@string)(scstr) assert(dstr == "hello")       -- cstring -> string
+  dcstr = (@cstring)(sstr) assert(dcstr == "hello")     -- string -> cstring
+end
+
+do -- string casting to span
+  local str: string = 'hello'
+  local spn: span(int8)
+
+  spn = str
+  assert(#spn == 5)
+  spn = (@span(int8))(str)
+  assert(#spn == 5)
+end
+
+do -- string implicit conversion
+  local s: string
+  local c: cstring
+  s = 'world'
+  c = s; assert(c == 'world')
+  c = 'text'
+  s = c; assert(s == 'text')
+end
+
+do -- string length operator
+  local a: string = 'hello'
+  local e: string
+  assert(#a == 5)
+  assert(a:len() == 5)
+  assert(string.len(a) == 5)
+  assert(string.len(&a) == 5)
+  assert(#('hello') == 5)
+  assert(('hello'):len() == 5)
+  assert(string.len('hello') == 5)
+  assert(#e == 0)
+  assert(e:len() == 0)
+  assert(string.len(e) == 0)
+  assert(#('') == 0)
+  assert((''):len() == 0)
+  assert(string.len('') == 0)
+  assert(string.len("") == 0)
+  assert(string.len("\0\0\0") == 3)
+  assert(string.len("1234567890") == 10)
+end
+
+do -- string equality
+  do
+    local a, b = 1, '1'
+    assert(not (a == b))
+    assert(a ~= b)
+  end
+  do
+    local a, b: string = 1, '1'
+    assert(not (a == b))
+    assert(a ~= b)
+  end
+end
+
+do -- string comparison operators
+  local a: string = '01'
+  local b: string = '11'
+  assert(not (a < a))
+  assert(a <= a)
+  assert(a < b and not (b < a))
+  assert(a <= b and not (b <= a))
+  b = '110'
+  assert(a < b and not (b < a))
+  assert(a <= b and not (b <= a))
+  b = '010'
+  assert(a < b and not (b < a))
+  assert(a <= b and not (b <= a))
+  b = a
+  assert(not (a < b) and not (b < a))
+  assert(a <= b and b <= a)
+  local e: string
+  assert(not (a < e) and e < a)
+  assert(not (a <= e) and e <= a)
+  assert('a' < 'b')
+  assert('a' <= 'a')
+  assert('alo' < 'alo1')
+  assert('' < 'a')
+  assert('alo\0alo' < 'alo\0b')
+  assert('alo\0alo\0\0' > 'alo\0alo\0')
+  assert('alo' < 'alo\0')
+  assert('alo\0' > 'alo')
+  assert('\0' < '\1')
+  assert('\0\0' < '\0\1')
+  assert('\1\0a\0a' <= '\1\0a\0a')
+  assert(not ('\1\0a\0b' <= '\1\0a\0a'))
+  assert('\0\0\0' < '\0\0\0\0')
+  assert(not('\0\0\0\0' < '\0\0\0'))
+  assert('\0\0\0' <= '\0\0\0\0')
+  assert(not('\0\0\0\0' <= '\0\0\0'))
+  assert('\0\0\0' <= '\0\0\0')
+  assert('\0\0\0' >= '\0\0\0')
+  assert(not ('\0\0b' < '\0\0a\0'))
+end
+
+do -- string concatenation operator
+  local a: string = 'ab'
+  local b: string = 'cd'
+  local c = a .. b
+  assert(#c == 4)
+  assert(#'' == 0)
+  assert(#'a' == 1)
+  assert(#'ab' == 2)
+  assert(c == 'abcd')
+  assert('abcd' == c)
+  c:destroy()
+  local e: string
+  assert_string_eq(a .. e, a)
+  assert_string_eq(e .. a, a)
+  assert_string_eq(e .. e, e)
+  assert_string_eq('a'..'b', 'ab')
+  assert_string_eq(1 .. '2', '12')
+  assert_string_eq('1' .. 2, '12')
+  assert_string_eq('1.0' .. 2.0, '1.02.0')
+  assert_string_eq(1.0 .. '2.0', '1.02.0')
+end
+
+do -- string arithmetic operators
+  assert('2' + '3' == 5.0) assert('2' + 3 == 5.0) assert(2 + '3' == 5.0)
+  assert('2' - '3' == -1.0) assert('2' - 3 == -1.0) assert(2 - '3' == -1.0)
+  assert('2' * '3' == 6.0) assert('2' * 3 == 6.0) assert(2 * '3' == 6.0)
+  assert('1' / '2' == 0.5) assert(1 / '2' == 0.5) assert('1' / 2 == 0.5)
+  assert('2' // '3' == 0.0) assert(2 // '3' == 2.0//3.0) assert('2' // 3 == 2.0//3.0)
+  assert('2' % '3' == 2.0) assert('2' % 3 == 2.0) assert(2 % '3' == 2.0)
+  assert('2' ^ '3' == 8.0) assert('2' ^ 3 == 8.0) assert(2 ^ '3' == 8.0)
+  assert(-'2' == -2.0)
+  assert('2' & '3' == 2) assert('2' & 3 == 2) assert(2 & '3' == 2)
+  assert('2' | '1' == 3) assert('2' | 1 == 3) assert(2 | '1' == 3)
+  assert('2' ~ '3' == 1) assert(2 ~ '3' == 1) assert('2' ~ 3 == 1)
+  assert('2' << '3' == 16) assert(2 << '3' == 16) assert('2' << 3 == 16)
+  assert('2' >> '1' == 1) assert(2 >> '1' == 1) assert('2' >> 1 == 1)
+  assert('-3' >>> '1' == -2) assert(-3 >>> '1' == -2) assert('-3' >>> 1 == -2)
+  assert(~'2' == -3)
+end
+
+do -- string.char
+  local c = string.char(0x41)
+  assert(c == 'A')
+  c:destroy()
+  assert_string_eq(string.char(0x41, 0x42), 'AB')
+  assert_string_eq(string.char(0x41, 0x42, 0x43), 'ABC')
+end
+
+do -- string.byte
+  local arr: [4]byte = {1,2,3,0}
+  local a: string = (@cstring)(&arr[0])
+  local s: string
+  assert(a:byte( 1) == 1 and a:byte( 2) == 2 and a:byte( 3) == 3)
+  assert(a:byte(-3) == 1 and a:byte(-2) == 2 and a:byte(-1) == 3)
+  assert(string.byte("a") == 97)
+  assert(string.byte("\xe4") > 127)
+  s = string.char(255) assert(string.byte(s) == 255) s:destroy()
+  s = string.char(0)   assert(string.byte(s) == 0)   s:destroy()
+  assert(string.byte("\0") == 0)
+  local x = string.byte('x')
+  assert(string.byte("\0\0alo\0x", -1) == x)
+  assert(string.byte("ba", 2) == 97)
+end
+
+do -- string.sub
+  local a: string = 'hello'
+  assert_string_eq(a:sub(1,5), a)
+  assert_string_eq(a:sub(1,-1), 'hello')
+  assert_string_eq(a:sub(1), 'hello')
+  assert_string_eq(a:sub(2,4), 'ell')
+  assert_string_eq(a:sub(2), 'ello')
+  assert_string_eq(a:sub(-4,-2), 'ell')
+  assert_string_eq(a:sub(2,10), 'ello')
+  assert_string_eq(a:sub(10,1), '')
+  assert_string_eq(a:sub(-10,1), 'h')
+  assert_string_eq(a:sub(-10,10), 'hello')
+  assert_string_eq(a:sub(-10,-6), '')
+  assert_string_eq(a:sub(-10,-5), 'h')
+  local e: string
+  assert_string_eq(e:sub(1,2), e)
+  assert_string_eq(e:sub(-10,10), e)
+  assert_string_eq(string.sub("123456789",2,4), "234")
+  assert_string_eq(string.sub("123456789",7), "789")
+  assert_string_eq(string.sub("123456789",7,6), "")
+  assert_string_eq(string.sub("123456789",7,7), "7")
+  assert_string_eq(string.sub("123456789",0,0), "")
+  assert_string_eq(string.sub("123456789",-10,10), "123456789")
+  assert_string_eq(string.sub("123456789",1,9), "123456789")
+  assert_string_eq(string.sub("123456789",-10,-20), "")
+  assert_string_eq(string.sub("123456789",-1), "9")
+  assert_string_eq(string.sub("123456789",-4), "6789")
+  assert_string_eq(string.sub("123456789",-6, -4), "456")
+  assert_string_eq(string.sub("123456789", mini, -4), "123456")
+  assert_string_eq(string.sub("123456789", mini, maxi), "123456789")
+  assert_string_eq(string.sub("123456789", mini, mini), "")
+  assert_string_eq(string.sub("\000123456789",3,5), "234")
+  assert_string_eq(("\000123456789"):sub(8), "789")
+end
+
+do -- string.subview
+  local a: string = 'hello'
+  assert(a:subview(1,5) == a)
+  assert(a:subview(1,-1) == 'hello')
+  assert(a:subview(1) == 'hello')
+  assert(a:subview(2,4) == 'ell')
+  assert(a:subview(2) == 'ello')
+  assert(a:subview(-4,-2) == 'ell')
+  assert(a:subview(2,10) == 'ello')
+  assert(a:subview(10,1) == '')
+  assert(a:subview(-10,1) == 'h')
+  assert(a:subview(-10,10) == 'hello')
+  assert(a:subview(-10,-6) == '')
+  assert(a:subview(-10,-5) == 'h')
+  local e: string
+  assert(e:subview(1,2) == e)
+  assert(e:subview(-10,10) == e)
+  assert(string.subview("123456789",2,4) == "234")
+  assert(string.subview("123456789",7) == "789")
+  assert(string.subview("123456789",7,6) == "")
+  assert(string.subview("123456789",7,7) == "7")
+  assert(string.subview("123456789",0,0) == "")
+  assert(string.subview("123456789",-10,10) == "123456789")
+  assert(string.subview("123456789",1,9) == "123456789")
+  assert(string.subview("123456789",-10,-20) == "")
+  assert(string.subview("123456789",-1) == "9")
+  assert(string.subview("123456789",-4) == "6789")
+  assert(string.subview("123456789",-6, -4) == "456")
+  assert(string.subview("123456789", mini, -4) == "123456")
+  assert(string.subview("123456789", mini, maxi) == "123456789")
+  assert(string.subview("123456789", mini, mini) == "")
+  assert(string.subview("\000123456789",3,5) == "234")
+  assert(("\000123456789"):subview(8) == "789")
+end
+
+do -- string.rep
+  local a: string = 'hi'
+  assert_string_eq(a:rep(-1), '')
+  assert_string_eq(a:rep(0), '')
+  assert_string_eq(a:rep(1), a)
+  assert_string_eq(a:rep(2), 'hihi')
+  assert_string_eq(a:rep(3), 'hihihi')
+  local e: string
+  assert_string_eq(e:rep(2), e)
+  assert_string_eq(e:rep(3), e)
+  assert_string_eq(string.rep('teste', 0), '')
+  assert_string_eq(string.rep('tes\00te', 2), 'tes\0tetes\000te')
+  assert_string_eq(string.rep('', 10), '')
+  for i=0,30 do
+    local s: string = string.rep('a', i)
+    assert(string.len(s) == i)
+    s:destroy()
+  end
+  assert_string_eq(string.rep('teste', 0, 'xuxu'), '')
+  assert_string_eq(string.rep('teste', 1, 'xuxu'), 'teste')
+  assert_string_eq(string.rep('teste', 2, 'xuxu'), 'testexuxuteste')
+  assert_string_eq(string.rep('teste', 3, 'xuxu'), 'testexuxutestexuxuteste')
+  assert_string_eq(string.rep('\1\0\1', 2, '\0\0'), '\1\0\1\0\0\1\0\1')
+  assert_string_eq(string.rep('', 10, '.'), '.........')
+  assert_string_eq(string.rep('a', 2^3), 'aaaaaaaa')
+end
+
+do -- string.reverse
+  local a: string = 'hello'
+  assert_string_eq(a:reverse(), 'olleh')
+  local e: string
+  assert_string_eq(e:reverse(), e)
+  assert_string_eq(string.reverse"", "")
+  assert_string_eq(string.reverse"\0\1\2\3", "\3\2\1\0")
+  assert_string_eq(string.reverse"\0001234", "4321\0")
+end
+
+do -- string.lower/string.upper
+  local a: string = 'hello1234'
+  local b: string = 'HELLO1234'
+  assert_string_eq(a:upper(), 'HELLO1234')
+  assert_string_eq(b:upper(), 'HELLO1234')
+  assert_string_eq(a:lower(), 'hello1234')
+  assert_string_eq(b:lower(), 'hello1234')
+  local e: string
+  assert_string_eq(e:upper(), e)
+  assert_string_eq(e:lower(), e)
+  assert_string_eq(string.upper("ab\0c"), "AB\0C")
+  assert_string_eq(string.lower("\0ABCc%$"), "\0abcc%$")
+end
+
+do -- string.find
+  local s: string = 'hello world'
+  local b, e
+  b, e = s:find('h', 1, true) assert(b == 1 and e == 1)
+  b, e = s:find('he', 1, true) assert(b == 1 and e == 2)
+  b, e = s:find('ld', 1, true) assert(b == 10 and e == 11)
+  b, e = s:find('heo', 1, true) assert(b == 0 and e == 0)
+  b, e = s:find('hel', 1, true) assert(b == 1 and e == 3)
+  b, e = s:find('d', 1, true) assert(b == 11 and e == 11)
+  b, e = s:find('h', -11, true) assert(b == 1 and e == 1)
+  b, e = s:find('h', -10, true) assert(b == 0 and e == 0)
+  b, e = s:find('', 1, true) assert(b == 1 and e == 0)
+  b, e = s:find('a', 1, true) assert(b == 0 and e == 0)
+  s = ''
+  b, e = s:find('', 1, true) assert(b == 1 and e == 0)
+  b, e = s:find('a', 1, true) assert(b == 0 and e == 0)
+
+  b, e = string.find('abc','^abc$') assert(b == 1 and e == 3)
+  b, e = string.find('abc','%l+') assert(b == 1 and e == 3)
+  b, e = string.find('abc','%l+', 2) assert(b == 2 and e == 3)
+end
+
+do -- string.match
+  local ok: boolean, seq: sequence(string)
+  ok, seq = string.match('xaaabbb', '^x(a+)(b+)$')
+  assert(ok)
+  assert(#seq == 2)
+  assert(seq[1] == 'aaa' and seq[2] == 'bbb')
+  seq[1]:destroy()
+  seq[2]:destroy()
+  seq:destroy()
+end
+
+do -- string.matchview
+  local ok: boolean, seq: sequence(string)
+  ok, seq = string.matchview('abc', '^abc$') assert(ok) seq:destroy()
+  ok, seq = string.matchview('abc', '^abc$', 1) assert(ok) seq:destroy()
+  ok, seq = string.matchview('0abc', '^abc$', 2) assert(ok) seq:destroy()
+
+  local status, captures = string.matchview('abc', '^(a)(bc)$')
+  assert(status == true and #captures == 2 and captures[1] == 'a' and captures[2] == 'bc')
+  captures:destroy()
+end
+
+do -- string.gmatch
+  local seq: sequence(string)
+  for k, captures in ('from=hello, to = world'):gmatch('(%w+)%s*=%s*(%w+)') do
+    seq[#seq+1] = k
+    seq[#seq+1] = captures[0]
+    seq[#seq+1] = captures[1]
+  end
+  assert(seq[1] == 'from=hello' and seq[2] == 'from' and seq[3] == 'hello')
+  assert(seq[4] == 'to = world' and seq[5] == 'to' and seq[6] == 'world')
+  assert(#seq == 6)
+  for i=1,6 do seq[i]:destroy() end
+  seq:destroy()
+end
+
+do -- string.gmatchview
+  local seq: sequence(string)
+  for k in ('hello great world'):gmatchview('%w+') do
+    seq[#seq+1] = k
+  end
+  assert(#seq == 3 and seq[1] == 'hello' and seq[2] == 'great' and seq[3] == 'world')
+
+  seq:clear()
+  for k, captures in ('from=hello, to = world'):gmatchview('(%w+)%s*=%s*(%w+)') do
+    seq[#seq+1] = k
+    seq[#seq+1] = captures[0]
+    seq[#seq+1] = captures[1]
+  end
+  assert(seq[1] == 'from=hello' and seq[2] == 'from' and seq[3] == 'hello')
+  assert(seq[4] == 'to = world' and seq[5] == 'to' and seq[6] == 'world')
+
+  seq:destroy()
+
+  for k in ('1234 56 7'):gmatchview('%l+') do
+    assert(false)
+  end
+
+  local i: integer = 0
+  for k in ('0123'):gmatchview('%d') do
+    assert(i == tointeger(k))
+    i = i + 1
+  end
+
+  i = 0
+  for k in ('aaa;bbb;ccc'):gmatchview('[^;]+') do
+    i = i + 1
+    if i == 1 then assert(k == 'aaa')
+    elseif i == 2 then assert(k == 'bbb')
+    elseif i == 3 then assert(k == 'ccc')
+    end
+  end
+end
+
+do -- string.gsub
+  local sub: string, n: isize = string.gsub('hello', 'ell', 'ELL')
+  assert(sub == 'hELLo' and n == 1)
+  sub:destroy()
+
+  sub, n = string.gsub('hello WORLD', '%l', function(x: string)
+    defer x:destroy() end
+    return string.upper(x)
+  end)
+  assert(sub == 'HELLO WORLD' and n == 5)
+  sub:destroy()
+
+  local map: hashmap(string, string)
+  map['hello'] = 'HI'
+  map['world'] = 'EARTH'
+  sub, n = string.gsub('$hello $great $world', '$(%w+)', map)
+  assert(sub == 'HI $great EARTH' and n == 3)
+  map:destroy()
+  sub:destroy()
+end
+
+do -- string.format
+  local s: string
+  assert_string_eq(string.format(''), '')
+  assert_string_eq(string.format('%s', (@string){}), '')
+  assert_string_eq(string.format('asd'), 'asd')
+  assert_string_eq(string.format('', 0), '')
+  assert_string_eq(string.format('a', 0), 'a')
+  assert_string_eq(string.format('%s %s %s', 1, true, nil), '1 true nil')
+  assert_string_eq(string.format('%%', 1), '%')
+  assert_string_eq(string.format('%c', 0x41), 'A')
+  assert_string_eq(string.format('%c%c', 0x41, 0x42), 'AB')
+  assert_string_eq(string.format('%x', 0xff), 'ff')
+  assert_string_eq(string.format('%04x', 0xff), '00ff')
+  assert_string_eq(string.format('%u', 10), '10')
+  assert_string_eq(string.format('%u', -1_i8), '255')
+  assert_string_eq(string.format('%x', -1_i16), 'ffff')
+  assert_string_eq(string.format('%i', 10), '10')
+  assert_string_eq(string.format('%d', 10), '10')
+  assert_string_eq(string.format('%o', 0xff), '377')
+  assert_string_eq(string.format('%X', 0xC001), 'C001')
+  ## if primtypes.integer.size == 8 then
+    assert_string_eq(string.format('%d', #[math.maxinteger]#), '9223372036854775807')
+    assert_string_eq(string.format('%i', #[math.mininteger]#), '-9223372036854775808')
+  ## end
+  s = string.format('%a', 1) assert(s:find('p', 1, true) > 0) s:destroy()
+  s = string.format('%A', 1) assert(s:find('P', 1, true) > 0) s:destroy()
+  assert_string_eq(string.format('%f', 0.1), '0.100000')
+  assert_string_eq(string.format('%.2f', 3.14), '3.14')
+  assert_string_eq(string.format('%e', 0.1):subview(1,10), '1.000000e-')
+  assert_string_eq(string.format('%E', 300):subview(1,10), '3.000000E+')
+  assert_string_eq(string.format('%g', 0.123), '0.123')
+  assert_string_eq(string.format('%G', 0.123e-20):subview(1,6), '1.23E-')
+  assert_string_eq(string.format('%p', nilptr), '(null)')
+  assert_string_eq(string.format('%p', (@pointer)(0x1_usize)), '0x1')
+  s = string.format('%p', (@pointer)(-1_isize)) assert(s:find('[fF]+', 1) > 0) s:destroy()
+  assert_string_eq(string.format('%s', 'asd'), 'asd')
+  assert_string_eq(string.format('%s: %d', 'test', 1), 'test: 1')
+  s = string.rep('xuxu', 500) assert_string_eq(string.format('%s', s), s) s:destroy()
+  assert_string_eq(string.format('a number here: %d !', 1337), 'a number here: 1337 !')
+  assert_string_eq(string.format('%-30s %s', 'a', 'b'), 'a                              b')
+  assert_string_eq(string.format('|%4s|', ''), '|    |')
+end
+
+do -- string.concat
+  assert(string.concat({}) == "")
+  assert(string.concat({}, " ") == "")
+
+  local s: string <close> = string.concat({"hello", "world"}) assert(s == "helloworld")
+  local s: string <close> = string.concat({"hello", "world"}, " ") print(s) assert(s == "hello world")
+  local s: string <close> = string.concat({"hello", "huge", "world"}, ",") assert(s == "hello,huge,world")
+  local s: string <close> = string.concat({"a", "b", "c"}, ";:") assert(s == "a;:b;:c")
+end
+
+do -- print
+  print('hello')
+  local s: string = 'world'
+  print(s)
+  print((@cstring)('!'))
+
+  local Point = @record{x: integer, y: integer}
+  function Point:__tostring(): string
+    return string.format('Point{x=%d, y=%d}', self.x, self.y)
+  end
+
+  local p: Point = {x=1,y=2}
+  ## if pragmas.nogc then
+  s = tostring(p)
+  print(s)
+  s:destroy()
+  ## else
+  print(p)
+  ## end
+end
+
+do -- tostring
+  assert_string_eq(tostring(2), '2')
+  assert_string_eq(tostring(0xff), '255')
+  assert_string_eq(tostring(-2), '-2')
+  assert_string_eq(tostring(false), 'false')
+  assert_string_eq(tostring(true), 'true')
+  assert_string_eq(tostring(nil), 'nil')
+  assert_string_eq(tostring(0), '0')
+  assert_string_eq(tostring(0.0), '0.0')
+  assert_string_eq(tostring(-0.0), '-0.0')
+  assert_string_eq(tostring('hello world'), 'hello world')
+  assert_string_eq(tostring(-1203), "-1203")
+  assert_string_eq(tostring(1203.125), "1203.125")
+  assert_string_eq(tostring(-0.5), "-0.5")
+  assert_string_eq(tostring(-32767), "-32767")
+  assert_string_eq(tostring(''), '')
+  local function f() end
+  assert_string_eq(tostring(f):subview(1,10), 'function: ')
+  assert_string_eq(tostring(string.lower):subview(1,10), 'function: ')
+  assert_string_eq(tostring(tostring), 'polyfunction')
+  assert_string_eq(tostring(nilptr), '(null)')
+  assert_string_eq(tostring((@pointer)(0x1_usize)), '0x1')
+  assert_string_eq(tostring((@pointer)(nilptr)), '(null)')
+  assert_string_eq(tostring((@function())(nilptr)), 'function: (null)')
+  assert_string_eq(tostring((@function())((@pointer)(0x1_usize))), 'function: 0x1')
+  assert_string_eq(tostring((@enum{A=0})()), '0')
+  assert_string_eq(tostring(@string), 'type: string')
+end
+
+do -- tostring using __tostring metamethod
+  local MyEnum: type = @enum{A = 0, B}
+  function MyEnum.__tostring(value: MyEnum): string
+    ## for i,field in ipairs(value.type.fields) do
+    if value == #[field.value]# then
+      return string.copy(#[field.name]#)
+    end
+    ## end
+    return string.copy('Unknown')
+  end
+  local a = tostring(MyEnum.A)
+  local f = MyEnum.__tostring
+  local b = f(MyEnum.B)
+  assert(a == 'A' and b == 'B')
+  a:destroy()
+  b:destroy()
+end
+
+do -- tonumber
+  assert(tonumber(1337) == 1337)
+  assert(tonumber('1337') == 1337)
+  assert(tonumber(0) == 0)
+  assert(tonumber('0') == 0)
+  assert(tonumber(3.4) == 3.4)
+  assert(tonumber(1/0) == 1/0)
+  local s: string = '1337'
+  assert(tonumber(s) == 1337)
+  local c: cstring = '1337'
+  assert(tonumber(c) == 1337)
+  assert(tonumber(('12345'):subview(1,3)) == 123)
+  assert(tonumber('1e5000') == #[math.huge]#)
+  assert(tonumber('-1e5000') == #[-math.huge]#)
+  assert(tonumber('1e-5000') == 0.0)
+
+  -- hexadecimal
+  assert(tonumber"0x0" == 0x0)
+  assert(tonumber"0x09abcdef" == 0x09abcdef)
+  assert(tonumber"0X01ABCDEF" == 0X01ABCDEF)
+  assert(tonumber"0xabcd.ef91" == 0xabcd.ef91)
+  assert(tonumber"0x.FfffFFFF" == 0x.FfffFFFF)
+  assert(tonumber"0x.00000001" == 0x.00000001)
+  assert(tonumber"0Xabcdef.0" == 0Xabcdef.0)
+  assert(tonumber"0x3.3p3" == 0x3.3p3)
+  assert(tonumber"0x5.5P-5" == 0x5.5P-5)
+  assert(tonumber"0x.0p-3" == 0x.0p-3)
+  assert(tonumber"0x.ABCDEFp+24" == 0x.ABCDEFp+24)
+  assert(tonumber"0x1.0" == 0x1.0)
+  assert(tonumber"-0x1.1" == -0x1.1)
+
+  -- decimal
+  assert(tonumber"0123456789" == 123456789)
+  assert(tonumber".0" == .0)
+  assert(tonumber"0." == 0.)
+  assert(tonumber"0123.456789" == 123.456789)
+  assert(tonumber"0.5e-3" == 0.5e-3)
+  assert(tonumber".1e2" == .1e2)
+  assert(tonumber".0e+2" == .0e+2)
+  assert(tonumber"1e-2" == 1e-2)
+  assert(tonumber"1e+2" == 1e+2)
+  assert(tonumber"1.e3" == 1.e3)
+  assert(tonumber"1e1" == 1e1)
+  assert(tonumber"1.2e+6" == 1.2e+6)
+
+  -- binary
+  assert(tonumber"0b010101011" == 0b010101011)
+  assert(tonumber"0b1.1p2" == 0b1.1p2)
+  assert(tonumber"0B1111.1111p-2" == 0B1111.1111p-2)
+
+  -- tonumber with base
+  assert(tonumber('0', 10) == 0)
+  assert(tonumber('+0', 10) == 0)
+  assert(tonumber('-0', 10) == 0)
+  assert(tonumber('1', 10) == 1)
+  assert(tonumber('+1', 10) == 1)
+  assert(tonumber('-1', 10) == -1)
+  assert(tonumber('1234567890', 10) == 1234567890)
+  assert(tonumber('-1234567890', 10) == -1234567890)
+  assert(tonumber('f',16) == 15)
+  assert(tonumber('-f',16) == -15)
+  assert(tonumber('+f',16) == 15)
+  assert(tonumber('19abcdef',16) == 0x19abcdef)
+  assert(tonumber('+19abcdef',16) == 0x19abcdef)
+  assert(tonumber('-19abcdef',16) == -0x19abcdef)
+  assert(tonumber(' \f\n\r\t\vfe',16) == 254)
+  assert(tonumber(' \f\n\r\t\vff \f\n\r\t\v',16) == 255)
+  assert(tonumber('1111', 2) == 15)
+  ## if primtypes.integer.size == 8 then
+    assert(tonumber(#[tostring(primtypes.isize.max)]#, 10) == maxi)
+    assert(tonumber(#[tostring(primtypes.isize.min)]#, 10) == mini)
+    assert(tonumber(#[tostring(primtypes.isize.max+1)]#, 10) == maxi+1)
+    assert(tonumber(#[tostring(primtypes.isize.min+1)]#, 10) == mini+1)
+    assert(tonumber(#[tostring(primtypes.isize.max-1)]#, 10) == maxi-1)
+    assert(tonumber(#[tostring(primtypes.isize.min-1)]#, 10) == mini-1)
+    assert(tonumber(#[tostring(primtypes.isize.max)..'00']#, 10) == maxi * 100)
+    assert(tonumber(#[tostring(primtypes.isize.min)..'00']#, 10) == mini * 100)
+    assert(tonumber('thequickbrownfoxjumpsoverthelazydog', 36) == 447430708471575744)
+  ## end
+
+  -- edge cases
+  assert(tonumber('1e+2147483647') == #[math.huge]#)
+  assert(tonumber('1e+2147483648') == #[math.huge]#)
+  assert(tonumber('1e-2147483647') == 0.0)
+  assert(tonumber('1e-2147483648') == 0.0)
+  assert(tonumber('1e-2147483649') == 0.0)
+end
+
+do -- tointeger
+  assert(tointeger(1337) == 1337)
+  assert(tointeger('1337') == 1337)
+  assert(tointeger(0) == 0)
+  assert(tointeger('0') == 0)
+  assert(tointeger(('12345'):subview(1,3)) == 123)
+  assert(tointeger('0xff') == 0xff)
+  assert(tointeger('0b10111') == 0b10111)
+
+  assert(tonumber('1234567890', 10) == 1234567890)
+  assert(tonumber('-1234567890', 10) == -1234567890)
+  assert(tointeger(' \v\r123 \t\n', 10) == 123)
+end
+
+do -- indexing
+  local s = string.copy('hello')
+  assert(s[1] == 'h'_byte)
+  assert(s[5] == 'o'_byte)
+  s[1] = 'H'_byte
+  assert(s[1] == 'H'_byte)
+  assert(s == 'Hello')
+  s:destroy()
+end
+
+do -- iterating
+  local s = 'hello'
+  for i,v in pairs(s) do
+    assert(i >= 1 and i <= 5)
+    if i == 1 then assert(s[1] == 'h'_byte) end
+    if i == 5 then assert(s[5] == 'o'_byte) end
+  end
+end
+
+do -- tostringview
+  local s = "hi"
+  local s2 = tostringview(s)
+  assert(s2 == s)
+end
+
+print 'string OK!'

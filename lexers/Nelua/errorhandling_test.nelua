@@ -1,0 +1,67 @@
+require 'errorhandling'
+
+local fail_defer: boolean = false
+local function fail(x: integer): integer
+  local sb: stringbuilder <close>
+  sb:write('some', 'stuff')
+  fail_defer = false
+  defer fail_defer = true end
+  if x <= 0 then
+    error 'error fail'
+    panic 'impossible'
+  end
+  return x
+end
+
+local failproxy_defer: boolean = false
+local function failproxy(x: integer): integer
+  failproxy_defer = false
+  defer failproxy_defer = true end
+  return fail(x)
+end
+
+local function xpcall_msghandler(msg: string): string
+  return msg
+end
+
+do -- pcall
+  -- fail
+  local ok, err <close>, ret = pcall(failproxy, 0)
+  assert(ok == false and ret == 0)
+  assert(err:find('error fail') > 0)
+  assert(fail_defer == true and failproxy_defer == true)
+  -- success
+  local ok, err <close>, ret = pcall(failproxy, 1)
+  assert(ok == true and err == '' and ret == 1)
+  assert(fail_defer == true and failproxy_defer == true)
+end
+
+do -- xpcall
+  -- fail
+  local ok, err <close>, ret = xpcall(fail, xpcall_msghandler, 0)
+  assert(ok == false and ret == 0)
+  assert(err:find('error fail') > 0)
+  assert(fail_defer == true and failproxy_defer == true)
+  -- success
+  local ok, err <close>, ret = xpcall(fail, xpcall_msghandler, 1)
+  assert(ok == true and err == '' and ret == 1)
+  assert(fail_defer == true and failproxy_defer == true)
+end
+
+do -- assert
+  local ok = assert(true)
+  assert(ok == true)
+  local ok, msg = assert(true, 'test')
+  assert(ok == true and msg == 'test')
+  local ok, a, b = assert(true, 1, 2)
+  assert(ok == true and a == 1 and b == 2)
+end
+
+do -- error
+  local function raiseerr(): integer
+    error('myerror', 0)
+    return 0
+  end
+  local ok, err <close> = pcall(raiseerr)
+  assert(ok == false and err == 'myerror')
+end

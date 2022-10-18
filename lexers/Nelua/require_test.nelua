@@ -1,0 +1,22 @@
+require '.require_test_dep'
+require 'tests.require_test_dep'
+
+assert(a == 1)
+assert(b == 2)
+## def_c()
+assert(c == 3)
+## def_d()
+assert(d == 4)
+
+## def_lc()
+assert(lc == 3)
+## def_ld()
+## assert(ld == nil)
+
+## local metadep = require '.require_test_metadep'
+## metadep = require 'tests.require_test_metadep'
+local a = 0
+## metadep.inject_num_assign('a', 5)
+assert(a == 5)
+
+print 'require OK!'

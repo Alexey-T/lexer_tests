@@ -1,0 +1,51 @@
+require 'iterators'
+
+do -- print
+  print('hello', 'world')
+end
+
+do -- warn
+  warn('hi')
+end
+
+do -- check
+  check(true)
+  check(true, 'ok')
+end
+
+do -- assert
+  assert(true)
+  assert(true, 'test')
+  assert(true, (@cstring)('test'))
+  assert(assert(1) == 1)
+  assert(assert(0) == 0)
+end
+
+do -- likely/unlikely
+  assert(likely(true) == true)
+  assert(likely(false) == false)
+  assert(unlikely(true) == true)
+  assert(unlikely(false) == false)
+end
+
+do -- nilptr
+  assert(not nilptr)
+end
+
+do -- _VERSION
+  assert(_VERSION == #[require 'nelua.version'.NELUA_VERSION]#)
+end
+
+do -- select
+  assert(select('#') == 0)
+  assert(select('#', 10) == 1)
+  assert(select('#', 10, 20) == 2)
+
+  assert(select(1, 10) == 10)
+  assert(select(1, 10, 20) == 10)
+  assert(select(2, 10, 20) == 20)
+  assert(select(-1, 10, 20) == 20)
+  assert(select(-1, 10, 20) == 20)
+end
+
+print 'builtins OK!'

@@ -1,0 +1,585 @@
+require 'math'
+
+-- test utilities
+local function asserteq(x: auto, y: auto)
+  assert(math.abs(x - y) < 1e-6)
+end
+local e: float64 <comptime> = 2.718281828459045
+local e_f32: float32 <comptime> = 2.718281828459045_f32
+global pi_f32: float32 <comptime> = math.pi
+
+do -- math.min
+  assert(math.min(1.0, -1.0) == -1.0)
+  assert(math.min(-1.0, 1.0) == -1.0)
+
+  assert(math.min(1.0_f32, -1.0_f32) == -1.0_f32)
+  assert(math.min(-1.0_f32, 1.0_f32) == -1.0_f32)
+
+  assert(math.min(1, -1) == -1)
+  assert(math.min(-1, 1) == -1)
+
+  assert(math.min(-1, 1, 2) == -1)
+  assert(math.min(2, 0, -1) == -1)
+end
+
+do -- math.max
+  assert(math.max(1.0, -1.0) == 1.0)
+  assert(math.max(-1.0, 1.0) == 1.0)
+
+  assert(math.max(1.0_f32, -1.0_f32) == 1.0_f32)
+  assert(math.max(-1.0_f32, 1.0_f32) == 1.0_f32)
+
+  assert(math.max(1, -1) == 1)
+  assert(math.max(-1, 1) == 1)
+
+  assert(math.max(-1, 1, 2) == 2)
+  assert(math.max(2, 0, -1) == 2)
+end
+
+do -- math.huge
+  assert(math.min(math.huge, -math.huge) == -math.huge)
+  assert(math.max(math.huge, -math.huge) == math.huge)
+end
+
+do -- math.abs
+  assert(math.abs(-1.0) == 1.0)
+  assert(math.abs(1.0) == 1.0)
+
+  assert(math.abs(-1.0_f32) == 1.0_f32)
+  assert(math.abs(1.0_f32) == 1.0_f32)
+
+  assert(math.abs(-1) == 1)
+  assert(math.abs(1) == 1)
+end
+
+do -- math.ceil
+  assert(math.ceil(0.0) == 0.0)
+  assert(math.ceil(-1.0) == -1.0)
+  assert(math.ceil(1.1) == 2.0)
+  assert(math.ceil(-1.1) == -1.0)
+
+  assert(math.ceil(0.0_f32) == 0.0_f32)
+  assert(math.ceil(-1.0_f32) == -1.0_f32)
+  assert(math.ceil(1.1_f32) == 2.0_f32)
+  assert(math.ceil(-1.1_f32) == -1.0_f32)
+
+  assert(math.ceil(0) == 0)
+  assert(math.ceil(1) == 1)
+  assert(math.ceil(-1) == -1)
+end
+
+
+do -- math.floor
+  assert(math.floor(0.0) == 0.0)
+  assert(math.floor(-1.0) == -1.0)
+  assert(math.floor(1.1) == 1.0)
+  assert(math.floor(-1.1) == -2.0)
+
+  assert(math.floor(0.0_f32) == 0.0_f32)
+  assert(math.floor(-1.0_f32) == -1.0_f32)
+  assert(math.floor(1.1_f32) == 1.0_f32)
+  assert(math.floor(-1.1_f32) == -2.0_f32)
+
+  assert(math.floor(0) == 0)
+  assert(math.floor(1) == 1)
+  assert(math.floor(-1) == -1)
+end
+
+do -- math.ifloor
+  assert(math.ifloor(0.0) == 0)
+  assert(math.ifloor(1.1) == 1)
+  assert(math.ifloor(-1) == -1)
+  assert(math.ifloor(-1.1) == -2)
+end
+
+do -- math.iceil
+  assert(math.iceil(0.0) == 0)
+  assert(math.iceil(1.1) == 2)
+  assert(math.iceil(-1) == -1)
+  assert(math.iceil(-1.1) == -1)
+end
+
+do -- math.trunc
+  assert(math.trunc(1.25) == 1)
+  assert(math.trunc(-1.25) == -1)
+  assert(math.trunc(1.75) == 1)
+  assert(math.trunc(-1.75) == -1)
+  assert(math.trunc(2) == 2)
+end
+
+do -- math.round
+  assert(math.round(1.25) == 1)
+  assert(math.round(-1.25) == -1)
+  assert(math.round(1.75) == 2)
+  assert(math.round(-1.75) == -2)
+  assert(math.round(2) == 2)
+end
+
+do -- math.acos
+  asserteq(math.acos(-1.0), math.pi)
+  asserteq(math.acos(1.0), 0)
+  asserteq(math.acos(-1.0_f32), pi_f32)
+  asserteq(math.acos(1.0_f32), 0)
+  asserteq(math.acos(-1), math.pi)
+  asserteq(math.acos(1), 0)
+end
+
+do -- math.asin
+  asserteq(math.asin(0.0), 0.0)
+  asserteq(math.asin(1.0), math.pi/2.0)
+  asserteq(math.asin(0.0_f32), 0.0_f32)
+  asserteq(math.asin(1.0_f32), pi_f32/2.0_f32)
+  asserteq(math.asin(0), 0)
+  asserteq(math.asin(1), math.pi/2)
+end
+
+do -- math.atan
+  asserteq(math.atan(0.0), 0.0)
+  asserteq(math.atan(1.0), math.pi/4.0)
+  asserteq(math.atan(0.0, -1.0), math.pi)
+  asserteq(math.atan(-1.0, -1.0), -math.pi*3.0/4.0)
+
+  asserteq(math.atan(0.0_f32), 0.0_f32)
+  asserteq(math.atan(1.0_f32), pi_f32/4.0_f32)
+  asserteq(math.atan(0.0_f32, -1.0_f32), pi_f32)
+  asserteq(math.atan(-1.0_f32, -1.0_f32), -pi_f32*3.0_f32/4.0_f32)
+
+  asserteq(math.atan(0), 0)
+  asserteq(math.atan(1), math.pi/4)
+  asserteq(math.atan(0, -1), math.pi)
+  asserteq(math.atan(-1, -1), -math.pi*3/4)
+end
+
+do -- math.cos
+  asserteq(math.cos(math.pi), -1.0)
+  asserteq(math.cos(0.0), 1.0)
+
+  asserteq(math.cos(pi_f32), -1.0_f32)
+  asserteq(math.cos(0.0_f32), 1.0_f32)
+
+  asserteq(math.cos(0), 1)
+end
+
+do -- math.sin
+  asserteq(math.sin(math.pi/2.0), 1.0)
+  asserteq(math.sin(0.0), 0.0)
+
+  asserteq(math.sin(pi_f32/2.0_f32), 1.0_f32)
+  asserteq(math.sin(0.0_f32), 0.0_f32)
+
+  asserteq(math.sin(0), 0)
+end
+
+do -- math.tan
+  asserteq(math.tan(math.pi/4.0), 1.0)
+  asserteq(math.tan(0.0), 0.0)
+
+  asserteq(math.tan(pi_f32/4.0_f32), 1.0_f32)
+  asserteq(math.tan(0.0_f32), 0.0_f32)
+
+  asserteq(math.tan(0), 0)
+end
+
+do -- math.sqrt
+  asserteq(math.sqrt(4.0), 2.0)
+  asserteq(math.sqrt(9.0), 3.0)
+
+  asserteq(math.sqrt(4.0_f32), 2.0_f32)
+  asserteq(math.sqrt(9.0_f32), 3.0_f32)
+
+  asserteq(math.sqrt(4), 2)
+  asserteq(math.sqrt(9), 3)
+end
+
+do -- math.cbrt
+  asserteq(math.cbrt(8.0), 2.0)
+  asserteq(math.cbrt(27.0), 3.0)
+
+  asserteq(math.cbrt(8.0_f32), 2.0_f32)
+  asserteq(math.cbrt(27.0_f32), 3.0_f32)
+
+  asserteq(math.cbrt(8), 2)
+  asserteq(math.cbrt(27), 3)
+end
+
+do -- math.exp
+  asserteq(math.exp(0.0), 1.0)
+  asserteq(math.exp(1.0), e)
+
+  asserteq(math.exp(0.0_f32), 1.0_f32)
+  asserteq(math.exp(1.0_f32), e_f32)
+
+  asserteq(math.exp(0), 1)
+  asserteq(math.exp(1), e)
+end
+
+do -- math.log
+  asserteq(math.log(1.0), 0.0)
+  asserteq(math.log(e), 1.0)
+  asserteq(math.log(1e8, 10.0), 8.0)
+  asserteq(math.log(1e-8, 10.0), -8.0)
+  asserteq(math.log(1024.0, 2.0), 10.0)
+  asserteq(math.log(1.0/1024.0, 2.0), -10.0)
+
+  asserteq(math.log(1.0_f32), 0.0_f32)
+  asserteq(math.log(e_f32), 1.0_f32)
+  asserteq(math.log(1e8_f32, 10.0_f32), 8.0_f32)
+  asserteq(math.log(1e-8_f32, 10.0_f32), -8.0_f32)
+  asserteq(math.log(1024.0_f32, 2.0_f32), 10.0_f32)
+  asserteq(math.log(1.0_f32/1024.0_f32, 2.0_f32), -10.0_f32)
+
+  asserteq(math.log(1), 0)
+  asserteq(math.log(e), 1)
+  asserteq(math.log(100000000, 10), 8)
+  asserteq(math.log(1024, 2), 10)
+end
+
+do -- math.log10
+  asserteq(math.log10(10.0), 1.0)
+  asserteq(math.log10(1000.0), 3.0)
+
+  asserteq(math.log10(10.0_f32), 1.0_f32)
+  asserteq(math.log10(1000.0_f32), 3.0_f32)
+
+  asserteq(math.log10(10), 1)
+  asserteq(math.log10(1000), 3)
+end
+
+do -- math.fmod
+  asserteq(math.fmod(5.0, 2.0), 1.0)
+  asserteq(math.fmod(2.3, 5.7), 2.3)
+  asserteq(math.fmod(-6.0, 4.0), -2.0)
+
+  asserteq(math.fmod(5.0_f32, 2.0_f32), 1.0_f32)
+  asserteq(math.fmod(2.3_f32, 5.7_f32), 2.3_f32)
+  asserteq(math.fmod(-6.0_f32, 4.0_f32), -2.0_f32)
+
+  asserteq(math.fmod(5, 2), 1)
+  asserteq(math.fmod(-6, 4), -2)
+end
+
+do -- math.deg
+  asserteq(math.deg(math.pi / 2.0), 90.0)
+  asserteq(math.deg(0.0), 0.0)
+
+  asserteq(math.deg(pi_f32 / 2.0_f32), 90.0_f32)
+  asserteq(math.deg(0.0_f32), 0.0_f32)
+
+  asserteq(math.deg(math.pi / 2), 90)
+  asserteq(math.deg(0), 0)
+end
+
+do -- math.rad
+  asserteq(math.rad(90.0), math.pi / 2.0)
+  asserteq(math.rad(0.0), 0.0)
+
+  asserteq(math.rad(90.0_f32), math.pi / 2.0_f32)
+  asserteq(math.rad(0.0_f32), 0.0_f32)
+
+  asserteq(math.rad(90), math.pi / 2)
+  asserteq(math.rad(0), 0)
+end
+
+do -- math.atan2
+  asserteq(math.atan2(0.0, -1.0), math.pi)
+  asserteq(math.atan2(-1.0, -1.0), -math.pi*3.0/4.0)
+
+  asserteq(math.atan2(0.0_f32, -1.0_f32), pi_f32)
+  asserteq(math.atan2(-1.0_f32, -1.0_f32), -pi_f32*3.0_f32/4.0_f32)
+
+  asserteq(math.atan2(0, -1), math.pi)
+  asserteq(math.atan2(-1, -1), -math.pi*3/4)
+end
+
+## if not ccinfo.is_avr and not ccinfo.is_msdos then
+do -- math.exp2
+  asserteq(math.exp2(4.0), 16.0)
+  asserteq(math.exp2(1.0), 2.0)
+
+  asserteq(math.exp2(4.0_f32), 16.0_f32)
+  asserteq(math.exp2(1.0_f32), 2.0_f32)
+
+  asserteq(math.exp2(4), 16)
+  asserteq(math.exp2(1), 2)
+end
+
+do -- math.log2
+  asserteq(math.log2(16.0), 4.0)
+  asserteq(math.log2(2.0), 1.0)
+
+  asserteq(math.log2(16.0_f32), 4.0_f32)
+  asserteq(math.log2(2.0_f32), 1.0_f32)
+
+  asserteq(math.log2(16), 4)
+  asserteq(math.log2(2), 1)
+end
+
+do -- math.acosh / math.asinh / math.atanh
+  asserteq(math.acosh(1.0), 0.0)
+  asserteq(math.asinh(0.0), 0.0)
+  asserteq(math.atanh(0.0), 0.0)
+
+  asserteq(math.acosh(1.0_f32), 0.0_f32)
+  asserteq(math.asinh(0.0_f32), 0.0_f32)
+  asserteq(math.atanh(0.0_f32), 0.0_f32)
+
+  asserteq(math.acosh(1), 0)
+  asserteq(math.asinh(0), 0)
+  asserteq(math.atanh(0), 0)
+end
+## end
+
+do -- math.cosh / math.sinh / math.tanh
+  asserteq(math.cosh(0.0), 1.0)
+  asserteq(math.sinh(0.0), 0.0)
+  asserteq(math.tanh(0.0), 0.0)
+
+  asserteq(math.cosh(0.0_f32), 1.0_f32)
+  asserteq(math.sinh(0.0_f32), 0.0_f32)
+  asserteq(math.tanh(0.0_f32), 0.0_f32)
+
+  asserteq(math.cosh(0), 1)
+  asserteq(math.sinh(0), 0)
+  asserteq(math.tanh(0), 0)
+end
+
+do -- math.pow
+  asserteq(math.pow(2.0, 10.0), 1024.0)
+  asserteq(math.pow(2.0, -10.0), 1.0/1024.0)
+
+  asserteq(math.pow(2.0_f32, 10.0_f32), 1024.0_f32)
+  asserteq(math.pow(2.0_f32, -10.0_f32), 1.0_f32/1024.0_f32)
+
+  asserteq(math.pow(2, 10), 1024)
+end
+
+do -- math.ldexp
+  asserteq(math.ldexp(1.0, 10), 1024.0)
+  asserteq(math.ldexp(8.0, 7), 1024.0)
+
+  asserteq(math.ldexp(1.0_f32, 10), 1024.0_f32)
+  asserteq(math.ldexp(8.0_f32, 7), 1024.0_f32)
+
+  asserteq(math.ldexp(1, 10), 1024)
+  asserteq(math.ldexp(8, 7), 1024)
+end
+
+do -- math.modf
+  do -- number
+    local i: number, f: number
+    i, f = math.modf( 4.0)  asserteq(i, 4.0)  asserteq(f, 0.0)
+    i, f = math.modf( 4.5)  asserteq(i, 4.0)  asserteq(f, 0.5)
+    i, f = math.modf(-4.5)  asserteq(i,-4.0)  asserteq(f,-0.5)
+  end
+  do -- float32
+    local i: float32, f: float32
+    i, f = math.modf( 4.0_f32)  asserteq(i, 4_f32)  asserteq(f, 0.0_f32)
+    i, f = math.modf( 4.5_f32)  asserteq(i, 4_f32)  asserteq(f, 0.5_f32)
+    i, f = math.modf(-4.5_f32)  asserteq(i,-4_f32)  asserteq(f,-0.5_f32)
+  end
+end
+
+do -- math.frexp
+  do -- number
+    local x: number, exp: int32
+    x, exp = math.frexp(1024.0)  asserteq(x,  0.5)  asserteq(exp, 11)
+    x, exp = math.frexp(3)       asserteq(x, 0.75)  asserteq(exp,  2)
+  end
+  do -- float32
+    local x: float32, exp: int32
+    x, exp = math.frexp(1024.0_f32)  asserteq(x,  0.5_f32)  asserteq(exp, 11)
+    x, exp = math.frexp(3_f32)       asserteq(x, 0.75_f32)  asserteq(exp,  2)
+  end
+end
+
+do -- math.tointeger
+  --assert(math.tointeger(1.1) == 1_integer)
+  --assert(math.tointeger('s') == nil)
+  assert(math.tointeger(1) == 1_integer)
+end
+
+do -- math.type
+  assert(math.type(1) == 'integer')
+  assert(math.type(1_u8) == 'integer')
+  assert(math.type(1.0) == 'float')
+  assert(math.type(1.0_f32) == 'float')
+  --assert(math.type('s') == nil)
+end
+
+do -- math.ult
+  assert(math.ult(math.maxinteger, math.mininteger))
+end
+
+do -- math.random
+  local a, b = math.randomseed(1)
+  assert(a == 1 and b == 0)
+  a, b = math.random(0), math.random(0)
+  assert(a ~= b)
+  assert(math.random(1) == 1)
+  assert(math.random(0,0) == 0)
+  assert(math.random(2,2) == 2)
+  a, b = math.randomseed(0, 0)
+  assert(a == 0 and b == 0)
+  do
+    for i=1,10 do
+      local x,y,z = math.random(), math.random(3), math.random(-3,0)
+      assert(x >= 0 and x <= 1)
+      assert(y >= 0 and y <= 3)
+      assert(z >= -3 and z <= 0)
+    end
+  end
+
+  do
+    local a, b = math.randomseed()
+    local r1 = math.random()
+    local r2 = math.random()
+    math.randomseed(a, b)
+    assert(r1 == math.random())
+    assert(r2 == math.random())
+  end
+end
+
+do -- math.fract
+  assert(math.fract(0.5) == 0.5)
+  assert(math.fract(2.5) == 0.5)
+  assert(math.fract(2.0) == 0.0)
+end
+
+do -- math.sign
+  assert(math.sign(0.0) == 0.0)
+  assert(math.sign(2.0) == 1.0)
+  assert(math.sign(-2.0) == -1.0)
+  assert(math.sign(0) == 0)
+  assert(math.sign(2) == 1)
+  assert(math.sign(-2) == -1)
+end
+
+do -- math.mod
+  asserteq(math.mod(5.0, 2.0), 1.0)
+  asserteq(math.mod(2.3, 5.7), 2.3)
+  asserteq(math.mod(-6.0, 4.0), 2.0)
+
+  asserteq(math.mod(5.0_f32, 2.0_f32), 1.0_f32)
+  asserteq(math.mod(2.3_f32, 5.7_f32), 2.3_f32)
+  asserteq(math.mod(-6.0_f32, 4.0_f32), 2.0_f32)
+
+  asserteq(math.mod(5, 2), 1)
+  asserteq(math.mod(-6, 4), 2)
+end
+
+do -- math.clamp
+  asserteq(math.clamp(3.0, 0.0, 1.0), 1.0)
+  asserteq(math.clamp(-1.0, 0.0, 1.0), 0.0)
+  asserteq(math.clamp(0.5, 0.0, 1.0), 0.5)
+  asserteq(math.clamp(0.5, 0.0, 1.0), 0.5)
+  asserteq(math.clamp(0.0, 0.0, 1.0), 0.0)
+  asserteq(math.clamp(1.0, 0.0, 1.0), 1.0)
+end
+
+do -- isnan
+  assert(math.isnan(0.0/0.0) == true)
+  assert(math.isnan(-0.0/0.0) == true)
+  assert(math.isnan(1e-100000) == false)
+  assert(math.isnan(0.0) == false)
+  assert(math.isnan(1.0) == false)
+  assert(math.isnan(-1.0) == false)
+  assert(math.isnan(math.huge) == false)
+  assert(math.isnan(-math.huge) == false)
+  assert(math.isinf((@float64)(math.maxinteger)) == false)
+  assert(math.isinf((@float64)(math.mininteger)) == false)
+  assert(math.isnan(math.maxinteger) == false)
+  assert(math.isnan(math.mininteger) == false)
+
+  assert(math.isnan(0.0_f32/0.0_f32) == true)
+  assert(math.isnan(-0.0_f32/0.0_f32) == true)
+  assert(math.isnan(1e100000_f32) == false)
+  assert(math.isnan(-1e100000_f32) == false)
+  assert(math.isnan(1e-100000_f32) == false)
+  assert(math.isnan(0.0_f32) == false)
+  assert(math.isnan(1.0_f32) == false)
+  assert(math.isnan(-1.0_f32) == false)
+end
+
+do -- isinf
+  assert(math.isinf(0.0/0.0) == false)
+  assert(math.isinf(-0.0/0.0) == false)
+  assert(math.isinf(1e-100000) == false)
+  assert(math.isinf(0.0) == false)
+  assert(math.isinf(1.0) == false)
+  assert(math.isinf(-1.0) == false)
+  assert(math.isinf(math.huge) == true)
+  assert(math.isinf(-math.huge) == true)
+  assert(math.isinf((@float64)(math.maxinteger)) == false)
+  assert(math.isinf((@float64)(math.mininteger)) == false)
+  assert(math.isinf(math.maxinteger) == false)
+  assert(math.isinf(math.mininteger) == false)
+
+  assert(math.isinf(0.0_f32/0.0_f32) == false)
+  assert(math.isinf(-0.0_f32/0.0_f32) == false)
+  assert(math.isinf(1e100000_f32) == true)
+  assert(math.isinf(-1e100000_f32) == true)
+  assert(math.isinf(1e-100000_f32) == false)
+  assert(math.isinf(0.0_f32) == false)
+  assert(math.isinf(1.0_f32) == false)
+  assert(math.isinf(-1.0_f32) == false)
+end
+
+do -- isfinite
+  assert(math.isfinite(0.0/0.0) == false)
+  assert(math.isfinite(-0.0/0.0) == false)
+  assert(math.isfinite(1e-100000) == true)
+  assert(math.isfinite(0.0) == true)
+  assert(math.isfinite(1.0) == true)
+  assert(math.isfinite(-1.0) == true)
+  assert(math.isfinite(math.huge) == false)
+  assert(math.isfinite(-math.huge) == false)
+  assert(math.isfinite((@float64)(math.maxinteger)) == true)
+  assert(math.isfinite((@float64)(math.mininteger)) == true)
+  assert(math.isfinite(math.maxinteger) == true)
+  assert(math.isfinite(math.mininteger) == true)
+
+  assert(math.isfinite(0.0_f32/0.0_f32) == false)
+  assert(math.isfinite(-0.0_f32/0.0_f32) == false)
+  assert(math.isfinite(1e100000_f32) == false)
+  assert(math.isfinite(-1e100000_f32) == false)
+  assert(math.isfinite(1e-100000_f32) == true)
+  assert(math.isfinite(0.0_f32) == true)
+  assert(math.isfinite(1.0_f32) == true)
+  assert(math.isfinite(-1.0_f32) == true)
+end
+
+do -- NaNs
+  local NaN = 0.0/0.0
+  assert(NaN ~= NaN)
+  assert(not (NaN == NaN))
+  assert(not (NaN < NaN))
+  assert(not (NaN <= NaN))
+  assert(not (NaN > NaN))
+  assert(not (NaN >= NaN))
+end
+
+do -- Inf
+  local Inf = 1.0/0.0
+  assert(Inf > 0.0) assert(0.0 < Inf)
+  assert(Inf > -Inf) assert(-Inf < Inf)
+  assert(not (Inf > Inf))
+  assert(Inf >= Inf)
+  assert(Inf == Inf) assert(-Inf == -Inf)
+  assert(Inf ~= -Inf) assert(-Inf ~= Inf)
+end
+
+do -- edge cases
+  local one, min, max = 1, math.mininteger, math.maxinteger
+
+  assert(one >> min == 0)
+  assert(one >> max == 0)
+  assert(one << min == 0)
+  assert(one << max == 0)
+
+  assert(1 >> math.mininteger == 0)
+  assert(1 >> math.maxinteger == 0)
+  assert(1 << math.mininteger == 0)
+  assert(1 << math.maxinteger == 0)
+end
+
+print 'math OK!'

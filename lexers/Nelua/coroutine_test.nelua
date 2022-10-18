@@ -1,0 +1,137 @@
+require 'coroutine'
+
+local counter = 0
+local main_co = coroutine.running()
+
+do -- basic tests
+  assert(coroutine.isyieldable(main_co) == false)
+  assert(coroutine.status(main_co) == 'running')
+  counter = 0
+  local co = coroutine.create(function()
+    local co = coroutine.running()
+    assert(coroutine.status(main_co) == 'normal')
+    assert(coroutine.status(co) == 'running')
+    assert(coroutine.isyieldable(co) == true)
+    counter = counter + 1
+  end)
+  assert(counter == 0)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(coroutine.status(co) == 'dead')
+  assert(counter == 1)
+  assert(coroutine.resume(co) == false)
+  assert(coroutine.destroy(co))
+
+  local invalid_co: coroutine
+  assert(coroutine.status(invalid_co) == 'dead')
+end
+
+do -- resume/yield
+  counter = 0
+  local co = assert(coroutine.create(function()
+    counter = counter + 1
+    assert(coroutine.yield())
+    counter = counter + 1
+  end))
+  assert(counter == 0)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(counter == 1)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(counter == 2)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  assert(coroutine.destroy(co))
+end
+
+do -- spawn
+  counter = -1
+  local co = assert(coroutine.spawn(function(x: integer)
+    counter = x
+    counter = counter + 1
+    assert(coroutine.yield())
+    counter = counter + 1
+  end, 0))
+  assert(counter == 1)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(counter == 2)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  assert(coroutine.destroy(co))
+end
+
+do -- passing 1 value between yield and resume
+  local co = coroutine.create(function(a: integer): integer
+    assert(a == 1)
+    local co = coroutine.running()
+    assert(coroutine.yield(2))
+    local i: integer
+    assert(coroutine.pop(co, &i) == true)
+    assert(i == 3)
+    return 4
+  end)
+  local i: integer
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co, 1) == true)
+  assert(coroutine.pop(co, &i) == true and i == 2)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co, 3) == true)
+  assert(coroutine.pop(co, &i) == true and i == 4)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  assert(coroutine.pop(co, &i) == false)
+  assert(coroutine.destroy(co))
+end
+
+do -- passing 2 values between yield and resume
+  local Pair = @record{first: integer, second: string}
+  local co = assert(coroutine.create(function(first: integer, second: string): (integer, string)
+    local co = coroutine.running()
+    assert(first == 1 and second == 'a')
+    assert(coroutine.yield(2, 'b'))
+    local s: string, i: integer
+    assert(coroutine.pop(co, &i, &s) == true and s == 'c' and i == 3)
+    return 4, 'd'
+  end))
+  local s: string, i: integer
+  assert(coroutine.status(co) == 'suspended')
+  s = 'a'
+  assert(coroutine.resume(co, 1, s) == true)
+  assert(coroutine.pop(co, &i, &s) == true and s == 'b' and i == 2)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co, 3, 'c') == true)
+  assert(coroutine.pop(co, &i, &s) == true and s == 'd' and i == 4)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  assert(coroutine.pop(co, &i) == false)
+  assert(coroutine.destroy(co))
+end
+
+do -- fibonacci example
+  local co = assert(coroutine.spawn(function(max: integer): integer
+    local co = coroutine.running()
+    local m: integer, n: integer = 1, 1
+    while m < max do
+      -- print('y', m)
+      assert(coroutine.yield(m))
+      m, n = n, m + n
+    end
+    -- print('ret', m)
+    return m
+  end, 1000000))
+  local m: integer = 0
+  while coroutine.status(co) == 'suspended' do
+    assert(coroutine.pop(co, &m) == true)
+    assert(m > 0)
+    assert(coroutine.resume(co) == true)
+    -- print('got', m)
+  end
+  assert(coroutine.pop(co, &m) == true and m == 1346269)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.pop(co, &m) == false)
+  assert(coroutine.destroy(co))
+end
+
+print 'coroutine OK!'

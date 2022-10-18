@@ -1,0 +1,148 @@
+require 'span'
+
+do -- pointer to span
+  local arr: [4]integer = {1,2,3,4}
+  local s: span(integer) = {data=&arr[0], size=4}
+  assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
+  s[0] = 5
+  assert(arr[0] == 5)
+  assert(s:sizebytes() == 4 * #@integer)
+end
+
+do -- string to span
+  local sv: string = 'AB'
+  local s: span(byte) = sv
+  assert(s[0] == 0x41 and s[1] == 0x42)
+  assert(#s == 2)
+end
+
+do -- array to span (by reference)
+  local arr: [4]integer = {1,2,3,4}
+  local s: span(integer) = &arr
+  assert(s.data == &arr[0])
+  assert(s.size == 4 and s.data == &arr[0])
+  assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
+  s[0] = 5
+  assert(arr[0] == 5)
+end
+
+do -- array to span (by value)
+  local arr: [4]integer = {1,2,3,4}
+  local s: span(integer) = arr
+  assert(s.data == &arr)
+  assert(s.size == 4 and s.data == &arr[0])
+  assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
+  s[0] = 5
+  assert(arr[0] == 5)
+end
+
+do -- initializer list to span
+  local s: span(integer) = {1,2,3,4}
+  assert(s.size == 4)
+  assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
+end
+
+do -- sub
+  local arr: [4]integer = {1,2,3,4}
+  local s: span(integer) = &arr
+  s = s:sub(0,#s):sub(0,#s)
+  assert(#s == 4)
+  s = s:sub(2,#s)
+  assert(#s == 2 and s[0] == 3 and s[1] == 4)
+  s = s:sub(0,1)
+  assert(#s == 1 and s[0] == 3)
+  s = s:sub(0,0)
+  assert(#s == 0 and s.data == &arr[2])
+  s = s:sub(0,0)
+  assert(#s == 0 and s.data == nilptr)
+end
+
+do -- as
+  local arr: [4]uint32 = {0x01010101,0x02020202,0x03030303,0x04040404}
+  local s: span(uint32) = &arr
+  local s2: span(byte) = s:as(@byte)
+  assert(#s2 == 4 * #@uint32)
+  assert(s2[0] == 0x01 and
+         s2[4] == 0x02 and
+         s2[8] == 0x03 and
+         s2[12] == 0x04)
+end
+
+do -- iterators
+  local arr: [4]integer = {1,2,3,4}
+  local s: span(integer) = &arr
+  do -- ipairs
+    local sum = 0.0
+    for i,v in ipairs(s) do
+      sum = sum + (i+1)*v
+    end
+    assert(sum == 30)
+  end
+  do -- pairs
+    local sum = 0.0
+    for i,v in pairs(s) do
+      sum = sum + (i+1)*v
+    end
+    assert(sum == 30)
+  end
+  do -- next
+    local sum = 0.0
+    for i,v in next,s,-1 do
+      sum = sum + (i+1)*v
+    end
+    assert(sum == 30)
+  end
+end
+
+require 'vector'
+do -- vector to span
+  local vec: vector(integer) = {1,2,3,4}
+  local s: span(integer) = &vec
+  assert(s.size == 4 and s.data == &vec[0])
+  assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
+  s[0] = 5
+  assert(vec[0] == 5)
+  local vec2: vector(integer)
+  local s: span(integer) = &vec2
+  assert(#s == 0)
+  vec:destroy()
+end
+
+require 'sequence'
+
+do -- sequence to span (by reference)
+  local seq: sequence(integer) = {1,2,3,4}
+  local s: span(integer) = &seq
+  assert(s.size == 4 and s.data == &seq[1])
+  assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
+  s[0] = 5
+  assert(seq[1] == 5)
+  s = {}
+  assert(#s == 0 and s.data == nilptr)
+  seq:destroy()
+end
+
+do -- sequence to span (by value)
+  local seq: sequence(integer) = {1,2,3,4}
+  local s: span(integer) = seq
+  assert(s.size == 4 and s.data == &seq[1])
+  assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
+  s[0] = 5
+  assert(seq[1] == 5)
+  s = {}
+  assert(#s == 0 and s.data == nilptr)
+  seq:destroy()
+end
+
+do
+  local Node = @record{
+    tag: string,
+    nodes: vector(Node)
+  }
+  local node: Node = {'foo'}
+  node.nodes:push(Node{'boo'})
+  assert(node.tag == 'foo' and node.nodes[0].tag == 'boo')
+  node.nodes:destroy()
+end
+
+print 'span OK!'

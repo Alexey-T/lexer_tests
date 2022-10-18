@@ -1,0 +1,51 @@
+require 'stringbuilder'
+require 'allocators.arena'
+
+do
+  local sb: stringbuilder
+  local ok: boolean, n: usize
+  ok, n = sb:write('hello world') assert(ok == true and n == 11)
+  ok = sb:writebyte('\n'_byte) assert(ok == true)
+  ok, n = sb:writef('%d\n', 10) assert(ok == true and n == 3)
+  ok, n = sb:writef('%.2f\n', 3.14) assert(ok == true and n == 5)
+  ok, n = sb:writef('%s %d', 'hi', 1) assert(ok == true and n == 4)
+  local s = sb:prepare(1)
+  s[0] = '\n'_byte
+  sb:commit(1)
+  local s: string = tostring(sb)
+  assert(s == "hello world\n10\n3.14\nhi 1\n")
+  assert(sb:view() == s)
+  s:destroy()
+  sb:destroy()
+end
+
+do -- write
+  local sb: stringbuilder
+  local ok: boolean, n: usize = sb:write('a', 'b', 2, 2.0, true)
+  assert(ok == true and n == 10)
+  assert(sb:view() == 'ab22.0true')
+  assert(tostringview(sb) == 'ab22.0true')
+  sb:destroy()
+end
+
+do -- resize
+  local sb: stringbuilder
+  assert(sb:write('abcd') == true)
+  assert(sb:resize(8) == true)
+  assert(#sb == 8 and sb:view() == 'abcd\0\0\0\0')
+  assert(sb:resize(2) == true)
+  assert(#sb == 2 and sb:view() == 'ab')
+  sb:destroy()
+end
+
+do -- using a custom allocator
+  local allocator: ArenaAllocator(256, 1)
+  local sb = (@stringbuilder(*ArenaAllocator(256, 1))).make(&allocator)
+  sb:write('hello')
+  local s: string = tostring(sb)
+  assert(s == "hello")
+  s:destroy()
+  -- sb does not need to be destroyed because we are using an arena allocator
+end
+
+print 'stringbuilder OK!'

@@ -1,0 +1,200 @@
+require 'sequence'
+
+do -- manual init and reset
+  local seq: sequence(integer)
+  assert(#seq == 0 and seq.impl == nilptr)
+  seq:_init()
+  assert(seq.impl ~= nilptr)
+  seq:destroy()
+  assert(seq.impl == nilptr)
+end
+
+do -- braces initializer
+  local seq: sequence(integer) = {}
+  assert(#seq == 0 and seq.impl ~= nilptr)
+  seq:destroy()
+  seq = {1,2,3}
+  assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+  seq:destroy()
+  seq = {4}
+  assert(#seq == 1 and seq[0] == 0 and seq[1] == 4)
+  seq:destroy()
+  seq = {}
+  assert(#seq == 0)
+  seq:destroy()
+end
+
+do -- indexing new elements and clear
+  local seq: sequence(integer) = {}
+  seq[0] = 1
+  assert(seq[0] == 1)
+  assert(seq[1] == 0)
+  assert(seq[2] == 0)
+  seq[3] = 1
+  assert(seq[3] == 1)
+  assert(#seq == 3)
+  seq:clear()
+  assert(#seq == 0)
+  seq:destroy()
+end
+
+do -- indexing zero element
+  local seq: sequence(integer)
+  seq[0] = 1
+  assert(seq[0] == 1)
+  assert(#seq == 0)
+  seq:destroy()
+end
+
+do -- reserve and resize
+  local seq: sequence(integer) = {}
+  assert(seq:capacity() == 0)
+  seq:push(1)
+  assert(seq:capacity() == 1)
+  seq:reserve(4)
+  assert(seq:capacity() == 4)
+  seq:resize(2)
+  assert(#seq == 2 and seq[0] == 0 and seq[1] == 1 and seq[2] == 0)
+  seq:resize(4)
+  assert(#seq == 4 and seq[0] == 0 and seq[1] == 1 and seq[2] == 0 and seq[3] == 0 and seq[4] == 0)
+  seq:destroy()
+end
+
+do -- push and pop
+  local seq: sequence(integer) = {}
+  seq:push(1)
+  assert(#seq == 1 and seq[0] == 0 and seq[1] == 1)
+  assert(seq:pop() == 1)
+  assert(#seq == 0 and seq[0] == 0)
+  seq:push(1) seq:push(2) seq:push(3)
+  assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+  seq:destroy()
+end
+
+do -- remove
+  local seq: sequence(integer) = {1,2,3,4}
+  seq[0] = 10
+  assert(#seq == 4)
+  assert(seq:remove(2) == 2)
+  assert(#seq == 3 and seq[1] == 1 and seq[2] == 3 and seq[3] == 4)
+  assert(seq:remove(3) == 4)
+  assert(#seq == 2 and seq[1] == 1 and seq[2] == 3)
+  assert(seq:remove(1) == 1)
+  assert(#seq == 1 and seq[1] == 3)
+  assert(seq:remove(1) == 3)
+  assert(#seq == 0)
+  assert(seq[0] == 10)
+  seq:destroy()
+end
+
+do -- removevalue
+  local seq: sequence(integer)
+  assert(seq:removevalue(0) == false)
+  seq = {1,2,3,4}
+  seq[0] = 10
+  assert(#seq == 4)
+  assert(seq:removevalue(3) == true)
+  assert(#seq == 3 and seq[3] == 4)
+  assert(seq:removevalue(3) == false)
+  assert(seq:removevalue(1) == true)
+  assert(#seq == 2 and seq[1] == 2)
+  assert(seq:removevalue(2) == true)
+  assert(#seq == 1 and seq[1] == 4)
+  assert(seq:removevalue(4) == true)
+  assert(#seq == 0)
+  assert(seq:removevalue(4) == false)
+  seq:destroy()
+end
+
+do -- removeif
+  local seq: sequence(integer) = {1,2,3,4,5,7,8,9}
+  local function is_odd(x: integer) return x % 2 == 1 end
+  seq:removeif(is_odd)
+  assert(#seq == 3 and seq[1] == 2 and seq[2] == 4 and seq[3] == 8)
+  local function is_even(x: integer) return x % 2 == 0 end
+  seq:removeif(is_even)
+  assert(#seq == 0)
+  seq:destroy()
+end
+
+do -- insert
+  local seq: sequence(integer)
+  seq:insert(1, 3)
+  assert(#seq == 1 and seq[1] == 3)
+  seq:insert(1, 1)
+  assert(#seq == 2 and seq[1] == 1 and seq[2] == 3)
+  seq:insert(3, 4)
+  assert(#seq == 3 and seq[1] == 1 and seq[2] == 3 and seq[3] == 4)
+  seq:insert(2, 2)
+  assert(#seq == 4 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3 and seq[4] == 4)
+  seq:destroy()
+end
+
+do -- passing by reference
+  local seqa: sequence(integer) = {1}
+  local seqb: sequence(integer)
+  seqb = seqa
+  assert(#seqb == 1 and seqb[1] == 1)
+  seqa:push(2)
+  assert(#seqb == 2 and seqb[1] == 1 and seqb[2] == 2)
+  seqa:clear()
+  assert(#seqb == 0)
+  seqa:destroy()
+end
+
+do -- ipairs/pairs/next
+  local seq: sequence(number) = {1,2,3,4}
+  do -- ipairs
+    local sum = 0.0
+    for i,v in ipairs(seq) do
+      sum = sum + i*v
+    end
+    assert(sum == 30)
+  end
+  do -- pairs
+    local sum = 0.0
+    for i,v in pairs(seq) do
+      sum = sum + i*v
+    end
+    assert(sum == 30)
+  end
+  do -- next
+    local sum = 0.0
+    for i,v in next,seq,-1 do
+      sum = sum + i*v
+    end
+    assert(sum == 30)
+  end
+  seq:destroy()
+end
+
+do -- copy
+  local a: sequence(integer) = {1, 2, 3, 4}
+  local b: sequence(integer)
+  b = a:copy()
+  a[1] = 5
+  assert(a[1] == 5 and #a == 4)
+  assert(b[1] == 1 and #b == 4)
+  a:destroy()
+  b:destroy()
+end
+
+do -- unpack
+  local seq: sequence(integer) = {10, 20, 30}
+  local a,b,c
+  a       = seq:unpack(1, 1)  assert(a == 10)
+  a, b    = seq:unpack(1, 2)  assert(a == 10 and b == 20)
+  a, b, c = seq:unpack(1, 3)  assert(a == 10 and b == 20 and c == 30)
+  b, c    = seq:unpack(2, 3)  assert(b == 20 and c == 30)
+  c       = seq:unpack(3, 3)  assert(c == 30)
+  seq:destroy()
+end
+
+require 'allocators.general'
+do -- custom allocator
+  local seq: sequence(integer, GeneralAllocator) = {1,2,3}
+  assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+  seq:destroy()
+end
+
+print 'sequence OK!'

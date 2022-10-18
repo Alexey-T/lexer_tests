@@ -1,0 +1,155 @@
+require 'list'
+
+-----------------------------------------------------------------------
+-- tests
+do
+  local l: list(integer)
+  assert(#l == 0 and l:empty())
+  l:pushback(1)    assert(l.front.value == 1) assert(l.back.value == 1)
+  assert(#l == 1 and not l:empty())
+  l:pushback(2)    assert(l.front.value == 1) assert(l.back.value == 2)
+  l:pushfront(3)   assert(l.front.value == 3) assert(l.back.value == 2)
+  assert(#l == 3)
+  assert(l:find(1) and l:find(2) and l:find(3))
+  assert(not l:find(0))
+  l:clear()
+  assert(not l.front and not l.back)
+  assert(l:empty())
+end
+
+do -- braces initialization
+  local l: list(integer) = {1, 2, 3}
+  assert(#l == 3)
+  local ok, node, value = next(l) assert(ok and node ~= nilptr and value == 1)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 2)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 3)
+  ok, node, value = next(l, node) assert(not ok and not node and value == 0)
+  l:clear()
+end
+
+do -- erase
+  local l: list(integer)
+  l:pushback(1)
+  assert(l:erase(l.back) == nilptr)
+  assert(l:empty())
+
+  l:pushback(1)
+  assert(l:erase(l.front) == nilptr)
+  assert(l:empty())
+
+  l:pushback(1) l:pushback(2)
+  assert(l:erase(l.front) == l.back)
+  l:clear()
+
+  l:pushback(1) l:pushback(2)
+  assert(l:erase(l.back) == nilptr)
+  l:clear()
+
+  l:pushback(1) l:pushback(2) l:pushback(3)
+  local it = l.front.next
+  assert(it.value == 2)
+  assert(l:erase(it) == l.back)
+  assert(l:erase(l.front) == l.back)
+  assert(l:erase(l.back) == nilptr)
+  assert(l:empty())
+end
+
+do -- find
+  local l: list(integer)
+  l:pushback(1) l:pushback(2) l:pushback(3)
+  assert(l:find(1) == l.front)
+  assert(l:find(2) == l.front.next and l:find(2) == l.back.prev)
+  assert(l:find(3) == l.back)
+  l:clear()
+  assert(l:empty())
+end
+
+do -- popback
+  local l: list(integer)
+  l:pushback(1) l:pushback(2) l:pushback(3)
+  assert(l:popback() == 3)
+  assert(l.back.value == 2)
+  assert(l.front.value == 1)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popback() == 2)
+  assert(l.back.value == 1)
+  assert(l.front.value == 1)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popback() == 1)
+  assert(l:empty())
+end
+
+do -- popfront
+  local l: list(integer)
+  l:pushback(1) l:pushback(2) l:pushback(3)
+  assert(l:popfront() == 1)
+  assert(l.back.value == 3)
+  assert(l.front.value == 2)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popfront() == 2)
+  assert(l.back.value == 3)
+  assert(l.front.value == 3)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popfront() == 3)
+  assert(l:empty())
+end
+
+do -- insert
+  local l: list(integer)
+  local pos = l:insert(nilptr, 5)
+  pos = l:insert(pos, 3)
+  pos = l:insert(pos, 2)
+  pos = l:insert(l.back, 4)
+  pos = l:insert(l.front, 1)
+  local ok, node, value = next(l) assert(ok and node ~= nilptr and value == 1)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 2)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 3)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 4)
+  ok, node, value = next(l, node) assert(ok and node ~= nilptr and value == 5)
+  ok, node, value = next(l, node) assert(not ok and not node and value == 0)
+  l:clear()
+end
+
+do -- next/mnext
+  local l: list(integer)
+  l:pushback(1) l:pushback(2) l:pushback(3)
+  local ok, key, value = next(l, nilptr)
+  assert(ok == true and key ~= nilptr and value == 1)
+  ok, key, value = next(l, key)
+  assert(ok == true and key ~= nilptr and value == 2)
+  ok, key, value = next(l, key)
+  assert(ok == true and key ~= nilptr and value == 3)
+  ok, key, value = next(l, key)
+  assert(ok == false and key == nilptr and value == 0)
+  l:clear()
+end
+
+do -- pairs/mpairs
+  local l: list(integer)
+  l:pushback(1) l:pushback(2) l:pushback(3)
+  local count = 1
+  for _,v in pairs(l) do
+    assert(v == count)
+    count = count + 1
+  end
+  count = 1
+  for _,v in mpairs(l) do
+    $v = $v + 1
+  end
+  count = 2
+  for _,v in pairs(l) do
+    assert(v == count)
+    count = count + 1
+  end
+  l:clear()
+end
+
+require 'allocators.general'
+do -- custom allocator
+  local l: list(integer, GeneralAllocator) = (@list(integer, GeneralAllocator)).make(general_allocator)
+  l:pushback(1) l:pushback(2) l:pushback(3)
+  -- assert(#l == 3 and l[0] == 1 and l[1] == 2 and l[2] == 3)
+  l:destroy()
+end
+
+print 'list OK!'

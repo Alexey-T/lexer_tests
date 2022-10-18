@@ -1,0 +1,292 @@
+## if not ccinfo.is_wasm then
+
+require 'os'
+require 'io'
+
+local file: filestream
+local err: string
+local code: integer
+local ok: boolean
+local stdin: filestream = io.stdin
+local stdout: filestream = io.stdout
+local stderr: filestream = io.stderr
+
+local function assert_string_eq(a: string, b: string)
+  assert(a == b)
+  a:destroy()
+end
+
+do -- basic io.open/io.isopen/io.close
+  file, err, code = io.open('invalid_file', 'r')
+  assert(not file:isopen())
+  assert(#err > 0)
+  assert(code ~= 0)
+
+  file, err, code = io.open('test_file.tmp', 'w')
+  assert(file:isopen())
+  assert(file:write('SOME_DATA') == true)
+  file:destroy()
+
+  file = io.open('test_file.tmp', 'r')
+  assert(file:isopen())
+  assert(file:close() == true)
+  assert(file:close() == false)
+  assert(not file:isopen())
+  file:destroy()
+
+  file = io.open('test_file.tmp', 'r')
+  assert(file:isopen() == true)
+  assert(io.close(file) == true)
+  assert(not file:isopen())
+  file:destroy()
+end
+
+do -- io.popen
+  local file = io.popen('echo test')
+  ## if ccinfo.is_linux then
+  assert(file:isopen())
+  ## end
+  if file:isopen() then
+    local s = file:read('a')
+    assert(s == 'test\n')
+    s:destroy()
+    file:close()
+    file:destroy()
+  end
+end
+
+do -- io.type
+  file = io.open('test_file.tmp', 'r')
+  assert(io.type(file) == 'file')
+  file:close()
+  file:destroy()
+  assert(io.type(file) == 'closed file')
+  assert(io.type(nil) == nil)
+  assert(io.type(0) == nil)
+  assert(io.type(false) == nil)
+  assert(io.type('') == nil)
+end
+
+do -- io.close for default output
+  ok, err = io.close()
+  assert(not ok and err == "cannot close standard file")
+  ok, err = io.stdin:close()
+  assert(err == "cannot close standard file")
+  ok, err = io.stdout:close()
+  assert(not ok and err == "cannot close standard file")
+  ok, err = io.stderr:close()
+  assert(not ok and err == "cannot close standard file")
+end
+
+-- this test may fail on some machines with "Permission denied"
+do -- io.tmpfile
+  file = io.tmpfile()
+  if file:isopen() then
+    assert(file:close())
+    file:destroy()
+    assert(not file:isopen())
+  end
+end
+
+do -- filestream:read, filestream:write and filestream:seek
+  file = io.open('test.tmp', 'w')
+  local text = 'line1\nline2\nline3\nline4\n'
+  assert(file:isopen())
+  assert(file:write() == true)
+  assert(file:write('line1\n') == true)
+  assert(file:write('line2\n', 'line3\n', 'line4\n') == true)
+  assert(file:close())
+  file:destroy()
+
+  file = io.open('test.tmp', 'r')
+  assert(file:isopen())
+
+  local size = file:seek('end')
+  assert(size > 0)
+  assert(file:seek('set') == 0)
+  assert_string_eq(file:read(), 'line1')
+  assert_string_eq(file:read('l'), 'line2')
+  assert_string_eq(file:read('*L'), 'line3\n')
+  assert_string_eq(file:read(6), 'line4\n')
+  assert_string_eq(file:read(1), '')
+  assert(file:seek() == size)
+  assert(file:seek('cur', -1) == size-1)
+  assert_string_eq(file:read(1), '\n')
+  assert(file:seek() == size)
+  assert_string_eq(file:read(), '')
+  assert(file:seek('set') == 0)
+  assert_string_eq(file:read('a'), text)
+  assert(file:close())
+  assert(not file:isopen())
+  file:destroy()
+end
+
+do -- filestream:lines
+  file = io.open('test.tmp', 'r')
+  local i = 1
+  for line in file:lines() do
+    local tmp = 'line'..i
+    assert(line == tmp)
+    i = i + 1
+    line:destroy()
+    tmp:destroy()
+  end
+
+  file:seek('set')
+  i = 1
+  for line in file:lines('L') do
+    local tmp = string.format('line%d\n', i)
+    assert(line == tmp)
+    i = i + 1
+    line:destroy()
+    tmp:destroy()
+  end
+
+  file:seek('set')
+  i = 1
+  for line in file:lines(6) do
+    local tmp = string.format('line%d\n', i)
+    assert(line == tmp)
+    i = i + 1
+    line:destroy()
+    tmp:destroy()
+  end
+
+  file:close()
+  file:destroy()
+end
+
+do -- io.lines
+  local i = 1
+  for line in io.lines('test.tmp') do
+    local tmp = 'line'..i
+    assert(line == tmp)
+    i = i + 1
+    line:destroy()
+    tmp:destroy()
+  end
+
+  i = 1
+  for line <close> in io.lines('test.tmp', 'L') do
+    local tmp <close> = string.format('line%d\n', i)
+    assert(line == tmp)
+    i = i + 1
+  end
+
+  i = 1
+  for line <close>  in io.lines('test.tmp', 6) do
+    local tmp <close>  = string.format('line%d\n', i)
+    assert(line == tmp)
+    i = i + 1
+  end
+
+  os.remove('test.tmp')
+end
+
+do -- filestream:setvbuf
+  os.remove('test.tmp')
+  file = io.open('test.tmp', 'w')
+  assert(file:isopen())
+  assert(file:setvbuf("no") == true)
+  assert(file:setvbuf("full") == true)
+  assert(file:setvbuf("line") == true)
+  assert(file:close())
+  file:destroy()
+  os.remove('test.tmp')
+end
+
+do -- io.output/io.write/io.writef
+  assert(io.output() == stdout)
+  os.remove('test.tmp')
+
+  -- writing to an input file
+  file = io.open('test1.tmp', 'w')
+  assert(file:isopen())
+  assert(io.output(file) == file)
+  assert(io.stdout == file)
+  assert(io.stdout ~= stdout)
+  assert(io.write() == true)
+  assert(io.write('t', 'e') == true)
+  assert(io.writef('%s%s','s', 't') == true)
+  assert(io.writef('%d', 1) == true)
+  assert(io.stdout:write('!') == true)
+  assert(io.stdout:writef('%s%s','!', '\n') == true)
+  assert(io.flush() == true)
+  assert(io.output(stdout) == stdout)
+  assert(io.stdout == stdout)
+  assert(io.stdout:isopen())
+  assert(file:close())
+  file:destroy()
+
+  -- writing to an output filename
+  assert(io.output('test2.tmp') ~= stdout)
+  assert(io.stdout ~= stdout)
+  assert(io.stdout:isopen())
+  assert(io.write('test', 2) == true)
+  assert(io.stdout:write('!!\n') == true)
+  assert(io.stdout:close())
+  io.stdout:destroy()
+  assert(io.output(stdout) == stdout)
+  assert(io.stdout == stdout)
+  assert(io.stdout:isopen())
+end
+
+do -- io.printf/io.print
+  io.print('print', 'test')
+  io.printf('printf %s\n', 'test')
+end
+
+do -- io.input/io.read
+  assert(io.input() == stdin)
+
+  -- reading from an input file
+  file = io.open('test1.tmp', 'r')
+  assert(file:isopen())
+  assert(io.input(file) == file)
+  assert(io.stdin == file)
+  assert_string_eq(io.read(), 'test1!!')
+  assert(io.input(stdin) == stdin)
+  assert(io.stdin == stdin)
+  assert(io.stdin:isopen())
+  assert(file:close())
+  file:destroy()
+
+  -- reading from an input filename
+  assert(io.input('test2.tmp') ~= stdin)
+  assert(io.stdin:isopen())
+  assert_string_eq(io.read(), 'test2!!')
+  assert(io.stdin:close())
+  io.stdin:destroy()
+  assert(io.input(stdin) == stdin)
+  assert(io.stdin:isopen())
+end
+
+do -- os.rename
+  os.remove('test3.tmp')
+  assert(os.rename('test1.tmp', 'test3.tmp') == true)
+end
+
+do -- os.rename, os.remove
+  assert(os.remove('test2.tmp'))
+  assert(os.remove('test3.tmp'))
+end
+
+do -- tostring
+  file = io.open('test_file.tmp', 'r')
+  assert(file:isopen())
+  local s: string = tostring(file)
+  assert(s:subview(1,6) == 'file (')
+  s:destroy()
+  local file2 = file
+  file:close()
+  assert(not file2:isopen())
+  assert_string_eq(tostring(file), 'file (closed)')
+  assert_string_eq(tostring(file2), 'file (closed)')
+  file:destroy()
+end
+
+os.remove('test_file.tmp')
+
+## end
+
+print 'io OK!'

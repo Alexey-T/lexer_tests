@@ -1,0 +1,34 @@
+##[[
+-- Add the current folder to the linker's library search path.
+cflags('-L "'..config.output_dir..'"')
+if STATIC then
+  if ccinfo.is_msc then
+    linklib 'libmylib_static'
+  else
+    linklib 'mylib_static'
+  end
+else
+  if ccinfo.is_msc then
+    linklib 'libmylib'
+  else
+    linklib 'mylib'
+  end
+  if ccinfo.is_posix then
+    -- We expect that 'mylib' library is available in the current path.
+    cflags "-Wl,-rpath,'$ORIGIN'"
+  end
+end
+]]
+
+-- Import mylib functions.
+local function mylib_sum(x: integer, y: integer): integer <cimport> end
+local function mylib_init() <cimport> end
+local function mylib_terminate() <cimport> end
+
+-- Run example.
+mylib_init()
+local a = mylib_sum(1, 2)
+print('the sum is:')
+print(a)
+assert(a == 3)
+mylib_terminate()

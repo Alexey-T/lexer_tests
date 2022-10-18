@@ -1,0 +1,210 @@
+require 'string'
+
+local function assert_match(s: string, patt: string, res: overload(niltype,string,sequence(string)))
+  local status, captures = string.matchview(s, patt, 1)
+  ## if res.type.is_niltype then
+  assert(status == true and #captures == 1 and captures[1] == s)
+  ## elseif res.type.is_string then
+  assert(status == true and #captures == 1 and captures[1] == res)
+  ## elseif res.type.is_sequence then
+  assert(status == true)
+  assert(#captures == #res)
+  for i:isize=1,#captures do
+    local a, b = captures[i], res[i]
+    assert(a == b)
+  end
+  res:destroy()
+  ## end
+  captures:destroy()
+end
+
+local function assert_no_match(s: string, patt: string)
+  local status, captures = string.matchview(s, patt)
+  assert(status == false and #captures == 0)
+end
+
+local function assert_gsub(s: string, patt: string, repl: auto, res: string, nres: facultative(integer))
+  ## if not nres.type.is_niltype then
+  local got: string, gotn: integer = string.gsub(s, patt, repl, nres)
+  assert(got == res and gotn == nres)
+  ## else
+  local got: string = string.gsub(s, patt, repl, nres)
+  assert(got == res)
+  ## end
+  got:destroy()
+end
+
+do -- test pattern matching syntax
+  -- character class
+  assert_match('a', 'a')
+  assert_no_match('b', 'a')
+
+  -- '+'
+  assert_match('a', 'a+')
+  assert_match('aaa', 'a+')
+  assert_match('aaab', 'a+', 'aaa')
+  assert_no_match('b', 'a+')
+
+  -- '-'
+  assert_match('a', 'a-', '')
+  assert_match('a', 'a-%a', 'a')
+
+  -- '*'
+  assert_match('', 'a*')
+  assert_match('a', 'a*')
+  assert_match('aaa', 'a*')
+  assert_match('b', 'a*', '')
+
+  -- '?'
+  assert_match('a', 'a?')
+  assert_match('aa', 'a?a?')
+  assert_match('b', 'a?b')
+  assert_match('b', 'a?', '')
+
+  -- '^' anchor
+  assert_match('a', '^a')
+  assert_match('^', '^^')
+  assert_match('aa', '^aa')
+  assert_no_match('b', '^a')
+
+  -- '$' anchor
+  assert_match('a', 'a$')
+  assert_match('$', '$$')
+  assert_match('aa', 'aa$')
+  assert_no_match('b', 'a$')
+  assert_no_match('ab', 'a$')
+
+  assert_match('a', '^a$')
+  assert_match('aa', '^aa$')
+  assert_match('^$', '^^$$')
+
+  -- '.'
+  assert_match('', '.*')
+  assert_match('a', '.')
+  assert_match('ab', '..')
+  assert_match('aA0;\0\n', '.+')
+
+  assert_match('0123456789', '%d+')
+  assert_match('0123456789abcdefABCDEF', '%x+')
+  assert_match('abcdefghijklmnopqrstuvwxyz', '%l+')
+  assert_match('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '%u+')
+  assert_match('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', '%a+')
+  assert_match('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', '%w+')
+  assert_match('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%g+')
+  assert_match('()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%p+')
+  assert_match('\0\a\b\f\n\r\t\v', '%c+')
+  assert_match(' \t\v\n\r\f', '%s+')
+  assert_match('\0\0', '%z+')
+  assert_match('^$()%.[]*+-?', '%^%$%(%)%%%.%[%]%*%+%-%?')
+
+  -- complement classes
+  assert_match('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%D+')
+  assert_match('ghijklmnopqrstuvwxyzGHIJKLMNOPQRSTUVWXYZ()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%X+')
+  assert_match('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%L+')
+  assert_match('abcdefghijklmnopqrstuvwxyz0123456789()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%U+')
+  assert_match('0123456789()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%A+')
+  assert_match('()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%W+')
+  assert_match('\0\a\b\f\n\r\t\v', '%G+')
+  assert_match('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', '%P+')
+  assert_match('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%C+')
+  assert_match('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '%S+')
+
+  -- set
+  assert_match('0123456789', '[0-9]+')
+  assert_match('abcdefghijklmnopqrstuvwxyz0123456789', '[a-z0-9]+')
+  assert_match('abcdefghijklmnopqrstuvwxyz0123456789', '[a-z]+', 'abcdefghijklmnopqrstuvwxyz')
+  assert_match('abcdefghijklmnopqrstuvwxyz0123456789', '[0-9]+', '0123456789')
+  assert_match('abcdef12345_-', '[%w_-]+')
+
+  -- max expanding
+  assert_match('ababc', '[ab]+', 'abab')
+  assert_match('ababc', '[ab]+c', 'ababc')
+  assert_match('ababb', '[ab]+b', 'ababb')
+  assert_no_match('ababb', '[ab]+c')
+
+  -- min expanding
+  assert_match('ababc', '[ab]-c', 'ababc')
+  assert_no_match('ababb', '[ab]-c')
+
+  -- optional expanding
+  assert_match('a', 'a?a')
+
+  -- complement set
+  assert_match('()[]{}<>|/\\"\'`~:;,.?!@#$%^&*_=+-', '[^%w]+')
+
+  -- balanced pattern
+  assert_match('()', '%b()')
+  assert_match('[]', '%b[]')
+  assert_match('(())', '%b()')
+  assert_match('(()())', '%b()')
+  assert_match('(a(b)c(d)e)', '%b()')
+  assert_match('(()', '%b()', '()')
+  assert_no_match('(', '%b()')
+  assert_no_match('(()', '^%b()')
+  assert_no_match('ab', '%b()')
+
+  -- frontier pattern
+  assert_match('1a', '%f[%l]', '')
+  assert_match('1a', '1%f[%l]%l')
+  assert_match('12345abcdef', '%d+%f[%l]%l+')
+  assert_match('12345abcdef', '%d+%f[^%d]%l+')
+  assert(string.find("a", "%f[a]") == 1)
+  assert(string.find("a", "%f[^%z]") == 1)
+  assert(string.find("a", "%f[^%l]") == 2)
+  assert(string.find("aba", "%f[a%z]") == 3)
+  assert(string.find("aba", "%f[%z]") == 4)
+  assert(string.find("aba", "%f[%l%z]") == 0)
+  assert(string.find("aba", "%f[^%l%z]") == 0)
+  do
+    local i, e = string.find(" alo aalo allo", "%f[%S].-%f[%s].-%f[%S]")
+    assert(i == 2 and e == 5)
+  end
+
+  -- captures
+  assert_match('a', '(a)', 'a')
+  assert_match('aa', '(a)%1', 'a')
+  assert_match('abc', '(a)(b)(c)', (@sequence(string)){'a','b','c'})
+  assert_match('abc ', '(a*(.)%w(%s*))', (@sequence(string)){'abc ', 'b', ' '})
+  assert_match('abc {abc }{b}{ }', '(a*(.)%w(%s*)){%1}{%2}{%3}', (@sequence(string)){'abc ', 'b', ' '})
+  -- assert_match('flaaap', '()aa()', 'aa')
+  assert_no_match('flaaap', '()aa()%1')
+end
+
+do -- gsub
+  assert_gsub('alo', 'o', 'u%%', 'alu%')
+  assert_gsub('ulo ulo', 'u', 'x', 'xlo xlo')
+  assert_gsub('alo ulo  ', ' +$', '', 'alo ulo') -- trim
+  assert_gsub('  alo alo  ', '^%s*(.-)%s*$', '%1', 'alo alo') -- double trim
+  assert_gsub('alo  alo  \n 123\n ', '%s+', ' ', 'alo alo 123 ')
+  assert_gsub('alo alo', '()[al]', '%1', '12o 56o')
+  assert_gsub("abc=xyz", "(%w*)(%p)(%w+)", "%3%2%1-%0", "xyz=abc-abc=xyz")
+  assert_gsub("abc", "%w", "%1%0", "aabbcc")
+  assert_gsub("abc", "%w+", "%0%1", "abcabc")
+  assert_gsub('aei', '$', '\0ou', 'aei\0ou')
+  assert_gsub('', '^', 'r', 'r')
+  assert_gsub('', '$', 'r', 'r')
+  assert_gsub("abc d", '(.)', '%1@', 'a@b@c@ @d@', 5)
+  assert_gsub('abcd', '(.)', '%0@', 'a@b@cd', 2)
+  assert_gsub("a b cd", " *", "-", "-a-b-c-d-")
+  assert_gsub("(9 ((8))(\0) 7) \0\0 a b ()(c)() a", "%b()", "", " \0\0 a b  a")
+  assert_gsub("(9 ((8) 7) a b (\0 c) a", "%b()", "", "(9  a b  a")
+  assert_gsub("alo 'oi' alo", "%b''", '"', 'alo " alo')
+  assert_gsub("aaa aa a aaa a", "%f[%w]a", "x",  "xaa xa x xaa x")
+  assert_gsub("[[]] [][] [[[[", "%f[[].", "x", "x[]] x]x] x[[[")
+  assert_gsub("01abc45de3", "%f[%d]", ".", ".01abc.45de.3")
+  assert_gsub("01abc45 de3x", "%f[%D]%w", ".", "01.bc45 de3.")
+  assert_gsub("function", "%f[\1-\255]%w", ".", ".unction")
+  assert_gsub("function", "%f[^\1-\255]", ".", "function.")
+
+  assert_gsub("um (dois) tres (quatro)", "(%(%w+%))", function(x: string): string
+    defer x:destroy() end
+    return string.upper(x)
+  end, "um (DOIS) tres (QUATRO)")
+
+  assert_gsub("trocar tudo em |teste|b| é |beleza|al|", "|([^|]*)|([^|]*)|", function(a: string, b: string): string
+    defer a:destroy() b:destroy() end
+    return string.gsub(a,'.',b)
+  end, "trocar tudo em bbbbb é alalalalalal")
+end
+
+print 'pattern OK!'

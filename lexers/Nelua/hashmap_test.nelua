@@ -1,0 +1,213 @@
+require 'hashmap'
+
+do -- inserting
+  local map: hashmap(integer, integer)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  assert(#map == 100)
+  assert(map:capacity() == 192)
+  assert(map:bucketcount() > 128)
+  assert(map:loadfactor() <= 0.75)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    assert(map[k] == v)
+    assert(&map[k] == map:peek(k))
+    assert(map[k] == v)
+    assert(map:peek(k))
+  end
+  map:clear()
+  assert(#map == 0)
+  assert(map:bucketcount() > 128)
+  assert(map:capacity() == 192)
+  assert(map:loadfactor() == 0)
+  map[1] = 10
+  map:destroy()
+  assert(#map == 0)
+  assert(map:capacity() == 0)
+  assert(map:bucketcount() == 0)
+  assert(map:loadfactor() == 0)
+end
+
+do -- reserve
+  local map: hashmap(integer, integer)
+  map:reserve(64)
+  assert(#map == 0)
+  assert(map:capacity() == 96)
+  assert(map:bucketcount() == 128)
+  assert(map:loadfactor() == 0)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  map:reserve(256)
+  assert(map:capacity() == 384)
+  assert(map:bucketcount() == 512)
+  assert(map:loadfactor() < 0.75)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    assert(map[k] == v)
+  end
+  map:destroy()
+end
+
+do -- rehash
+  local map: hashmap(integer, integer)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  local old_factor = map:loadfactor()
+  map:rehash(512)
+  assert(#map == 100)
+  assert(map:loadfactor() < old_factor)
+  assert(map:capacity() == 384)
+  assert(map:bucketcount() == 512)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    assert(map[k] == v)
+  end
+  map:destroy()
+end
+
+do -- remove
+  local map: hashmap(integer, integer)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  for i=1,50 do
+    local k = i*3167
+    assert(map:remove(k) == i * 10)
+  end
+  assert(#map == 50)
+  for i=51,100 do
+    local k, v = i*3167, i*10
+    assert(map[k] == v)
+    assert(map:remove(k) == v)
+  end
+  assert(#map == 0)
+  map:destroy()
+end
+
+do -- clear
+  local map: hashmap(integer, integer)
+  for i=1,10 do map[i] = i end
+  map:clear()
+  assert(#map == 0)
+  for i=10,20 do map[i] = i end
+  for i=10,20 do assert(map[i] == i) end
+  map:clear()
+  assert(#map == 0)
+  map:destroy()
+end
+
+do -- pairs and mpairs
+  local map: hashmap(integer, integer)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  local i = 1
+  for k,v in pairs(map) do
+    local ek, ev = i*3167, i*10
+    assert(k == ek and v == ev)
+    i = i + 1
+  end
+  i = 1
+  for k,v in mpairs(map) do
+    local ek, ev = i*3167, i*10
+    assert(k == ek and $v == ev)
+    $v = i*100
+    i = i + 1
+  end
+  for i=1,100 do
+    local k, v = i*3167, i*100
+    assert(map[k] == v)
+  end
+  map:destroy()
+end
+
+do -- next and mnext
+  local map: hashmap(integer, integer)
+  map[1] = 10
+  map[2] = 20
+  local ok: boolean, k: integer, v: integer, mv: *integer
+  -- next
+  ok, k, v = next(map); assert(ok == true and k == 1 and v == 10)
+  ok, k, v = next(map, 1); assert(ok == true and k == 2 and v == 20)
+  ok, k, v = next(map, 2); assert(ok == false)
+  -- mnext
+  ok, k, mv = mnext(map); assert(ok == true and k == 1 and $mv == 10)
+  ok, k, mv = mnext(map, 1); assert(ok == true and k == 2 and $mv == 20)
+  ok, k, mv = mnext(map, 2); assert(ok == false)
+end
+
+do -- remove while iterating
+  local map: hashmap(integer, integer)
+  for i=1,8 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  local i = 1
+  for k,v in pairs(map) do
+    local ev = i*10
+    assert(map:remove(k) == ev)
+    i = i + 1
+  end
+  assert(#map == 0)
+  -- shrink
+  map[1] = 1
+  map[2] = 2
+  map:remove(1)
+  map:rehash(0)
+  map:remove(2)
+  map:rehash(0)
+  assert(map:loadfactor() == 0)
+  -- populate again with grow
+  for i=1,16 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  assert(#map == 16)
+  map:destroy()
+end
+
+do -- string map
+  local map: hashmap(string, string)
+  map['hello'] = 'hello'
+  map['world'] = 'world'
+  assert(map['hello'] == 'hello')
+  assert(map['world'] == 'world')
+  assert(#map == 2)
+  map:destroy()
+end
+
+do -- custom hash function
+  local function hash_integer(x: integer)
+    return 0
+  end
+  local map: hashmap(integer, integer, (hash_integer))
+  map[1] = 1
+  map[2] = 2
+  assert(map[1] == 1)
+  assert(map[2] == 2)
+  map:destroy()
+end
+
+require 'allocators.general'
+do -- custom allocator
+  local map = (@hashmap(integer, integer, nil, nil, GeneralAllocator)).make(general_allocator)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    assert(map[k] == v)
+  end
+  map:destroy()
+end
+
+print 'hashmap OK!'

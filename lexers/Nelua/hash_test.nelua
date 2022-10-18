@@ -1,0 +1,63 @@
+require 'hash'
+
+do -- hash primitive types
+  assert(hash.hash(0) == 0)
+  assert(hash.hash(1) == 1)
+  assert(hash.hash(0.0) == 0)
+  assert(hash.hash(1.0) ~= 1)
+  assert(hash.hash(true) == 1)
+  assert(hash.hash(false) == 0)
+  assert(hash.hash(nilptr) == 0)
+  assert(hash.hash(nil) == 0)
+end
+
+do -- hash strings
+  assert(hash.hash('') == (@usize)(0x9e3779b9))
+  assert(hash.hash('test') ~= 0)
+end
+
+do -- hash spans
+  local s: span(byte)
+  assert(hash.hash(s) == (@usize)(0x9e3779b9))
+  s.data = 'test'_cstring s.size = 4
+  assert(hash.hash(s) ~= 0)
+end
+
+do -- hash records
+  local vec2 = @record{x: integer, y: integer}
+  local a: vec2 = {0,0}
+  local b: vec2 = {1,0}
+  assert(hash.hash(a) ~= 0 and hash.hash(b) ~= 0)
+  assert(hash.hash(a) ~= hash.hash(b))
+end
+
+do -- hash unions
+  local U = @union{i: int64, f: float32}
+  local a: U = {i=1}
+  local b: U = {f=1}
+  assert(hash.hash(a) ~= hash.hash(b))
+end
+
+do -- hash arrays
+  local a: [4]integer = {1,2,3,4}
+  local b: [4]integer = {5,6,7,8}
+  assert(hash.hash(a) ~= 0 and hash.hash(b) ~= 0)
+  assert(hash.hash(a) ~= hash.hash(b))
+end
+
+do -- hash records with custom hash function
+  local vec3 = @record{x: integer, y: integer, z: integer}
+  function vec3:__hash(): usize
+    return (@usize)(self.x + self.y * 0xff + self.z * 0xffff)
+  end
+
+  local v: vec3
+  assert(hash.hash(v) == 0)
+  v = {1,1,1}
+  assert(hash.hash(v) == 1 + 0xff + 0xffff)
+
+  local pv: *vec3
+  assert(hash.hash(pv) == 0)
+end
+
+print 'hash OK!'
