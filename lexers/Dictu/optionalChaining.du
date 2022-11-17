@@ -1,0 +1,49 @@
+/**
+ * optionalChaining.du
+ *
+ * Testing optional chaining operator
+ */
+from UnitTest import UnitTest;
+
+class Test {
+    init(var x = 10, var y = nil) {}
+}
+
+class SomeClass {
+    getNumber() {
+        return 10;
+    }
+
+    exit() {
+        print("Shouldn't get here!");
+        System.exit(1);
+    }
+}
+
+class Object {
+    init(var obj = SomeClass()) {}
+}
+
+class TestOptionalChaining < UnitTest {
+    testOptionalChaining() {
+        this.assertEquals(Test().x, 10);
+        this.assertEquals(Test()?.x, 10);
+        this.assertEquals(Test().y, nil);
+        this.assertEquals(Test()?.y, nil);
+    }
+
+    testOptionalChainingMethod() {
+        const someObject = Object();
+
+        this.assertEquals(someObject.obj.getNumber(), 10);
+        this.assertEquals(someObject.obj?.getNumber(), 10);
+
+        someObject.obj = nil;
+        this.assertEquals(someObject.obj?.getNumber(), nil);
+
+        someObject.obj = nil;
+        this.assertEquals(someObject.obj?.exit(), nil);
+    }
+}
+
+TestOptionalChaining().run();

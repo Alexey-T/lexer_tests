@@ -1,0 +1,24 @@
+/**
+ * seek.du
+ *
+ * Testing file seeking with seek()
+ */
+from UnitTest import UnitTest;
+
+class TestFileSeek < UnitTest {
+    testFileSeek() {
+        with("tests/files/read.txt", "rb") {
+            const fileContents = file.read();
+            file.seek(0);
+            this.assertEquals(file.read(), fileContents);
+            file.seek(0, 0);
+            this.assertEquals(file.read(), fileContents);
+            file.seek(-(fileContents.len()), 1);
+            this.assertEquals(file.read(), fileContents);
+            file.seek(-(fileContents.len()), 2);
+            this.assertEquals(file.read(), fileContents);
+        }
+    }
+}
+
+TestFileSeek().run();

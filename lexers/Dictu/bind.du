@@ -1,0 +1,23 @@
+/**
+ * bind.du
+ *
+ * Testing Socket.bind()
+ *
+ * Binds a socket to a host and port
+ */
+from UnitTest import UnitTest;
+
+import Socket;
+
+class TestSocketBind < UnitTest {
+    testSocketBind() {
+        const socket = Socket.create(Socket.AF_INET, Socket.SOCK_STREAM).unwrap();
+
+        this.assertTruthy(socket.bind("127.0.0.1", 8080).success());
+        this.assertFalsey(socket.bind("aaa", 8080).success());
+
+        socket.close();
+    }
+}
+
+TestSocketBind().run();

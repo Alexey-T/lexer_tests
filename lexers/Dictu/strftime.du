@@ -1,0 +1,40 @@
+/**
+ * strftime.du
+ *
+ * Testing the Datetime.strftime() function
+ *
+ */
+from UnitTest import UnitTest;
+
+import Datetime;
+
+class TestStrftimeDatetimeModule < UnitTest {
+    testStrftime(data) {
+        // 1577836800 is 1/1/2020 at 12:00 am (Wednesday)
+        this.assertEquals(Datetime.strftime(data["pattern"], 1577836800), data["expected"]);
+    }
+
+    testStrftimeUPattern() {
+        this.assertTruthy(Datetime.strftime("%u", 1577836800) == "3" or Datetime.strftime("%u", 1577836800) == "");
+    }
+
+    testStrftimeProvider() {
+        return [
+            {"pattern": "%y", "expected": "20"},
+            {"pattern": "%Y", "expected": "2020"},
+            {"pattern": "%b", "expected": "Jan"},
+            {"pattern": "%B", "expected": "January"},
+            {"pattern": "%m", "expected": "01"},
+            {"pattern": "%d", "expected": "01"},
+            {"pattern": "%a", "expected": "Wed"},
+            {"pattern": "%A", "expected": "Wednesday"},
+            {"pattern": "%H", "expected": "00"},
+            {"pattern": "%M", "expected": "00"},
+            {"pattern": "%S", "expected": "00"},
+            {"pattern": "%Y-%m-%d %H:%M:%S", "expected": "2020-01-01 00:00:00"},
+            {"pattern": "", "expected": ""}, // catch up the case of an empty string
+        ];
+    }
+}
+
+TestStrftimeDatetimeModule().run();

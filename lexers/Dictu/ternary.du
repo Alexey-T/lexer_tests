@@ -1,0 +1,44 @@
+/**
+ * ternary.du
+ *
+ * Testing ternary operator
+ */
+
+
+from UnitTest import UnitTest;
+
+// Nested
+def nestedTernary(num) {
+    return num == 1 ? 1
+        : num == 2 ? 2
+        : num == 3 ? 3
+        : num == 4 ? 4
+        : 5;
+}
+
+class TernaryOperatorTest < UnitTest {
+    testTernaryOperator(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testTernaryOperatorProvider() {
+        const condition = true;
+
+        return [
+            {"operation": true ? true : false, "expected": true},
+            {"operation": false ? true : false, "expected": false},
+            {"operation": true ? 1 + 2 + 3 : 4 + 5 + 6, "expected": 6},
+            {"operation": false ? 1 + 2 + 3 : 4 + 5 + 6, "expected": 15},
+            {"operation": condition ? [1, 2] : [3, 4], "expected": [1, 2]},
+            {"operation": not condition ? [1, 2] : [3, 4], "expected": [3, 4]},
+            {"operation": nestedTernary(1), "expected": 1},
+            {"operation": nestedTernary(2), "expected": 2},
+            {"operation": nestedTernary(3), "expected": 3},
+            {"operation": nestedTernary(4), "expected": 4},
+            {"operation": nestedTernary(5), "expected": 5},
+            {"operation": nestedTernary(10), "expected": 5},
+        ];
+    }
+}
+
+TernaryOperatorTest().run();

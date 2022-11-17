@@ -1,0 +1,38 @@
+/**
+ * run.du
+ *
+ * Testing the Process.run() function
+ *
+ * run() executes a new process and does wait for a return.
+ */
+from UnitTest import UnitTest;
+
+import Process;
+import System;
+
+class TestProcessRun < UnitTest {
+    testProcessRunWindows() {
+        if (System.platform != "windows") return;
+
+        this.assertTruthy(Process.run(["cmd.exe", "/c", "dir"]).success());
+
+        const output = Process.run(["cmd.exe", "/c", "dir"], true);
+        this.assertTruthy(output.success());
+        this.assertType(output.unwrap(), "string");
+        this.assertTruthy(output.unwrap().len() > 0);
+    }
+
+    testProcessRunOtherOSs() {
+        if (System.platform == "windows") return;
+
+        this.assertTruthy(Process.run(["ls"]).success());
+        this.assertTruthy(Process.run(["ls", "-la"]).success());
+
+        const output = Process.run(["ls", "-la"], true);
+        this.assertTruthy(output.success());
+        this.assertType(output.unwrap(), "string");
+        this.assertTruthy(output.unwrap().len() > 0);
+    }
+}
+
+TestProcessRun().run();

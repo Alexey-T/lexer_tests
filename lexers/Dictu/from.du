@@ -1,0 +1,39 @@
+/**
+ * from.du
+ *
+ * Testing from imports
+ */
+from UnitTest import UnitTest;
+
+class TestFromImports < UnitTest {
+    testNestedUserDefinedImport() {
+        from "../variables/scope.du" import x;
+        this.assertEquals(x, 10);
+
+        {
+            from "../variables/scope.du" import x;
+            this.assertEquals(x, 10);
+            {
+                from "../variables/scope.du" import x;
+                this.assertEquals(x, 10);
+            }
+        }
+    }
+
+    testNestedBuiltinImport() {
+        from JSON import parse;
+        this.assertEquals(parse("10").unwrap(), 10);
+
+        {
+            from JSON import parse;
+            this.assertEquals(parse("10").unwrap(), 10);
+
+            {
+                from Math import pi;
+                this.assertEquals(pi, 3.14159265358979);
+            }
+        }
+    }
+}
+
+TestFromImports().run();

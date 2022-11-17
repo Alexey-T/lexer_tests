@@ -1,0 +1,22 @@
+/**
+ * escapeCodes.du
+ *
+ * Testing all supported string escape codes
+ *
+ */
+from UnitTest import UnitTest;
+
+class TestStringEscapeCodes < UnitTest {
+    testStringEscapeCodes() {
+        this.assertEquals("\n".len(), 1);
+        this.assertEquals("\t".len(), 1);
+        this.assertEquals("\v".len(), 1);
+        this.assertEquals("\\".len(), 1);
+        this.assertEquals("\"".len(), 1);
+        this.assertEquals("\'".len(), 1);
+        this.assertEquals('\''.len(), 1);
+        this.assertEquals('\"'.len(), 1);
+    }
+}
+
+TestStringEscapeCodes().run();

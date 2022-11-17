@@ -1,0 +1,17 @@
+/**
+ * toBool.du
+ *
+ * Testing the str.toBool() method
+ *
+ * .toBool() converts a string to a boolean
+ */
+from UnitTest import UnitTest;
+
+class TestStringToBool < UnitTest {
+    testStringToBool() {
+        this.assertTruthy("10".toBool());
+        this.assertFalsey("".toBool());
+    }
+}
+
+TestStringToBool().run();

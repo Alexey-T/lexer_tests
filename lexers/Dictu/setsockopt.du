@@ -1,0 +1,22 @@
+/**
+ * bind.du
+ *
+ * Testing socket.setsockopt()
+ *
+ * Sets socket option
+ */
+from UnitTest import UnitTest;
+
+import Socket;
+
+class TestSocketSetsockopt < UnitTest {
+    testSocketSetsockopt() {
+        const socket = Socket.create(Socket.AF_INET, Socket.SOCK_STREAM).unwrap();
+
+        this.assertTruthy(socket.setsockopt(Socket.SOL_SOCKET, Socket.SO_REUSEADDR).success());
+
+        socket.close();
+    }
+}
+
+TestSocketSetsockopt().run();

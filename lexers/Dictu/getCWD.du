@@ -1,0 +1,19 @@
+/**
+ * getCWD.du
+ *
+ * Testing the System.getCWD() function
+ *
+ * getCWD() gets the current working directory of the process
+ */
+from UnitTest import UnitTest;
+
+import System;
+
+class TestSystemGetCWD < UnitTest {
+    testGetCWD() {
+        this.assertType(System.getCWD().unwrap(), 'string');
+        this.assertTruthy(System.getCWD().unwrap().len() > 0);
+    }
+}
+
+TestSystemGetCWD().run();

@@ -1,0 +1,18 @@
+/**
+ * or.du
+ *
+ * Testing the or logical operator
+ */
+
+from UnitTest import UnitTest;
+
+class OrOperatorTest < UnitTest {
+    testOrOperator() {
+        this.assertTruthy(true or true);
+        this.assertTruthy(false or true);
+        this.assertTruthy(true or false);
+        this.assertTruthy((false or false) == false);
+    }
+}
+
+OrOperatorTest().run();

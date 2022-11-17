@@ -1,0 +1,57 @@
+/**
+ * update.du
+ *
+ * Testing Sqlite.connect() and Sqlite.execute()
+ *
+ * Tests inserting, updating and selecting from a table in SQLite
+ */
+from UnitTest import UnitTest;
+
+import Sqlite;
+
+class TestSqliteUpdate < UnitTest {
+    private connection;
+
+    setUp() {
+        const connection = Sqlite.connect(":memory:");
+        this.assertTruthy(connection.success());
+        this.connection = connection.unwrap();
+
+        // Create table
+        this.connection.execute("CREATE TABLE test (x int)").unwrap();
+
+        // Seed Data
+        this.connection.execute("INSERT INTO test VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10)").unwrap();
+    }
+
+    tearDown() {
+        this.connection.close();
+    }
+
+    testSingleRowUpdate() {
+        this.assertTruthy(this.connection.execute("UPDATE test SET x = x + 10 WHERE x = 10").success());
+        this.assertEquals(this.connection.execute("SELECT * FROM test WHERE x = 10").unwrap(), []);
+        this.assertEquals(this.connection.execute("SELECT * FROM test WHERE x = 20").unwrap(), [
+            [20]
+        ]);
+    }
+
+    testAllRowsUpdate() {
+        this.assertTruthy(this.connection.execute("UPDATE test SET x = x + 10").success());
+        this.assertEquals(this.connection.execute("SELECT * FROM test WHERE x <= 10").unwrap(), []);
+        this.assertEquals(this.connection.execute("SELECT * FROM test").unwrap(), [
+            [11],
+            [12],
+            [13],
+            [14],
+            [15],
+            [16],
+            [17],
+            [18],
+            [19],
+            [20],
+        ]);
+    }
+}
+
+TestSqliteUpdate().run();

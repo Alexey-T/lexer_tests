@@ -1,0 +1,27 @@
+/**
+* unwrap.du
+*
+* Testing Result.unwrap(), Result.unwrapError() and Result.success()
+*
+*/
+from UnitTest import UnitTest;
+
+class TestResultUnwrap < UnitTest {
+    testSuccessUnwrap() {
+        const result = Success(10);
+
+        this.assertType(result, "result");
+        this.assertTruthy(result.success());
+        this.assertEquals(result.unwrap(), 10);
+    }
+
+    testErrorUnwrap() {
+        const result = Error("Error!!!");
+
+        this.assertType(result, "result");
+        this.assertFalsey(result.success());
+        this.assertEquals(result.unwrapError(), "Error!!!");
+    }
+}
+
+TestResultUnwrap().run();

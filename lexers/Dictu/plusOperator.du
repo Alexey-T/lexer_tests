@@ -1,0 +1,23 @@
+/**
+ * plusOperator.du
+ *
+ * Testing the + operator on lists
+ *
+ * + operator joins two lists and returns a new list
+ */
+from UnitTest import UnitTest;
+
+class TestListPlusOperator < UnitTest {
+    testListPlusOperator() {
+        const x = [1, 2];
+        this.assertEquals(x + [3, 4], [1, 2, 3, 4]);
+
+        // Check to ensure original hasn't mutated
+        this.assertEquals(x, [1, 2]);
+
+        const y = x + [3, 4];
+        this.assertEquals(y.len(), 4);
+    }
+}
+
+TestListPlusOperator().run();

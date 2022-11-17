@@ -1,0 +1,26 @@
+/**
+ * modulo.du
+ *
+ * Testing modulo
+ */
+
+from UnitTest import UnitTest;
+
+class ModuloOperatorTest < UnitTest {
+    testModuloOperator(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testModuloOperatorProvider() {
+        const x = 10;
+
+        return [
+            {"operation": 10 % 2, "expected": 0},
+            {"operation": 10 % 3, "expected": 1},
+            {"operation": x % 2, "expected": 0},
+            {"operation": x % 3, "expected": 1},
+        ];
+    }
+}
+
+ModuloOperatorTest().run();

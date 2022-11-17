@@ -1,0 +1,47 @@
+/**
+ * bitwise.du
+ *
+ * Testing bitwise operators
+ */
+
+from UnitTest import UnitTest;
+
+class BitwiseOperatorsTest < UnitTest {
+    testBitwiseAnd(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testBitwiseAndProvider() {
+        return [
+            {"operation": 10 & 2, "expected": 2},
+            {"operation": 100 & 15, "expected": 4},
+            {"operation": 5 & 2, "expected": 0},
+        ];
+    }
+
+    testBitwiseOr(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testBitwiseOrProvider() {
+        return [
+            {"operation": 10 | 2, "expected": 10},
+            {"operation": 100 | 15, "expected": 111},
+            {"operation": 5 | 2, "expected": 7},
+        ];
+    }
+
+    testBitwiseXor(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testBitwiseXorProvider() {
+        return [
+            {"operation": 10 ^ 2, "expected": 8},
+            {"operation": 100 ^ 15, "expected": 107},
+            {"operation": 5 ^ 2, "expected": 7},
+        ];
+    }
+}
+
+BitwiseOperatorsTest().run();

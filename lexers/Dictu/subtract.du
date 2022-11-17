@@ -1,0 +1,26 @@
+/**
+ * subtract.du
+ *
+ * Testing subtraction
+ */
+
+from UnitTest import UnitTest;
+
+class SubtractOperatorTest < UnitTest {
+    testSubtractOperator(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testSubtractOperatorProvider() {
+        const x = 10;
+
+        return [
+            {"operation": x - 1, "expected": 9},
+            {"operation": 1 - x, "expected": -9},
+            {"operation": x - x, "expected": 0},
+            {"operation": 10 - x - 10, "expected": -10},
+        ];
+    }
+}
+
+SubtractOperatorTest().run();

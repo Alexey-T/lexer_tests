@@ -1,0 +1,42 @@
+/**
+* assignment.du
+*
+* Testing variable assignment
+*/
+from UnitTest import UnitTest;
+
+class TestVariableAssignment < UnitTest {
+    testAssignment() {
+        var x = 10;
+        this.assertEquals(x, 10);
+    }
+
+    testAssignmentWithSpace() {
+        // New space ignored
+        var x =
+
+            123;
+
+        this.assertEquals(x, 123);
+    }
+
+    testReAssignment() {
+        var x = 10;
+        x = 100;
+
+        this.assertEquals(x, 100);
+    }
+
+    testMultipleAssignment() {
+        var a, b = 10, c, d = "test", e = [1, 2], f = {"test": 10};
+
+        this.assertEquals(a, nil);
+        this.assertEquals(b, 10);
+        this.assertEquals(c, nil);
+        this.assertEquals(d, "test");
+        this.assertEquals(e, [1, 2]);
+        this.assertEquals(f, {"test": 10});
+    }
+}
+
+TestVariableAssignment().run();

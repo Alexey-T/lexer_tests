@@ -1,0 +1,22 @@
+/**
+ * create.du
+ *
+ * Testing Socket.create()
+ *
+ * Returns a new socket object
+ */
+from UnitTest import UnitTest;
+
+import Socket;
+
+class TestSocketCreate < UnitTest {
+    testSocketCreate() {
+        const socket = Socket.create(Socket.AF_INET, Socket.SOCK_STREAM).unwrap();
+
+        this.assertNotNil(socket);
+
+        socket.close();
+    }
+}
+
+TestSocketCreate().run();

@@ -1,0 +1,29 @@
+/**
+ * pop.du
+ *
+ * Testing the list.pop() method
+ *
+ * .pop() will remove an element from a list and return the value
+ */
+from UnitTest import UnitTest;
+
+class TestListPop < UnitTest {
+    testListPop() {
+        const x = [1, 2, 3, 4, 5];
+
+        // First check the list was created properly
+        this.assertEquals(x, [1, 2, 3, 4, 5]);
+
+        // Test .pop()
+        var y = x.pop();
+        this.assertEquals(y, 5);
+        this.assertEquals(x, [1, 2, 3, 4]);
+
+        // Test .pop(index)
+        y = x.pop(0);
+        this.assertEquals(y, 1);
+        this.assertEquals(x, [2, 3, 4]);
+    }
+}
+
+TestListPop().run();

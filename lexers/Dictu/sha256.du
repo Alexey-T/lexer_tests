@@ -1,0 +1,26 @@
+/**
+ * sha256.du
+ *
+ * Testing the Hashlib.sha256() and Hashlib.verify() methods
+ */
+from UnitTest import UnitTest;
+
+import Hashlib;
+
+class TestHashlibSha256 < UnitTest {
+    testHashlibSha256() {
+        const hash = Hashlib.sha256("Dictu");
+
+        this.assertType(hash, "string");
+        this.assertEquals(hash.len(), 64);
+        this.assertEquals(hash, "889bb2f43047c331bed74b1a9b309cc66adff6c6d4c3517547813ad67ba8d105");
+
+        this.assertTruthy(Hashlib.verify(hash, Hashlib.sha256("Dictu")));
+        this.assertTruthy(Hashlib.verify(Hashlib.sha256("Dictu"), hash));
+        this.assertFalsey(Hashlib.verify("WRONG!", hash));
+        this.assertFalsey(Hashlib.verify(Hashlib.sha256("Dictu"), "WRONG!"));
+        this.assertFalsey(Hashlib.verify("WRONG", Hashlib.sha256("Dictu")));
+    }
+}
+
+TestHashlibSha256().run();

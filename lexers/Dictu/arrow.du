@@ -1,0 +1,112 @@
+/**
+ * arrow.du
+ *
+ * Testing the anonymous arrow functions
+ */
+from UnitTest import UnitTest;
+
+class TestArrowFunctions < UnitTest {
+    testImplicitReturn() {
+        const func = def () => 10;
+
+        this.assertType(func, "function");
+        this.assertEquals(func(), 10);
+    }
+
+    testImplicitReturnWithParameter() {
+        const func = def (a) => a;
+
+        this.assertType(func, "function");
+        this.assertEquals(func(100), 100);
+        this.assertEquals(func("test"), "test");
+        this.assertEquals(func([1, 2]), [1, 2]);
+        this.assertEquals(func({1: 2}), {1: 2});
+    }
+
+    testImplicitReturnWithTwoParameters() {
+        const func = def (a, b) => a + b;
+
+        this.assertType(func, "function");
+        this.assertEquals(func(10, 20), 30);
+        this.assertEquals(func(1.5, 2.5), 4);
+        this.assertEquals(func("Dictu ", "is great!"), "Dictu is great!");
+    }
+
+    testExplicitReturn() {
+        const func = def () => {
+            return 10;
+        };
+
+        this.assertType(func, "function");
+        this.assertEquals(func(), 10);
+    }
+
+    testExplicitReturnWithParameter() {
+        const func = def (a) => {
+            return a;
+        };
+
+        this.assertType(func, "function");
+        this.assertEquals(func(100), 100);
+        this.assertEquals(func("test"), "test");
+        this.assertEquals(func([1, 2]), [1, 2]);
+        this.assertEquals(func({1: 2}), {1: 2});
+    }
+
+    testExplicitReturnWithTwoParameters() {
+        const func = def (a, b) => {
+            return a + b;
+        };
+
+        this.assertType(func, "function");
+        this.assertEquals(func(10, 20), 30);
+        this.assertEquals(func(1.5, 2.5), 4);
+        this.assertEquals(func("Dictu ", "is great!"), "Dictu is great!");
+
+        const func1 = def (a, b) => {
+            a += b;
+            return a;
+        };
+
+        this.assertType(func1, "function");
+        this.assertEquals(func1(10, 20), 30);
+        this.assertEquals(func1(1.5, 2.5), 4);
+        this.assertEquals(func1("Dictu ", "is great!"), "Dictu is great!");
+    }
+
+    testExplicitReturnWithThreeParameters() {
+        const func = def(a, b, c) => {const y = a(b, c); return y;};
+
+        const callback = def (a, b) => {
+            return a + b;
+        };
+
+        this.assertType(func, "function");
+        this.assertEquals(func(callback, 10, 20), 30);
+    }
+
+    testImplicitReturnWithOptionalParameters() {
+        const func = def (a=10) => a;
+
+        this.assertType(func, "function");
+        this.assertEquals(func(), 10);
+        this.assertEquals(func(100), 100);
+    }
+
+    testImplicitReturnWithTwoOptionalParameters() {
+        const func = def (a=10, b=20) => a + b;
+
+        this.assertType(func, "function");
+        this.assertEquals(func(), 30);
+        this.assertEquals(func(10, 20), 30);
+        this.assertEquals(func(1.5, 2.5), 4);
+        this.assertEquals(func("Dictu ", "is great!"), "Dictu is great!");
+    }
+}
+
+TestArrowFunctions().run();
+
+
+// Used in modules/functions.du test
+const func = def () => 10;
+const func1 = def (a=10, b=20) => a + b;

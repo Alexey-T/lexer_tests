@@ -1,0 +1,8 @@
+var start = System.clock();
+var x;
+
+for (var i = 0; i < 10000; i += 1) {
+    x = "test   ".strip();
+}
+
+print(System.clock() - start);

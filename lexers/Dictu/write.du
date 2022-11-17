@@ -1,0 +1,43 @@
+/**
+ * write.du
+ *
+ * Testing file writing with write()
+ */
+from UnitTest import UnitTest;
+
+class TestFileWrite < UnitTest {
+    private contents;
+
+    setUp() {
+        with("tests/files/read.txt", "r") {
+            // Save contents to reset the file
+            this.contents = file.read();
+        }
+    }
+
+    tearDown() {
+        with("tests/files/read.txt", "w") {
+            // Reset the file
+            file.write(this.contents);
+        }
+    }
+
+    testFileWrite() {
+        with("tests/files/read.txt", "w") {
+            // Save contents to reset the file
+            var count = file.write("Dictu is great!");
+            this.assertEquals(count, 15);
+            count = file.write("Dictu is great!");
+            this.assertEquals(count, 15);
+            count = file.write("Dictu is great!");
+            this.assertEquals(count, 15);
+        }
+
+        with("tests/files/read.txt", "r") {
+            // Save contents to reset the file
+            this.assertEquals(file.read(), "Dictu is great!Dictu is great!Dictu is great!");
+        }
+    }
+}
+
+TestFileWrite().run();

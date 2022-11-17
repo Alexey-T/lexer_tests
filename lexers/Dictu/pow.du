@@ -1,0 +1,28 @@
+/**
+ * pow.du
+ *
+ * Testing exponent
+ */
+
+from UnitTest import UnitTest;
+
+class PowOperatorTest < UnitTest {
+    testPowOperator(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testPowOperatorProvider() {
+        const x = 2;
+
+        return [
+            {"operation": x ** 10, "expected": 1024},
+            {"operation": 10 ** x, "expected": 100},
+            {"operation": x * x, "expected": 4},
+            {"operation": -2 ** x, "expected": 4},
+            {"operation": 4 * 0.5, "expected": 2},
+            {"operation": 20 / 2.5, "expected": 8},
+        ];
+    }
+}
+
+PowOperatorTest().run();

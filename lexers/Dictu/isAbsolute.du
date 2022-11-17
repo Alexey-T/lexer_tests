@@ -1,0 +1,19 @@
+/**
+ * isAbsolute.du
+ *
+ * Testing Path.isAbsolute()
+ *
+ * Returns true if string is an absolute path or false otherwise.
+ */
+from UnitTest import UnitTest;
+
+import Path;
+
+class TestPathIsAbsolute < UnitTest {
+    testIsAbsolute() {
+        this.assertTruthy(Path.isAbsolute("/root"));
+        this.assertFalsey(Path.isAbsolute("root"));
+    }
+}
+
+TestPathIsAbsolute().run();

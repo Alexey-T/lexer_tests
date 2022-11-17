@@ -1,0 +1,65 @@
+/**
+ * private.du
+ *
+ * Testing private functions and properties
+ */
+from UnitTest import UnitTest;
+
+class TestPrivate < UnitTest {
+    testPrivate() {
+        const assertEquals = this.assertEquals;
+
+        class Test {
+            private x;
+            private y;
+
+            init(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            assert() {
+                assertEquals(this.x, 10);
+                assertEquals(this.y, "test");
+            }
+        }
+
+        Test(10, "test").assert();
+    }
+
+    testPrivateImplicit() {
+        const assertEquals = this.assertEquals;
+
+        class AnotherTest {
+            init(private x, var y) {
+                assertEquals(this.x, 10);
+            }
+        }
+
+        const obj = AnotherTest(10, "test");
+        this.assertEquals(obj.y, "test");
+    }
+
+    testPrivateStatic() {
+        const assertEquals = this.assertEquals;
+
+        class Class {
+            init(private x=10) {
+                this.staticMethod(this.x);
+            }
+
+            private static staticMethod(x) {
+                assertEquals(x, 10);
+                Class.anotherStaticMethod(x);
+            }
+
+            private static anotherStaticMethod(y) {
+                assertEquals(y, 10);
+            }
+        }
+
+        Class();
+    }
+}
+
+TestPrivate().run();

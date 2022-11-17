@@ -1,0 +1,22 @@
+/**
+ * random.du
+ *
+ * Testing the Random.random() method
+ *
+ */
+from UnitTest import UnitTest;
+
+import Random;
+
+class TestRandom < UnitTest {
+    const AMOUNT = 100;
+
+    testRandom() {
+        for (var i = 0; i < TestRandom.AMOUNT; i += 1) {
+            this.assertTruthy(Random.random() >= 0);
+            this.assertTruthy(Random.random() <= 1);
+        }
+    }
+}
+
+TestRandom().run();

@@ -1,0 +1,55 @@
+/**
+ * isInstance.du
+ *
+ * Testing instance.isInstance() method
+ *
+ * .isInstance() returns a boolean based on whether the object is created from a given class / parent superclass
+ */
+from UnitTest import UnitTest;
+
+class Test {}
+
+class AnotherTest < Test {}
+
+class Unrelated {}
+
+abstract class AbstractBase {}
+
+class ConcreteClass < AbstractBase {}
+
+class FirstClass {}
+class SecondClass < FirstClass {}
+class ThirdClass < SecondClass {}
+
+class TestIsInstance < UnitTest {
+    testIsInstance() {
+        this.assertTruthy(Test().isInstance(Test));
+    }
+
+    testIsInstanceUnrelated() {
+        this.assertFalsey(Test().isInstance(Unrelated));
+        this.assertFalsey(AnotherTest().isInstance(Unrelated));
+    }
+
+    testIsInstanceSingleInheritance() {
+        this.assertTruthy(AnotherTest().isInstance(Test));
+        this.assertTruthy(AnotherTest().isInstance(AnotherTest));
+        this.assertFalsey(Test().isInstance(AnotherTest));
+    }
+
+    testIsInstanceAbstract() {
+        this.assertTruthy(ConcreteClass().isInstance(AbstractBase));
+        this.assertTruthy(ConcreteClass().isInstance(ConcreteClass));
+    }
+
+    testIsInstanceMultipleInheritance() {
+        this.assertTruthy(FirstClass().isInstance(FirstClass));
+        this.assertTruthy(SecondClass().isInstance(FirstClass));
+        this.assertTruthy(SecondClass().isInstance(SecondClass));
+        this.assertTruthy(ThirdClass().isInstance(FirstClass));
+        this.assertTruthy(ThirdClass().isInstance(SecondClass));
+        this.assertTruthy(ThirdClass().isInstance(ThirdClass));
+    }
+}
+
+TestIsInstance().run();

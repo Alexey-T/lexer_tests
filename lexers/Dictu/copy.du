@@ -1,0 +1,68 @@
+/**
+ * copy.du
+ *
+ * Testing the list.copy() and list.deepCopy() methods
+ *
+ * .copy() returns a shallow copy of the list
+ * .deepCopy() returns a deep copy of the list
+ */
+from UnitTest import UnitTest;
+
+class Test {
+    init() {
+        this.x = 10;
+    }
+}
+
+class TestListCopy < UnitTest {
+    testListCopy() {
+        var x = [1, 2, 3, 4, 5];
+
+        // First check the list was created properly
+        this.assertEquals(x, [1, 2, 3, 4, 5]);
+
+        var y = x.copy(); // shallow copy
+        this.assertEquals(y, [1, 2, 3, 4, 5]);
+
+        y[0] = 10;
+
+        this.assertEquals(x, [1, 2, 3, 4, 5]);
+        this.assertEquals(y, [10, 2, 3, 4, 5]);
+    }
+
+    testListDeepCopy() {
+        const someList = [1, 2, 3, [4, [5, 6]]];
+        this.assertEquals(someList, [1, 2, 3, [4, [5, 6]]]);
+
+        const deepCopy = someList.deepCopy();
+        this.assertEquals(someList, deepCopy);
+
+        deepCopy[3][0] = 10;
+        this.assertNotEquals(someList, deepCopy);
+        this.assertEquals(deepCopy, [1, 2, 3, [10, [5, 6]]]);
+
+        var newList = [[1, "hello"], {"test": 10}];
+        this.assertEquals(newList, [[1, "hello"], {"test": 10}]);
+
+        var newListDeepCopy = newList.deepCopy();
+        this.assertEquals(newListDeepCopy, [[1, "hello"], {"test": 10}]);
+
+        newListDeepCopy[0][0] = 10;
+        newListDeepCopy[1]["test"] = 11;
+
+        this.assertEquals(newList, [[1, "hello"], {"test": 10}]);
+        this.assertEquals(newListDeepCopy, [[10, "hello"], {"test": 11}]);
+
+        const x = Test();
+
+        const list = [x];
+        const lCopyDeep = list.deepCopy();
+
+        lCopyDeep[0].x = 100;
+
+        this.assertEquals(x.x, 10);
+        this.assertEquals(lCopyDeep[0].x, 100);
+    }
+}
+
+TestListCopy().run();

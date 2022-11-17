@@ -1,0 +1,27 @@
+/**
+ * isDir.du
+ *
+ * Testing Path.isDir()
+ *
+ * Returns true if the given string is a path to a directory, else false. (Linux only) 
+ */
+from UnitTest import UnitTest;
+
+import Path;
+import System;
+
+class TestPathIsDir < UnitTest {
+    testIsDir() {
+        this.assertTruthy(Path.isDir("tests"));
+        this.assertFalsey(Path.isDir("tests/runTests.du"));
+    }
+
+    testIsDirNonWindows() {
+        if (System.platform == "windows") return;
+
+        this.assertTruthy(Path.isDir("/usr/bin"));
+        this.assertTruthy(Path.isDir("/home/"));
+    }
+}
+
+TestPathIsDir().run();

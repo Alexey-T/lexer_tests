@@ -1,0 +1,20 @@
+/**
+ * readLine.du
+ *
+ * Testing file reading with readLine()
+ */
+from UnitTest import UnitTest;
+
+class TestFileReadline < UnitTest {
+    testFileReadline() {
+        with("tests/files/read.txt", "r") {
+            var line;
+            while ((line = file.readLine()) != nil) {
+                // Check readline works with empty lines as well
+                this.assertTruthy(line == "Dictu is great!" or line == "");
+            }
+        }
+    }
+}
+
+TestFileReadline().run();

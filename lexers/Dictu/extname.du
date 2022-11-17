@@ -1,0 +1,19 @@
+/**
+ * extname.du
+ *
+ * Testing Path.extname()
+ *
+ * Returns the extension portion of string, including the dot.
+ */
+from UnitTest import UnitTest;
+
+import Path;
+
+class TestPathExtname < UnitTest {
+    testExtname() {
+        this.assertEquals(Path.extname("/t.ext"), ".ext");
+        this.assertEquals(Path.extname("/text"), "");
+    }
+}
+
+TestPathExtname().run();

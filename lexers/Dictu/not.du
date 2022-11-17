@@ -1,0 +1,17 @@
+/**
+ * not.du
+ *
+ * Testing the not(!) logical operator
+ */
+
+from UnitTest import UnitTest;
+
+class NotOperatorTest < UnitTest {
+    testNotOperator() {
+        this.assertTruthy((not true) == false);
+        this.assertTruthy(not false);
+        this.assertTruthy(not (true == false));
+    }
+}
+
+NotOperatorTest().run();

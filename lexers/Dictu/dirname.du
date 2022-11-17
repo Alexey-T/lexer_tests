@@ -1,0 +1,30 @@
+/**
+ * dirname.du
+ *
+ * Testing Path.dirname()
+ *
+ * Returns the directory name of string.
+ */
+from UnitTest import UnitTest;
+
+import Path;
+
+class TestPathDirname < UnitTest {
+    testDirname(data) {
+        this.assertEquals(Path.dirname(data["path"]), data["expected"]);
+    }
+
+    testDirnameProvider() {
+        return [
+            {"path": "", "expected": "."},
+            {"path": "a", "expected": "."},
+            {"path": "/", "expected": "/"},
+            {"path": "//", "expected": "/"},
+            {"path": "/root", "expected": "/"},
+            {"path": "///root", "expected": "/"},
+            {"path": "/root///a", "expected": "/root"},
+        ];
+    }
+}
+
+TestPathDirname().run();

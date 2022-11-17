@@ -1,0 +1,30 @@
+/**
+ * multiply.du
+ *
+ * Testing multiplication
+ */
+
+from UnitTest import UnitTest;
+
+class MultiplicationOperatorTest < UnitTest {
+    testMultiplicationOperator(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testMultiplicationOperatorProvider() {
+        const x = 10;
+
+        return [
+            {"operation": 10 * 10, "expected": 100},
+            {"operation": 10 * x, "expected": 100},
+            {"operation": x * 10, "expected": 100},
+            {"operation": x * x, "expected": 100},
+            {"operation": -1 * x, "expected": -10},
+            {"operation": 10 * 2.5, "expected": 25},
+            {"operation": x * 2.5, "expected": 25},
+            {"operation": 20 * 2.5, "expected": 50},
+        ];
+    }
+}
+
+MultiplicationOperatorTest().run();

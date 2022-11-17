@@ -1,0 +1,26 @@
+/**
+ * static.du
+ *
+ * Testing class static methods
+ */
+from UnitTest import UnitTest;
+
+class Test {
+    static func() {
+        return 10;
+    }
+
+    static args(a, b) {
+        return a + b;
+    }
+}
+
+class TestStatic < UnitTest {
+    testStatic() {
+        this.assertEquals(Test.func(), 10);
+        this.assertEquals(Test.args(10, 20), 30);
+        this.assertEquals(Test.args("Dictu", " is great"), "Dictu is great");
+    }
+}
+
+TestStatic().run();

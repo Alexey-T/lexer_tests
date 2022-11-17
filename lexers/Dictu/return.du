@@ -1,0 +1,26 @@
+/**
+* return.du
+*
+* Testing returning from a function
+*/
+from UnitTest import UnitTest;
+
+class TestFunctionReturn < UnitTest {
+    testReturn() {
+        def test() {
+            return 10;
+        }
+
+        this.assertEquals(test(), 10);
+    }
+
+    testReturnExpression() {
+        def test() {
+            return 10 + 20 + 30;
+        }
+
+        this.assertEquals(test(), 60);
+    }
+}
+
+TestFunctionReturn().run();

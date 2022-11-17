@@ -1,0 +1,20 @@
+/**
+ * concat.du
+ *
+ * Testing string concatenation
+ */
+from UnitTest import UnitTest;
+
+class TestStringConcat < UnitTest {
+    testStringConcat() {
+        this.assertEquals("Dictu" + " is " + "great!", "Dictu is great!");
+
+        const x = "Dictu" +
+            " is " +
+            "great!";
+
+        this.assertEquals(x, "Dictu is great!");
+    }
+}
+
+TestStringConcat().run();

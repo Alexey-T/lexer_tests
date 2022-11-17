@@ -1,0 +1,47 @@
+/**
+* match.du
+*
+* Testing Result.match()
+*
+*/
+from UnitTest import UnitTest;
+
+class TestResultMatch < UnitTest {
+    testMatchSuccess() {
+        const success = Success(10).match(
+            def (result) => result,
+            def (error) => error + " error!"
+        );
+
+        this.assertEquals(success, 10);
+    }
+
+    testMatchError() {
+        const error = Error("error").match(
+            def (result) => result,
+            def (error) => error + " error!"
+        );
+
+        this.assertEquals(error, "error error!");
+    }
+
+    testMatchOnBuiltinSuccess() {
+        const success = "10".toNumber().match(
+            def (result) => result,
+            def (error) => error + " error!"
+        );
+
+        this.assertEquals(success, 10);
+    }
+
+    testMatchOnBuiltinError() {
+        const error = "test".toNumber().match(
+            def (result) => result,
+            def (error) => error
+        );
+
+        this.assertEquals(error, "Can not convert 'test' to number");
+    }
+}
+
+TestResultMatch().run();

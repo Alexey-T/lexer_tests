@@ -1,0 +1,37 @@
+/**
+ * annotations.du
+ *
+ * Testing class annotations
+ */
+from UnitTest import UnitTest;
+
+class NoAnnotations {}
+
+@EmptyAnnotation
+@TrueAnnotation(true)
+@FalseAnnotation(false)
+@NumberAnnotation(10)
+@DecimalNumberAnnotation(10.5)
+@NilAnnotation(nil)
+class Test {
+
+}
+
+
+class TestClassAnnotations < UnitTest {
+    testClassAnnotationsEmpty() {
+        this.assertEquals(NoAnnotations.annotations, nil);
+    }
+
+    testClassAnnotations() {
+        this.assertEquals(Test.annotations.len(), 6);
+        this.assertEquals(Test.annotations['EmptyAnnotation'], nil);
+        this.assertEquals(Test.annotations['TrueAnnotation'], true);
+        this.assertEquals(Test.annotations['FalseAnnotation'], false);
+        this.assertEquals(Test.annotations['NumberAnnotation'], 10);
+        this.assertEquals(Test.annotations['DecimalNumberAnnotation'], 10.5);
+        this.assertEquals(Test.annotations['NilAnnotation'], nil);
+    }
+}
+
+TestClassAnnotations().run();

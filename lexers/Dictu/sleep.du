@@ -1,0 +1,22 @@
+/**
+ * sleep.du
+ *
+ * Testing the System.sleep() function
+ *
+ * sleep() pauses execution for a given amount of seconds
+ */
+from UnitTest import UnitTest;
+
+import System;
+
+class TestSystemSleep < UnitTest {
+    testSystemSleep() {
+        const start = System.time();
+
+        System.sleep(2);
+
+        this.assertTruthy(System.time() - start >= 2);
+    }
+}
+
+TestSystemSleep().run();

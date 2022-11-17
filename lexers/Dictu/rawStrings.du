@@ -1,0 +1,48 @@
+/**
+ * rawStrings.du
+ *
+ * Testing the "r" string prefix
+ *
+ * "r" parses a string literally, ignoring escape codes passed
+ */
+from UnitTest import UnitTest;
+
+class TestRawStrings < UnitTest {
+    testRawStringsNewline() {
+        this.assertEquals(r"test\ntest".len(), 10);
+        this.assertEquals(r"test\ntest"[4], "\\");
+        this.assertEquals(r"test\ntest"[4], r"\");
+        this.assertEquals(r"test\ntest"[5], "n");
+        this.assertEquals(r"test\ntest"[5], r"n");
+        this.assertEquals(r"test\ntest", "test\\ntest");
+    }
+
+    testRawStringsTab() {
+        this.assertEquals(r"test\ttest".len(), 10);
+        this.assertEquals(r"test\ttest"[4], "\\");
+        this.assertEquals(r"test\ttest"[4], r"\");
+        this.assertEquals(r"test\ttest"[5], "t");
+        this.assertEquals(r"test\ttest"[5], r"t");
+        this.assertEquals(r"test\ttest", "test\\ttest");
+    }
+
+    testRawStringsVeritcalTab() {
+        this.assertEquals(r"test\vtest".len(), 10);
+        this.assertEquals(r"test\vtest"[4], "\\");
+        this.assertEquals(r"test\vtest"[4], r"\");
+        this.assertEquals(r"test\vtest"[5], "v");
+        this.assertEquals(r"test\vtest"[5], r"v");
+        this.assertEquals(r"test\vtest", "test\\vtest");
+    }
+
+    testRawStringsBackslash() {
+        this.assertEquals(r"test\\test".len(), 10);
+        this.assertEquals(r"test\\test"[4], "\\");
+        this.assertEquals(r"test\\test"[4], r"\");
+        this.assertEquals(r"test\\test"[5], "\\");
+        this.assertEquals(r"test\\test"[5], r"\");
+        this.assertEquals(r"test\\test", "test\\\\test");
+    }
+}
+
+TestRawStrings().run();

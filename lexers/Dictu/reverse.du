@@ -1,0 +1,19 @@
+/**
+ * reverse.du
+ *
+ * Testing list.reverse()
+ */
+from UnitTest import UnitTest;
+
+class TestListReverse < UnitTest {
+    testListReverse() {
+        const list = [1, 2, 3, 4];
+        list.reverse();
+
+        this.assertNotEquals(list, [1, 2, 3, 4]);
+        this.assertEquals(list.len(), 4);
+        this.assertEquals(list, [4, 3, 2, 1]);
+    }
+}
+
+TestListReverse().run();

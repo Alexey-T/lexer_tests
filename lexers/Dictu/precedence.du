@@ -1,0 +1,26 @@
+/**
+ * precedence.du
+ *
+ * Testing operator precedence
+ */
+
+from UnitTest import UnitTest;
+
+class OperatorPrecedenceTest < UnitTest {
+    testOperatorPrecedence(data) {
+        this.assertEquals(data["operation"], data["expected"]);
+    }
+
+    testOperatorPrecedenceProvider() {
+        const x = 10;
+
+        return [
+            {"operation": x + 1 * 10 / 2, "expected": 15},
+            {"operation": -x + 10 * 2 + 10 / 2, "expected": 15},
+            {"operation": x + 2 * 10 / 2 - 2, "expected": 18},
+            {"operation": 10 ^ 2 ** 2 - 2 / 2, "expected": 9},
+        ];
+    }
+}
+
+OperatorPrecedenceTest().run();

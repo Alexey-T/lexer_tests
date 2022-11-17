@@ -1,0 +1,58 @@
+/**
+ * strptime.du
+ *
+ * Testing the Datetime.strptime() function
+ *
+ */
+from UnitTest import UnitTest;
+
+import Datetime;
+import System;
+
+class TestStrptimeDatetimeModule < UnitTest {
+    testStrptime(data) {
+        // 1577836800 is 1/1/2020 at 12:00 am (Wednesday)
+        this.assertEquals(Datetime.strptime(data["pattern"], data["value"]), 1577836800);
+    }
+
+    testStrptimeProvider() {
+        return [
+            {"pattern": "%Y", "value": "2020"},
+            {"pattern": "%Y-%m", "value": "2020-1"},
+            {"pattern": "%Y-%m", "value": "2020-01"},
+            {"pattern": "%Y-%b", "value": "2020-Jan"},
+            {"pattern": "%Y-%B", "value": "2020-January"},
+            {"pattern": "%Y-%d", "value": "2020-1"},
+            {"pattern": "%Y-%d", "value": "2020-01"},
+            {"pattern": "%Y-%m-%d", "value": "2020-1-1"},
+            {"pattern": "%Y-%m-%d", "value": "2020-1-01"},
+            {"pattern": "%Y-%m-%d", "value": "2020-01-1"},
+            {"pattern": "%Y-%m-%d", "value": "2020-01-01"},
+            {"pattern": "%Y-%b-%d", "value": "2020-Jan-1"},
+            {"pattern": "%Y-%b-%d", "value": "2020-Jan-01"},
+            {"pattern": "%Y-%B-%d", "value": "2020-January-1"},
+            {"pattern": "%Y-%B-%d", "value": "2020-January-01"},
+
+            {"pattern": "%y", "value": "20"},
+            {"pattern": "%y-%m", "value": "20-1"},
+            {"pattern": "%y-%m", "value": "20-01"},
+            {"pattern": "%y-%b", "value": "20-Jan"},
+            {"pattern": "%y-%B", "value": "20-January"},
+            {"pattern": "%y-%d", "value": "20-1"},
+            {"pattern": "%y-%d", "value": "20-01"},
+            {"pattern": "%y-%m-%d", "value": "20-1-1"},
+            {"pattern": "%y-%m-%d", "value": "20-1-01"},
+            {"pattern": "%y-%m-%d", "value": "20-01-1"},
+            {"pattern": "%y-%m-%d", "value": "20-01-01"},
+            {"pattern": "%y-%b-%d", "value": "20-Jan-1"},
+            {"pattern": "%y-%b-%d", "value": "20-Jan-01"},
+            {"pattern": "%y-%B-%d", "value": "20-January-1"},
+            {"pattern": "%y-%B-%d", "value": "20-January-01"},
+        ];
+    }
+}
+
+
+if (System.platform != "windows") {
+    TestStrptimeDatetimeModule().run();
+}

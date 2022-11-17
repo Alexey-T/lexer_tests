@@ -1,0 +1,22 @@
+/**
+ * listDir.du
+ *
+ * Testing Path.listDir()
+ *
+ */
+from UnitTest import UnitTest;
+
+import Path;
+
+class TestPathListDir < UnitTest {
+    testListDir() {
+        const contents = Path.listDir("tests/path/test_dir");
+        const expected = ["test_file_1", "test_file_2", "test_file_3"];
+
+        expected.forEach(def (value) => {
+            this.assertTruthy(contents.contains(value));
+        });
+    }
+}
+
+TestPathListDir().run();

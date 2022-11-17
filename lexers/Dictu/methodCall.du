@@ -1,0 +1,20 @@
+/**
+ * methodCall.du
+ *
+ * Testing class method calls
+ */
+from UnitTest import UnitTest;
+
+class Test {
+    func() {
+        return 10;
+    }
+}
+
+class TestMethodCall < UnitTest {
+    testMethodCall() {
+        this.assertEquals(Test().func(), 10);
+    }
+}
+
+TestMethodCall().run();

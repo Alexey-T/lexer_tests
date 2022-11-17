@@ -1,0 +1,34 @@
+/**
+ * read.du
+ *
+ * Testing file reading with read()
+ */
+from UnitTest import UnitTest;
+
+class TestFileReading < UnitTest {
+    const EXPECTED = "Dictu is great!\n" +
+        "Dictu is great!\n" +
+        "Dictu is great!\n" +
+        "Dictu is great!\n" +
+        "Dictu is great!\n" +
+        "\n" +
+        "\n" +
+        "Dictu is great!\n" +
+        "Dictu is great!\n" +
+        "Dictu is great!\n" +
+        "Dictu is great!\n" +
+        "Dictu is great!";
+
+    testFileRead() {
+        var contents;
+
+        with("tests/files/read.txt", "r") {
+            contents = file.read();
+        }
+
+        this.assertType(contents, "string");
+        this.assertEquals(contents, TestFileReading.EXPECTED);
+    }
+}
+
+TestFileReading().run();

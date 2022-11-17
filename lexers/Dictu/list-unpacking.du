@@ -1,0 +1,82 @@
+/**
+* list-unpacking.du
+*
+* Testing list unpacking for assignment
+*/
+from UnitTest import UnitTest;
+
+class TestListUnpacking < UnitTest {
+    testListUnpacking() {
+        var [a, b, c] = [1, 2, 3];
+
+        this.assertEquals(a, 1);
+        this.assertEquals(b, 2);
+        this.assertEquals(c, 3);
+
+        var o,i,g;
+
+        [o,i,g]=[111,222,333];
+
+        this.assertEquals(o, 111);
+        this.assertEquals(i, 222);
+        this.assertEquals(g, 333);
+
+        var [d, e, f] = [1 + 1, 2 + 2, 3 + 3];
+
+        this.assertEquals(d, 2);
+        this.assertEquals(e, 4);
+        this.assertEquals(f, 6);
+    }
+
+    testListUnpackingExpression() {
+        var [a, b, c] = [1 + 1, 2 + 2, 3 + 3];
+
+        this.assertEquals(a, 2);
+        this.assertEquals(b, 4);
+        this.assertEquals(c, 6);
+    }
+
+    testListUnpackingMixedTypes() {
+        var list = [1, nil, true, false, "test", ["more tests", "another"], {"key": "value"}];
+        var [x, y, z, x1, y1, z1, x2] = list;
+
+        this.assertEquals(x, 1);
+        this.assertEquals(y, nil);
+        this.assertEquals(z, true);
+        this.assertEquals(x1, false);
+        this.assertEquals(y1, "test");
+        this.assertEquals(z1, ["more tests", "another"]);
+        this.assertEquals(x2, {"key": "value"});
+    }
+
+    testListUnpackingConst() {
+        const [a, b, c] = [1, 2, 3];
+
+        this.assertEquals(a, 1);
+        this.assertEquals(b, 2);
+        this.assertEquals(c, 3);
+    }
+
+    testListUnpackingExpressionConst() {
+        const [a, b, c] = [1 + 1, 2 + 2, 3 + 3];
+
+        this.assertEquals(a, 2);
+        this.assertEquals(b, 4);
+        this.assertEquals(c, 6);
+    }
+
+    testListUnpackingMixedTypesConst() {
+        const list = [1, nil, true, false, "test", ["more tests", "another"], {"key": "value"}];
+        const [x, y, z, x1, y1, z1, x2] = list;
+
+        this.assertEquals(x, 1);
+        this.assertEquals(y, nil);
+        this.assertEquals(z, true);
+        this.assertEquals(x1, false);
+        this.assertEquals(y1, "test");
+        this.assertEquals(z1, ["more tests", "another"]);
+        this.assertEquals(x2, {"key": "value"});
+    }
+}
+
+TestListUnpacking().run();

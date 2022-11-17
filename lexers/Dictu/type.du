@@ -1,0 +1,54 @@
+/**
+* type.du
+*
+* Testing the builtin type() function
+*
+* type() returns the type of a value as a string
+*/
+import System;
+
+from UnitTest import UnitTest;
+
+const lamdba = def () => {};
+
+def testing() {}
+
+class Test {
+    test() {}
+}
+
+class TestType < UnitTest {
+    testType(data) {
+        this.assertEquals(data["data"], data["expected"]);
+    }
+
+    testTypeProvider() {
+        return [
+            {"data": type(nil), "expected": "nil"},
+            {"data": type(true), "expected": "bool"},
+            {"data": type(false), "expected": "bool"},
+            {"data": type(10), "expected": "number"},
+            {"data": type(-10), "expected": "number"},
+            {"data": type(10.111), "expected": "number"},
+            {"data": type(-10.111), "expected": "number"},
+            {"data": type(10_111), "expected": "number"},
+            {"data": type(-10_111), "expected": "number"},
+            {"data": type([1, 2]), "expected": "list"},
+            {"data": type({"hi": 10}), "expected": "dict"},
+            {"data": type(set(1)), "expected": "set"},
+            {"data": type(lamdba), "expected": "function"},
+            {"data": type(testing), "expected": "function"},
+            {"data": type(Test), "expected": "class"},
+            {"data": type(Test().test), "expected": "method"},
+            {"data": type(System), "expected": "module"},
+        ];
+    }
+
+    testTypeFile() {
+        with("tests/builtins/type.du", "r") {
+            this.assertType(file, "file");
+        }
+    }
+}
+
+TestType().run();

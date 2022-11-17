@@ -1,0 +1,19 @@
+/**
+ * time.du
+ *
+ * Testing the System.time() function
+ *
+ * time() returns a UNIX timestamp.
+ */
+from UnitTest import UnitTest;
+
+import System;
+
+class TestSystemTime < UnitTest {
+    testSystemTime() {
+        this.assertType(System.time(), 'number');
+        this.assertTruthy(System.time() > 0);
+    }
+}
+
+TestSystemTime().run();

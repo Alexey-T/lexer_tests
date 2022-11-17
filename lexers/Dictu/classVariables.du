@@ -1,0 +1,76 @@
+/**
+ * classVariables.du
+ *
+ * Testing setting class variables
+ */
+from UnitTest import UnitTest;
+
+class Test {
+    var x = 10;
+
+    init() {
+        //
+    }
+}
+
+/**
+ * Ensure inherited classes work
+ */
+class BaseClass {
+    var x = 10;
+}
+
+class Common < BaseClass {}
+
+class AnotherClass < Common {}
+
+/**
+ * Test abstract classes
+ */
+abstract class AbstractClass {
+    var x = "Hello";
+}
+
+class TestClassVariables < UnitTest {
+    testClassVariable() {
+        this.assertEquals(Test.x, 10);
+    }
+
+    testClassVariableOnInstance() {
+        // Class vars are different in that if they are changed on the class they're changed on all instances
+        // E.g
+
+        const x = Test();
+        const y = Test();
+
+        this.assertEquals(x.x, 10);
+        this.assertEquals(y.x, 10);
+
+        // Update class var
+        Test.x = 1000;
+
+        this.assertEquals(x.x, 1000);
+        this.assertEquals(y.x, 1000);
+    }
+
+    testClassVariableInheritance() {
+        this.assertEquals(Common.x, 10);
+        this.assertEquals(Common().x, 10);
+
+        this.assertEquals(AnotherClass.x, 10);
+        this.assertEquals(AnotherClass().x, 10);
+
+        BaseClass.x = 100;
+
+        this.assertEquals(Common.x, 100);
+        this.assertEquals(Common().x, 100);
+        this.assertEquals(AnotherClass.x, 100);
+        this.assertEquals(AnotherClass().x, 100);
+    }
+
+    testAbstractClassVariables() {
+        this.assertEquals(AbstractClass.x, "Hello");
+    }
+}
+
+TestClassVariables().run();

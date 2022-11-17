@@ -1,0 +1,18 @@
+/**
+ * encode.du
+ *
+ * Testing the Base64.encode() method
+ */
+from UnitTest import UnitTest;
+
+import Base64;
+
+class TestBase64Module < UnitTest {
+    testBase64Encode() {
+        this.assertEquals(Base64.encode("test"), "dGVzdA==");
+        this.assertEquals(Base64.encode("Dictu"), "RGljdHU=");
+        this.assertEquals(Base64.encode("123456789Dictu123456789"), "MTIzNDU2Nzg5RGljdHUxMjM0NTY3ODk=");
+    }
+}
+
+TestBase64Module().run();

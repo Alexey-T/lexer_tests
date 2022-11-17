@@ -1,0 +1,42 @@
+/**
+ * process.du
+ *
+ * Testing the System.[getpid(), getppid(), getuid(), geteuid(), getgid(), getegid()] functions
+ *
+ * getpid(), getppid(), getuid(), geteuid(), getgid(), getegid() all return information
+ * about the running process.
+ */
+from UnitTest import UnitTest;
+
+import System;
+
+class TestSystemProcessFunctions < UnitTest {
+    testSystemGetpid() {
+        this.assertType(System.getpid(), "number");
+    }
+
+    testSystemGetppid() {
+        this.assertType(System.getppid(), "number");
+    }
+
+    testSystemGetuid() {
+        this.assertType(System.getuid(), "number");
+    }
+
+    testSystemGeteuid() {
+        this.assertType(System.geteuid(), "number");
+    }
+
+    testSystemGetgid() {
+        this.assertType(System.getgid(), "number");
+    }
+
+    testSystemGetegid() {
+        this.assertType(System.getegid(), "number");
+    }
+}
+
+if (System.platform != "windows") {
+    TestSystemProcessFunctions().run();
+}
+

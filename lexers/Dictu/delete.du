@@ -1,0 +1,46 @@
+/**
+ * delete.du
+ *
+ * Testing Sqlite.connect() and Sqlite.execute()
+ *
+ * Tests inserting, selecting and deleting from a table in SQLite
+ */
+from UnitTest import UnitTest;
+
+import Sqlite;
+
+class TestSqliteDelete < UnitTest {
+    private connection;
+
+    setUp() {
+        const connection = Sqlite.connect(":memory:");
+        this.assertTruthy(connection.success());
+        this.connection = connection.unwrap();
+
+        // Create table
+        this.connection.execute("CREATE TABLE test (x int)").unwrap();
+
+        // Seed Data
+        this.connection.execute("INSERT INTO test VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10)").unwrap();
+    }
+
+    tearDown() {
+        this.connection.close();
+    }
+
+    testDeleteSingleRow() {
+        const result = this.connection.execute("DELETE FROM test WHERE x = ?", [
+            1
+        ]).unwrap();
+
+        this.assertEquals(this.connection.execute("SELECT COUNT(*) FROM test").unwrap(), [[9]]);
+    }
+
+    testDeleteAllRows() {
+        const result = this.connection.execute("DELETE FROM test").unwrap();
+
+        this.assertEquals(this.connection.execute("SELECT COUNT(*) FROM test").unwrap(), [[0]]);
+    }
+}
+
+TestSqliteDelete().run();

@@ -1,0 +1,50 @@
+/**
+ * parse.du
+ *
+ * Testing the JSON.parse() function
+ *
+ */
+from UnitTest import UnitTest;
+
+import JSON;
+
+class TestJsonParse < UnitTest {
+    testJsonParse(data) {
+        this.assertEquals(JSON.parse(data["json"]).unwrap(), data["expected"]);
+    }
+
+    testJsonParseProvider() {
+        return [
+            {"json": "true", "expected": true},
+            {"json": "false", "expected": false},
+            {"json": "null", "expected": nil},
+            {"json": "10", "expected": 10},
+            {"json": "10.5", "expected": 10.5},
+            {"json": '"test"', "expected": "test"},
+            {"json": "[]", "expected": []},
+            {"json": "{}", "expected": {}},
+
+            {"json": "[true]", "expected": [true]},
+            {"json": "[false]", "expected": [false]},
+            {"json": "[null]", "expected": [nil]},
+            {"json": "[10]", "expected": [10]},
+            {"json": "[10.5]", "expected": [10.5]},
+            {"json": '["test"]', "expected": ["test"]},
+            {"json": "[[]]", "expected": [[]]},
+            {"json": "[{}]", "expected": [{}]},
+
+            {"json": '{"test": true}', "expected": {"test": true}},
+            {"json": '{"test": false}', "expected": {"test": false}},
+            {"json": '{"test": null}', "expected": {"test": nil}},
+            {"json": '{"test": 10}', "expected": {"test": 10}},
+            {"json": '{"test": 10.5}', "expected": {"test": 10.5}},
+            {"json": '{"test": "test"}', "expected": {"test": "test"}},
+            {"json": '{"test": []}', "expected": {"test": []}},
+            {"json": '{"test": {}}', "expected": {"test": {}}},
+
+            {"json": '{"test": {"test": [1, 2, 3, {"test": true}]}}', "expected": {"test": {"test": [1, 2, 3, {"test": true}]}}},
+        ];
+    }
+}
+
+TestJsonParse().run();

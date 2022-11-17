@@ -1,0 +1,41 @@
+/**
+ * strip.du
+ *
+ * Testing the str.leftStrip() method
+ * Testing the str.rightStrip() method
+ * Testing the str.strip() method
+ *
+ * .(left/right)strip() returns a new string with whitespace characters removed from the start, end, or both of a string
+ */
+from UnitTest import UnitTest;
+
+class TestStringStrip < UnitTest {
+    testStringLeftStrip() {
+        this.assertEquals("  Dictu is great!".leftStrip(), "Dictu is great!");
+        this.assertEquals("Dictu is great!  ".leftStrip(), "Dictu is great!  ");
+        this.assertEquals("  Dictu is great!  ".leftStrip(), "Dictu is great!  ");
+        this.assertEquals("  Dictu is great!".leftStrip().len(), 15);
+        this.assertEquals("Dictu is great!  ".leftStrip().len(), 17);
+        this.assertEquals("  Dictu is great!  ".leftStrip().len(), 17);
+    }
+
+    testStringRightStrip() {
+        this.assertEquals("Dictu is great!  ".rightStrip(), "Dictu is great!");
+        this.assertEquals("  Dictu is great!".rightStrip(), "  Dictu is great!");
+        this.assertEquals("  Dictu is great!  ".rightStrip(), "  Dictu is great!");
+        this.assertEquals("Dictu is great!  ".rightStrip().len(), 15);
+        this.assertEquals("  Dictu is great!".rightStrip().len(), 17);
+        this.assertEquals("  Dictu is great!  ".rightStrip().len(), 17);
+    }
+    
+    testStringStrip() {
+        this.assertEquals("Dictu is great!  ".strip(), "Dictu is great!");
+        this.assertEquals("  Dictu is great!".strip(), "Dictu is great!");
+        this.assertEquals("  Dictu is great!  ".strip(), "Dictu is great!");
+        this.assertEquals("Dictu is great!  ".strip().len(), 15);
+        this.assertEquals("  Dictu is great!".strip().len(), 15);
+        this.assertEquals("  Dictu is great!  ".strip().len(), 15);
+    }
+}
+
+TestStringStrip().run();

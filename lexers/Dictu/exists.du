@@ -1,0 +1,34 @@
+/**
+* exists.du
+*
+* Testing the dict.exists() method
+*
+* .exists() returns a boolean based on whether the given key exists
+*/
+from UnitTest import UnitTest;
+
+class TestDictExists < UnitTest {
+    testDictExists() {
+        const myDict = {"key": 1, "key1": true, true: false, false: true, nil: 10, 10: nil, 10.5: 10.5};
+
+        // First check the dictionary was created properly
+        this.assertEquals(myDict, {"key": 1, "key1": true, true: false, false: true, nil: 10, 10: nil, 10.5: 10.5});
+
+        // Test .exists()
+        this.assertTruthy(myDict.exists("key"));
+        this.assertTruthy(myDict.exists("key1"));
+        this.assertTruthy(myDict.exists(true));
+        this.assertTruthy(myDict.exists(false));
+        this.assertTruthy(myDict.exists(nil));
+        this.assertTruthy(myDict.exists(10));
+        this.assertTruthy(myDict.exists(10.5));
+        this.assertFalsey(myDict.exists("unknown"));
+        this.assertFalsey(myDict.exists(100));
+        this.assertFalsey(myDict.exists(100.5));
+
+        this.assertFalsey({}.exists(true));
+        this.assertTruthy({true: true}.exists(true));
+    }
+}
+
+TestDictExists().run();

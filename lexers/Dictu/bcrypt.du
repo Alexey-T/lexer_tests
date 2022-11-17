@@ -1,0 +1,22 @@
+/**
+ * bcrypt.du
+ *
+ * Testing the Hashlib.bcrypt() and Hashlib.bcryptVerify() methods
+ */
+from UnitTest import UnitTest;
+
+import Hashlib;
+
+class TestHashlibBcrypt < UnitTest {
+    testHaslibBcrypt() {
+        const hash = Hashlib.bcrypt("Dictu");
+
+        this.assertType(hash, "string");
+        this.assertTruthy(hash.len() > 56);
+
+        this.assertTruthy(Hashlib.bcryptVerify("Dictu", hash));
+        this.assertFalsey(Hashlib.bcryptVerify("WRONG!", hash));
+    }
+}
+
+TestHashlibBcrypt().run();
