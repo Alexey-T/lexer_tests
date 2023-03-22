@@ -15,14 +15,14 @@ template <class T> CStrT<T>::CStrT_(const T* pStr, int nLength) :
 }
 
 
-template <class T> aa::bb<T>::bb() : 
+template <class T> Aa::Bb<T>::Bb() : 
   m_pData(NULL), 
   m_nLength(0), 
   m_nMemSize(0)
 {
 }
 
-template <class T> aa::bb<T>::bb_(const T* pStr, int nLength) :
+template <class T> Aa::Bb<T>::Bb_(const T* pStr, int nLength) :
   m_pData(NULL), 
   #ifdef aaa
   m_nLength(0), //comment
