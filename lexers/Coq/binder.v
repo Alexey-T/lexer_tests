@@ -1,3 +1,7 @@
-(** Link binders *)
+Definition foo '(x,y) := x + y.
+Print foo.
+Check forall '(a,b), a /\ b.
 
-Definition foo alpha beta := alpha + beta.
+Require Import Utf8.
+Print foo.
+Check forall '(a,b), a /\ b.

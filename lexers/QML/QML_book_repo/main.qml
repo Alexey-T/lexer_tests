@@ -1,45 +1,18 @@
+import Felgo 3.0
 import QtQuick 2.0
-import QtQuick.Controls 2.4
 
-ImageViewerWindow {
-    
-    // ...
+App {
+  Navigation {
+    NavigationItem {
+          title: qsTr("Recent")
+          icon: IconType.clocko
 
-    id: window
-    
-    width: 640
-    height: 480
-    
-    menuBar: MenuBar {
-        Menu {
-            title: qsTr("&File")
-            MenuItem {
-                text: qsTr("&Open...")
-                icon.name: "document-open"
-                onTriggered: window.openFileDialog()
-            }
+      NavigationStack {
+        ListPage {
+            title: qsTr("Recent")
+            emptyText.text: qsTr("No conversations yet!")
         }
-
-        Menu {
-            title: qsTr("&Help")
-            MenuItem {
-                text: qsTr("&About...")
-                onTriggered: window.openAboutDialog()
-            }
-        }
+      }
     }
-
-    header: ToolBar {
-        Flow {
-            anchors.fill: parent
-            ToolButton {
-                text: qsTr("Open")
-                icon.name: "document-open"
-                onClicked: window.openFileDialog()
-            }
-        }
-    }
-
-    // ...
-
+  }
 }

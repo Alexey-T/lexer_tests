@@ -1,184 +1,73 @@
-(* Testing the behavior of implicit arguments *)
-
-(* Implicit on section variables *)
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-(* Example submitted by David Nowak *)
+(* Suggested by Pierre Casteran (BZ#169) *)
+(* Argument 3 is needed to typecheck and should be printed *)
+Definition compose (A B C : Set) (f : A -> B) (g : B -> C) (x : A) := g (f x).
+Check (compose (C:=nat) S).
 
-Section Spec.
-Variable A : Set.
-Variable op : forall A : Set, A -> A -> Set.
-Infix "#" := op (at level 70).
-Check (forall x : A, x # x).
+(* Better to explicitly display the arguments inferable from a
+   position that could disappear after reduction *)
+Inductive ex (A : Set) (P : A -> Prop) : Prop :=
+    ex_intro : forall x : A, P x -> ex P.
+Check (ex_intro (P:=fun _ => True) (x:=0) I).
 
-(* Example submitted by Christine *)
+(* Test for V8 printing of implicit by names *)
+Definition d1 y x (h : x = y :>nat) := h.
+Definition d2 x := d1 (y:=x).
 
-Record stack : Type :=
-  {type : Set; elt : type; empty : type -> bool; proof : empty elt = true}.
+Print d2.
 
-Check
-  (forall (type : Set) (elt : type) (empty : type -> bool),
-   empty elt = true -> stack).
+Set Strict Implicit.
+Unset Implicit Arguments.
 
-(* Nested sections and manual/automatic implicit arguments *)
-
-Variable op' : forall A : Set, A -> A -> Set.
-Variable op'' : forall A : Set, A -> A -> Set.
-
-Section B.
-
-Definition eq1 := fun (A:Type) (x y:A) => x=y.
-Definition eq2 := fun (A:Type) (x y:A) => x=y.
-Definition eq3 := fun (A:Type) (x y:A) => x=y.
-
-Arguments op' : clear implicits.
-Global Arguments op'' : clear implicits.
-
-Arguments eq2 : clear implicits.
-Global Arguments eq3 : clear implicits.
-
-Check (op 0 0).
-Check (op' nat 0 0).
-Check (op'' nat 0 0).
-Check (eq1 0 0).
-Check (eq2 nat 0 0).
-Check (eq3 nat 0 0).
-
-End B.
-
-Check (op 0 0).
-Check (op' 0 0).
-Check (op'' nat 0 0).
-Check (eq1 0 0).
-Check (eq2 0 0).
-Check (eq3 nat 0 0).
-
-End Spec.
-
-Check (eq1 0 0).
-Check (eq2 0 0).
-Check (eq3 nat 0 0).
-
-(* Example submitted by Frédéric (interesting in v8 syntax) *)
-
-Parameter f : nat -> nat * nat.
-Notation lhs := fst.
-Check (fun x => fst (f x)).
-Check (fun x => fst (f x)).
-Notation rhs := snd.
-Check (fun x => snd (f x)).
-Check (fun x => @ rhs _ _ (f x)).
-
-(* Implicit arguments in fixpoints and inductive declarations *)
-
-Fixpoint g n := match n with O => true | S n => g n end.
-
-Inductive P n : nat -> Prop := c : P n n.
-
-(* Avoid evars in the computation of implicit arguments (cf r9827) *)
+(* Check maximal insertion of implicit *)
 
 Require Import List.
 
-Fixpoint plus n m {struct n} :=
-  match n with
-  | 0 => m
-  | S p => S (plus p m)
-  end.
+Open Scope list_scope.
 
-(* Check multiple implicit arguments signatures *)
+Set Implicit Arguments.
+Set Maximal Implicit Insertion.
 
-Arguments eq_refl {A x}, {A}.
+Definition id (A:Type) (x:A) := x.
 
-Check eq_refl : 0 = 0.
+Check map id (1::nil).
 
-(* Check that notations preserve implicit (since 8.3) *)
+Definition id' (A:Type) (x:A) := x.
 
-Parameter p : forall A, A -> forall n, n = 0 -> True.
-Arguments p [A] _ [n].
-Notation Q := (p 0).
-Check Q eq_refl.
+Arguments id' {A} x.
 
-(* Check implicits with Context *)
+Check map id' (1::nil).
 
-Section C.
-Context {A:Set}.
-Definition h (a:A) := a.
-End C.
-Check h 0.
+Unset Maximal Implicit Insertion.
+Unset Implicit Arguments.
 
-(* Check implicit arguments in arity of inductive types. The three
-   following examples used to fail before r13671 *)
+(* Check explicit insertion of last non-maximal trailing implicit to ensure *)
+(* correct arity of partiol applications *)
 
-Inductive I {A} (a:A) : forall {n:nat}, Prop :=
- | C : I a (n:=0).
+Set Implicit Arguments.
+Definition id'' (A:Type) (x:A) := x.
 
-Inductive I' [A] (a:A) : forall [n:nat], n =0 -> Prop :=
- | C' : I' a eq_refl.
+Check map (@id'' nat) (1::nil).
 
-Inductive I2 (x:=0) : Prop :=
- | C2 {p:nat} : p = 0 -> I2
- | C2' [p:nat] : p = 0 -> I2.
-Check C2' eq_refl.
+Module MatchBranchesInContext.
 
-Inductive I3 {A} (x:=0) (a:A) : forall {n:nat}, Prop :=
- | C3 : I3 a (n:=0).
+Set Implicit Arguments.
+Set Contextual Implicit.
 
-(* Check global implicit declaration over ref not in section *)
+Inductive option A := None | Some (a:A).
+Coercion some_nat := @Some nat.
+Check fix f x := match x with 0 => None | n => some_nat n end.
 
-Section D. Global Arguments eq [A] _ _. End D.
+End MatchBranchesInContext.
 
-(* Check local manual implicit arguments *)
-(* Gives a warning and make the second x anonymous *)
-(* Isn't the name "arg_1" a bit fragile though? *)
+Module LetInContext.
 
-Check fun f : forall {x:nat} {x:bool} (x:unit), unit => f (x:=1) (arg_2:=true) tt.
+Set Implicit Arguments.
+Set Contextual Implicit.
+Axiom False_rect : forall A:Type, False -> A.
+Check fun x:False => let y:= False_rect (A:=bool) x in y. (* will not be in context: explicitation *)
+Check fun x:False => let y:= False_rect (A:=True) x in y. (* will be in context: no explicitation *)
 
-(* Check the existence of a shadowing warning *)
-
-Set Warnings "+syntax".
-Fail Check fun f : forall {x:nat} {x:bool} (x:unit), unit => f (x:=1) (arg_2:=true) tt.
-Set Warnings "syntax".
-
-(* Test failure when implicit arguments are mentioned in subterms
-   which are not types of variables *)
-
-Set Warnings "+syntax".
-Fail Check (id (forall {a}, a)).
-Set Warnings "syntax".
-
-(* Miscellaneous tests *)
-
-Check let f := fun {x:nat} y => y=true in f false.
-Check let f := fun [x:nat] y => y=true in f false.
-
-(* Isn't the name "arg_1" a bit fragile, here? *)
-
-Check fun f : forall {_:nat}, nat => f (arg_1:=0).
-
-(* This test was wrongly warning/failing at some time *)
-
-Set Warnings "+syntax".
-Check id (fun x => let f c {a} (b:a=a) := b in f true (eq_refl 0)).
-Set Warnings "syntax".
-
-
-Axiom eq0le0 : forall (n : nat) (x : n = 0), n <= 0.
-Variable eq0le0' : forall (n : nat) {x : n = 0}, n <= 0.
-Axiom eq0le0'' : forall (n : nat) {x : n = 0}, n <= 0.
-Definition eq0le0''' : forall (n : nat) {x : n = 0}, n <= 0. Admitted.
-Fail Axiom eq0le0'''' : forall [n : nat] {x : n = 0}, n <= 0.
-
-Module TestUnnamedImplicit.
-
-Axiom foo : forall A, A -> A.
-
-Arguments foo {A} {_}.
-Check foo (arg_2:=true) : bool.
-Check foo : bool.
-
-Arguments foo {A} {x}.
-Check foo (x:=true) : bool.
-
-End TestUnnamedImplicit.
+End LetInContext.

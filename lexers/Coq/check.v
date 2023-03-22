@@ -1,3 +1,18 @@
-Arguments eq [A].
+(************************************************************************)
+(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*  v      *         Copyright INRIA, CNRS and contributors             *)
+(* <O___,, * (see version control and CREDITS file for authors & dates) *)
+(*   \VV/  **************************************************************)
+(*    //   *    This file is distributed under the terms of the         *)
+(*         *     GNU Lesser General Public License Version 2.1          *)
+(*         *     (see LICENSE file for the text of the license)         *)
+(************************************************************************)
+(* Compiling the theories allows testing parsing and typing but not printing *)
+(* This file tests that pretty-printing does not fail                        *)
+(* Test of exact output is not specified                                     *)
 
-Fail Check (bool = true).
+Check 0.
+Check S.
+Check nat.
+
+Type Type : Type.

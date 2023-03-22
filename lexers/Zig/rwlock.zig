@@ -3,294 +3,306 @@
 // This file is part of [zig](https://ziglang.org/), which is MIT licensed.
 // The MIT license requires this copyright notice to be included in all copies
 // and substantial portions of the software.
+
+//! A lock that supports one writer or many readers.
+//! This API is for kernel threads, not evented I/O.
+//! This API requires being initialized at runtime, and initialization
+//! can fail. Once initialized, the core operations cannot fail.
+
+impl: Impl,
+
+const RwLock = @This();
 const std = @import("../std.zig");
-const builtin = @import("builtin");
+const builtin = std.builtin;
 const assert = std.debug.assert;
-const testing = std.testing;
-const mem = std.mem;
-const Loop = std.event.Loop;
+const Mutex = std.Thread.Mutex;
+const Semaphore = std.Semaphore;
+const CondVar = std.CondVar;
 
-/// Thread-safe async/await lock.
-/// Functions which are waiting for the lock are suspended, and
-/// are resumed when the lock is released, in order.
-/// Many readers can hold the lock at the same time; however locking for writing is exclusive.
-/// When a read lock is held, it will not be released until the reader queue is empty.
-/// When a write lock is held, it will not be released until the writer queue is empty.
-/// TODO: make this API also work in blocking I/O mode
-pub const RwLock = struct {
-    shared_state: State,
-    writer_queue: Queue,
-    reader_queue: Queue,
-    writer_queue_empty: bool,
-    reader_queue_empty: bool,
-    reader_lock_count: usize,
+pub const Impl = if (builtin.single_threaded)
+    SingleThreadedRwLock
+else if (std.Thread.use_pthreads)
+    PthreadRwLock
+else
+    DefaultRwLock;
 
-    const State = enum(u8) {
-        Unlocked,
-        WriteLock,
-        ReadLock,
-    };
+pub fn init(rwl: *RwLock) void {
+    return rwl.impl.init();
+}
 
-    const Queue = std.atomic.Queue(anyframe);
+pub fn deinit(rwl: *RwLock) void {
+    return rwl.impl.deinit();
+}
 
-    const global_event_loop = Loop.instance orelse
-        @compileError("std.event.RwLock currently only works with event-based I/O");
+/// Attempts to obtain exclusive lock ownership.
+/// Returns `true` if the lock is obtained, `false` otherwise.
+pub fn tryLock(rwl: *RwLock) bool {
+    return rwl.impl.tryLock();
+}
 
-    pub const HeldRead = struct {
-        lock: *RwLock,
+/// Blocks until exclusive lock ownership is acquired.
+pub fn lock(rwl: *RwLock) void {
+    return rwl.impl.lock();
+}
 
-        pub fn release(self: HeldRead) void {
-            // If other readers still hold the lock, we're done.
-            if (@atomicRmw(usize, &self.lock.reader_lock_count, .Sub, 1, .SeqCst) != 1) {
-                return;
-            }
+/// Releases a held exclusive lock.
+/// Asserts the lock is held exclusively.
+pub fn unlock(rwl: *RwLock) void {
+    return rwl.impl.unlock();
+}
 
-            @atomicStore(bool, &self.lock.reader_queue_empty, true, .SeqCst);
-            if (@cmpxchgStrong(State, &self.lock.shared_state, .ReadLock, .Unlocked, .SeqCst, .SeqCst) != null) {
-                // Didn't unlock. Someone else's problem.
-                return;
-            }
+/// Attempts to obtain shared lock ownership.
+/// Returns `true` if the lock is obtained, `false` otherwise.
+pub fn tryLockShared(rwl: *RwLock) bool {
+    return rwl.impl.tryLockShared();
+}
 
-            self.lock.commonPostUnlock();
-        }
-    };
+/// Blocks until shared lock ownership is acquired.
+pub fn lockShared(rwl: *RwLock) void {
+    return rwl.impl.lockShared();
+}
 
-    pub const HeldWrite = struct {
-        lock: *RwLock,
+/// Releases a held shared lock.
+pub fn unlockShared(rwl: *RwLock) void {
+    return rwl.impl.unlockShared();
+}
 
-        pub fn release(self: HeldWrite) void {
-            // See if we can leave it locked for writing, and pass the lock to the next writer
-            // in the queue to grab the lock.
-            if (self.lock.writer_queue.get()) |node| {
-                global_event_loop.onNextTick(node);
-                return;
-            }
+/// Single-threaded applications use this for deadlock checks in
+/// debug mode, and no-ops in release modes.
+pub const SingleThreadedRwLock = struct {
+    state: enum { unlocked, locked_exclusive, locked_shared },
+    shared_count: usize,
 
-            // We need to release the write lock. Check if any readers are waiting to grab the lock.
-            if (!@atomicLoad(bool, &self.lock.reader_queue_empty, .SeqCst)) {
-                // Switch to a read lock.
-                @atomicStore(State, &self.lock.shared_state, .ReadLock, .SeqCst);
-                while (self.lock.reader_queue.get()) |node| {
-                    global_event_loop.onNextTick(node);
-                }
-                return;
-            }
-
-            @atomicStore(bool, &self.lock.writer_queue_empty, true, .SeqCst);
-            @atomicStore(State, &self.lock.shared_state, .Unlocked, .SeqCst);
-
-            self.lock.commonPostUnlock();
-        }
-    };
-
-    pub fn init() RwLock {
-        return .{
-            .shared_state = .Unlocked,
-            .writer_queue = Queue.init(),
-            .writer_queue_empty = true,
-            .reader_queue = Queue.init(),
-            .reader_queue_empty = true,
-            .reader_lock_count = 0,
+    pub fn init(rwl: *SingleThreadedRwLock) void {
+        rwl.* = .{
+            .state = .unlocked,
+            .shared_count = 0,
         };
     }
 
-    /// Must be called when not locked. Not thread safe.
-    /// All calls to acquire() and release() must complete before calling deinit().
-    pub fn deinit(self: *RwLock) void {
-        assert(self.shared_state == .Unlocked);
-        while (self.writer_queue.get()) |node| resume node.data;
-        while (self.reader_queue.get()) |node| resume node.data;
+    pub fn deinit(rwl: *SingleThreadedRwLock) void {
+        assert(rwl.state == .unlocked);
+        assert(rwl.shared_count == 0);
     }
 
-    pub fn acquireRead(self: *RwLock) callconv(.Async) HeldRead {
-        _ = @atomicRmw(usize, &self.reader_lock_count, .Add, 1, .SeqCst);
-
-        suspend {
-            var my_tick_node = Loop.NextTickNode{
-                .data = @frame(),
-                .prev = undefined,
-                .next = undefined,
-            };
-
-            self.reader_queue.put(&my_tick_node);
-
-            // At this point, we are in the reader_queue, so we might have already been resumed.
-
-            // We set this bit so that later we can rely on the fact, that if reader_queue_empty == true,
-            // some actor will attempt to grab the lock.
-            @atomicStore(bool, &self.reader_queue_empty, false, .SeqCst);
-
-            // Here we don't care if we are the one to do the locking or if it was already locked for reading.
-            const have_read_lock = if (@cmpxchgStrong(State, &self.shared_state, .Unlocked, .ReadLock, .SeqCst, .SeqCst)) |old_state| old_state == .ReadLock else true;
-            if (have_read_lock) {
-                // Give out all the read locks.
-                if (self.reader_queue.get()) |first_node| {
-                    while (self.reader_queue.get()) |node| {
-                        global_event_loop.onNextTick(node);
-                    }
-                    resume first_node.data;
-                }
-            }
+    /// Attempts to obtain exclusive lock ownership.
+    /// Returns `true` if the lock is obtained, `false` otherwise.
+    pub fn tryLock(rwl: *SingleThreadedRwLock) bool {
+        switch (rwl.state) {
+            .unlocked => {
+                assert(rwl.shared_count == 0);
+                rwl.state = .locked_exclusive;
+                return true;
+            },
+            .locked_exclusive, .locked_shared => return false,
         }
-        return HeldRead{ .lock = self };
     }
 
-    pub fn acquireWrite(self: *RwLock) callconv(.Async) HeldWrite {
-        suspend {
-            var my_tick_node = Loop.NextTickNode{
-                .data = @frame(),
-                .prev = undefined,
-                .next = undefined,
-            };
+    /// Blocks until exclusive lock ownership is acquired.
+    pub fn lock(rwl: *SingleThreadedRwLock) void {
+        assert(rwl.state == .unlocked); // deadlock detected
+        assert(rwl.shared_count == 0); // corrupted state detected
+        rwl.state = .locked_exclusive;
+    }
 
-            self.writer_queue.put(&my_tick_node);
+    /// Releases a held exclusive lock.
+    /// Asserts the lock is held exclusively.
+    pub fn unlock(rwl: *SingleThreadedRwLock) void {
+        assert(rwl.state == .locked_exclusive);
+        assert(rwl.shared_count == 0); // corrupted state detected
+        rwl.state = .unlocked;
+    }
 
-            // At this point, we are in the writer_queue, so we might have already been resumed.
-
-            // We set this bit so that later we can rely on the fact, that if writer_queue_empty == true,
-            // some actor will attempt to grab the lock.
-            @atomicStore(bool, &self.writer_queue_empty, false, .SeqCst);
-
-            // Here we must be the one to acquire the write lock. It cannot already be locked.
-            if (@cmpxchgStrong(State, &self.shared_state, .Unlocked, .WriteLock, .SeqCst, .SeqCst) == null) {
-                // We now have a write lock.
-                if (self.writer_queue.get()) |node| {
-                    // Whether this node is us or someone else, we tail resume it.
-                    resume node.data;
-                }
-            }
+    /// Attempts to obtain shared lock ownership.
+    /// Returns `true` if the lock is obtained, `false` otherwise.
+    pub fn tryLockShared(rwl: *SingleThreadedRwLock) bool {
+        switch (rwl.state) {
+            .unlocked => {
+                rwl.state = .locked_shared;
+                assert(rwl.shared_count == 0);
+                rwl.shared_count = 1;
+                return true;
+            },
+            .locked_exclusive, .locked_shared => return false,
         }
-        return HeldWrite{ .lock = self };
     }
 
-    fn commonPostUnlock(self: *RwLock) void {
-        while (true) {
-            // There might be a writer_queue item or a reader_queue item
-            // If we check and both are empty, we can be done, because the other actors will try to
-            // obtain the lock.
-            // But if there's a writer_queue item or a reader_queue item,
-            // we are the actor which must loop and attempt to grab the lock again.
-            if (!@atomicLoad(bool, &self.writer_queue_empty, .SeqCst)) {
-                if (@cmpxchgStrong(State, &self.shared_state, .Unlocked, .WriteLock, .SeqCst, .SeqCst) != null) {
-                    // We did not obtain the lock. Great, the queues are someone else's problem.
-                    return;
-                }
-                // If there's an item in the writer queue, give them the lock, and we're done.
-                if (self.writer_queue.get()) |node| {
-                    global_event_loop.onNextTick(node);
-                    return;
-                }
-                // Release the lock again.
-                @atomicStore(bool, &self.writer_queue_empty, true, .SeqCst);
-                @atomicStore(State, &self.shared_state, .Unlocked, .SeqCst);
-                continue;
-            }
+    /// Blocks until shared lock ownership is acquired.
+    pub fn lockShared(rwl: *SingleThreadedRwLock) void {
+        switch (rwl.state) {
+            .unlocked => {
+                rwl.state = .locked_shared;
+                assert(rwl.shared_count == 0);
+                rwl.shared_count = 1;
+            },
+            .locked_shared => {
+                rwl.shared_count += 1;
+            },
+            .locked_exclusive => unreachable, // deadlock detected
+        }
+    }
 
-            if (!@atomicLoad(bool, &self.reader_queue_empty, .SeqCst)) {
-                if (@cmpxchgStrong(State, &self.shared_state, .Unlocked, .ReadLock, .SeqCst, .SeqCst) != null) {
-                    // We did not obtain the lock. Great, the queues are someone else's problem.
-                    return;
+    /// Releases a held shared lock.
+    pub fn unlockShared(rwl: *SingleThreadedRwLock) void {
+        switch (rwl.state) {
+            .unlocked => unreachable, // too many calls to `unlockShared`
+            .locked_exclusive => unreachable, // exclusively held lock
+            .locked_shared => {
+                rwl.shared_count -= 1;
+                if (rwl.shared_count == 0) {
+                    rwl.state = .unlocked;
                 }
-                // If there are any items in the reader queue, give out all the reader locks, and we're done.
-                if (self.reader_queue.get()) |first_node| {
-                    global_event_loop.onNextTick(first_node);
-                    while (self.reader_queue.get()) |node| {
-                        global_event_loop.onNextTick(node);
-                    }
-                    return;
-                }
-                // Release the lock again.
-                @atomicStore(bool, &self.reader_queue_empty, true, .SeqCst);
-                if (@cmpxchgStrong(State, &self.shared_state, .ReadLock, .Unlocked, .SeqCst, .SeqCst) != null) {
-                    // Didn't unlock. Someone else's problem.
-                    return;
-                }
-                continue;
-            }
-            return;
+            },
         }
     }
 };
 
-test "std.event.RwLock" {
-    // https://github.com/ziglang/zig/issues/2377
-    if (true) return error.SkipZigTest;
+pub const PthreadRwLock = struct {
+    rwlock: pthread_rwlock_t,
 
-    // https://github.com/ziglang/zig/issues/1908
-    if (builtin.single_threaded) return error.SkipZigTest;
-
-    // TODO provide a way to run tests in evented I/O mode
-    if (!std.io.is_async) return error.SkipZigTest;
-
-    var lock = RwLock.init();
-    defer lock.deinit();
-
-    const handle = testLock(std.heap.page_allocator, &lock);
-
-    const expected_result = [1]i32{shared_it_count * @intCast(i32, shared_test_data.len)} ** shared_test_data.len;
-    testing.expectEqualSlices(i32, expected_result, shared_test_data);
-}
-fn testLock(allocator: *Allocator, lock: *RwLock) callconv(.Async) void {
-    var read_nodes: [100]Loop.NextTickNode = undefined;
-    for (read_nodes) |*read_node| {
-        const frame = allocator.create(@Frame(readRunner)) catch @panic("memory");
-        read_node.data = frame;
-        frame.* = async readRunner(lock);
-        Loop.instance.?.onNextTick(read_node);
+    pub fn init(rwl: *PthreadRwLock) void {
+        rwl.* = .{ .rwlock = .{} };
     }
 
-    var write_nodes: [shared_it_count]Loop.NextTickNode = undefined;
-    for (write_nodes) |*write_node| {
-        const frame = allocator.create(@Frame(writeRunner)) catch @panic("memory");
-        write_node.data = frame;
-        frame.* = async writeRunner(lock);
-        Loop.instance.?.onNextTick(write_node);
+    pub fn deinit(rwl: *PthreadRwLock) void {
+        const safe_rc = switch (std.builtin.os.tag) {
+            .dragonfly, .netbsd => std.os.EAGAIN,
+            else => 0,
+        };
+
+        const rc = std.c.pthread_rwlock_destroy(&rwl.rwlock);
+        assert(rc == 0 or rc == safe_rc);
+
+        rwl.* = undefined;
     }
 
-    for (write_nodes) |*write_node| {
-        const casted = @ptrCast(*const @Frame(writeRunner), write_node.data);
-        await casted;
-        allocator.destroy(casted);
+    pub fn tryLock(rwl: *PthreadRwLock) bool {
+        return pthread_rwlock_trywrlock(&rwl.rwlock) == 0;
     }
-    for (read_nodes) |*read_node| {
-        const casted = @ptrCast(*const @Frame(readRunner), read_node.data);
-        await casted;
-        allocator.destroy(casted);
+
+    pub fn lock(rwl: *PthreadRwLock) void {
+        const rc = pthread_rwlock_wrlock(&rwl.rwlock);
+        assert(rc == 0);
     }
-}
 
-const shared_it_count = 10;
-var shared_test_data = [1]i32{0} ** 10;
-var shared_test_index: usize = 0;
-var shared_count: usize = 0;
-fn writeRunner(lock: *RwLock) callconv(.Async) void {
-    suspend; // resumed by onNextTick
+    pub fn unlock(rwl: *PthreadRwLock) void {
+        const rc = pthread_rwlock_unlock(&rwl.rwlock);
+        assert(rc == 0);
+    }
 
-    var i: usize = 0;
-    while (i < shared_test_data.len) : (i += 1) {
-        std.time.sleep(100 * std.time.microsecond);
-        const lock_promise = async lock.acquireWrite();
-        const handle = await lock_promise;
-        defer handle.release();
+    pub fn tryLockShared(rwl: *PthreadRwLock) bool {
+        return pthread_rwlock_tryrdlock(&rwl.rwlock) == 0;
+    }
 
-        shared_count += 1;
-        while (shared_test_index < shared_test_data.len) : (shared_test_index += 1) {
-            shared_test_data[shared_test_index] = shared_test_data[shared_test_index] + 1;
+    pub fn lockShared(rwl: *PthreadRwLock) void {
+        const rc = pthread_rwlock_rdlock(&rwl.rwlock);
+        assert(rc == 0);
+    }
+
+    pub fn unlockShared(rwl: *PthreadRwLock) void {
+        const rc = pthread_rwlock_unlock(&rwl.rwlock);
+        assert(rc == 0);
+    }
+};
+
+pub const DefaultRwLock = struct {
+    state: usize,
+    mutex: Mutex,
+    semaphore: Semaphore,
+
+    const IS_WRITING: usize = 1;
+    const WRITER: usize = 1 << 1;
+    const READER: usize = 1 << (1 + std.meta.bitCount(Count));
+    const WRITER_MASK: usize = std.math.maxInt(Count) << @ctz(usize, WRITER);
+    const READER_MASK: usize = std.math.maxInt(Count) << @ctz(usize, READER);
+    const Count = std.meta.Int(.unsigned, @divFloor(std.meta.bitCount(usize) - 1, 2));
+
+    pub fn init(rwl: *DefaultRwLock) void {
+        rwl.* = .{
+            .state = 0,
+            .mutex = Mutex.init(),
+            .semaphore = Semaphore.init(0),
+        };
+    }
+
+    pub fn deinit(rwl: *DefaultRwLock) void {
+        rwl.semaphore.deinit();
+        rwl.mutex.deinit();
+        rwl.* = undefined;
+    }
+
+    pub fn tryLock(rwl: *DefaultRwLock) bool {
+        if (rwl.mutex.tryLock()) {
+            const state = @atomicLoad(usize, &rwl.state, .SeqCst);
+            if (state & READER_MASK == 0) {
+                _ = @atomicRmw(usize, &rwl.state, .Or, IS_WRITING, .SeqCst);
+                return true;
+            }
+
+            rwl.mutex.unlock();
         }
-        shared_test_index = 0;
-    }
-}
-fn readRunner(lock: *RwLock) callconv(.Async) void {
-    suspend; // resumed by onNextTick
-    std.time.sleep(1);
 
-    var i: usize = 0;
-    while (i < shared_test_data.len) : (i += 1) {
-        const lock_promise = async lock.acquireRead();
-        const handle = await lock_promise;
-        defer handle.release();
-
-        testing.expect(shared_test_index == 0);
-        testing.expect(shared_test_data[i] == @intCast(i32, shared_count));
+        return false;
     }
-}
+
+    pub fn lock(rwl: *DefaultRwLock) void {
+        _ = @atomicRmw(usize, &rwl.state, .Add, WRITER, .SeqCst);
+        rwl.mutex.lock();
+
+        const state = @atomicRmw(usize, &rwl.state, .Or, IS_WRITING, .SeqCst);
+        if (state & READER_MASK != 0)
+            rwl.semaphore.wait();
+    }
+
+    pub fn unlock(rwl: *DefaultRwLock) void {
+        _ = @atomicRmw(usize, &rwl.state, .And, ~IS_WRITING, .SeqCst);
+        rwl.mutex.unlock();
+    }
+
+    pub fn tryLockShared(rwl: *DefaultRwLock) bool {
+        const state = @atomicLoad(usize, &rwl.state, .SeqCst);
+        if (state & (IS_WRITING | WRITER_MASK) == 0) {
+            _ = @cmpxchgStrong(
+                usize,
+                &rwl.state,
+                state,
+                state + READER,
+                .SeqCst,
+                .SeqCst,
+            ) orelse return true;
+        }
+
+        if (rwl.mutex.tryLock()) {
+            _ = @atomicRmw(usize, &rwl.state, .Add, READER, .SeqCst);
+            rwl.mutex.unlock();
+            return true;
+        }
+
+        return false;
+    }
+
+    pub fn lockShared(rwl: *DefaultRwLock) void {
+        var state = @atomicLoad(usize, &rwl.state, .SeqCst);
+        while (state & (IS_WRITING | WRITER_MASK) == 0) {
+            state = @cmpxchgWeak(
+                usize,
+                &rwl.state,
+                state,
+                state + READER,
+                .SeqCst,
+                .SeqCst,
+            ) orelse return;
+        }
+
+        rwl.mutex.lock();
+        _ = @atomicRmw(usize, &rwl.state, .Add, READER, .SeqCst);
+        rwl.mutex.unlock();
+    }
+
+    pub fn unlockShared(rwl: *DefaultRwLock) void {
+        const state = @atomicRmw(usize, &rwl.state, .Sub, READER, .SeqCst);
+
+        if ((state & READER_MASK == READER) and (state & IS_WRITING != 0))
+            rwl.semaphore.post();
+    }
+};

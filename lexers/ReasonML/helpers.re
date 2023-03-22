@@ -107,7 +107,7 @@ let listTake = (n, lst) => {
 let listTakeWhile = (f, lst) => {
   let result = ref([]);
   let lst = ref(lst);
-  while (lst^ != [] && f(List.hd(lst^))) {
+  while (f(List.hd(lst^))) {
     result := [List.hd(lst^), ...result^];
     lst := List.tl(lst^);
   };
@@ -422,17 +422,3 @@ let findCommonEnds = (aStr, bStr) => {
     bSuffixLenBoundary.contents,
   );
 };
-
-/* Safe pipe operator
-   https://github.com/facebook/reason/issues/1928#issuecomment-389161245 */
-let (|>?) = (x, access) =>
-  switch (x) {
-  | None => None
-  | Some(v) => access(v)
-  };
-
-let (|>+) = (x, access) =>
-  switch (x) {
-  | None => None
-  | Some(v) => Some(access(v))
-  };

@@ -1,17 +1,6 @@
-Require Import Ltac2.Ltac2.
+(* Check that no toplevel "unresolved evar" flees through Declare
+   Implicit Tactic support (bug #1229) *)
 
-Goal exists (a: nat), a = 1.
-Proof.
-  match! goal with
-  | [ |- ?g ] => Control.assert_false (Constr.has_evar g)
-  end.
-  eexists.
-  match! goal with
-  | [ |- ?g ] => Control.assert_true (Constr.has_evar g)
-  end.
-  match! goal with
-  | [ |- ?x = ?y ] =>
-    Control.assert_true (Constr.is_evar x);
-    Control.assert_false (Constr.is_evar y)
-  end.
-Abort.
+Goal True.
+(* should raise an error, not an anomaly *)
+set (x := _).

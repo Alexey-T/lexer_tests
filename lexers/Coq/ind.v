@@ -1,49 +1,45 @@
-Module Type SIG.
-  Inductive w : Set :=
-      A : w.
-  Parameter f : w -> w.
-End SIG.
+(************************************************************************)
+(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*  v      *         Copyright INRIA, CNRS and contributors             *)
+(* <O___,, * (see version control and CREDITS file for authors & dates) *)
+(*   \VV/  **************************************************************)
+(*    //   *    This file is distributed under the terms of the         *)
+(*         *     GNU Lesser General Public License Version 2.1          *)
+(*         *     (see LICENSE file for the text of the license)         *)
+(************************************************************************)
 
-Module M : SIG.
-  Inductive w : Set :=
-      A : w.
-  Definition f x := match x with
-                    | A => A
-                    end.
-End M.
+From Ltac2 Require Import Init.
 
-Module N := M.
+Ltac2 Type t := inductive.
 
-Check (N.f M.A).
+Ltac2 @ external equal : t -> t -> bool := "ltac2" "ind_equal".
+(** Equality test. *)
 
-(* Check use of equivalence on inductive types (bug #1242) *)
+Ltac2 Type data.
+(** Type of data representing inductive blocks. *)
 
-  Module Type ASIG.
-  Inductive t : Set := a | b : t.
-  Definition f := fun x => match x with a => true | b => false end.
-  End ASIG.
+Ltac2 @ external data : t -> data := "ltac2" "ind_data".
+(** Get the mutual blocks corresponding to an inductive type in the current
+    environment. Panics if there is no such inductive. *)
 
-  Module Type BSIG.
-  Declare Module A : ASIG.
-  Definition f := fun x => match x with A.a => true | A.b => false end.
-  End BSIG.
+Ltac2 @ external repr : data -> t := "ltac2" "ind_repr".
+(** Returns the inductive corresponding to the block. Inverse of [data]. *)
 
-  Module C (A : ASIG) (B : BSIG with Module A:=A).
+Ltac2 @ external index : t -> int := "ltac2" "ind_index".
+(** Returns the index of the inductive type inside its mutual block. Guaranteed
+    to range between [0] and [nblocks data - 1] where [data] was retrieved
+    using the above function. *)
 
-  (* Check equivalence is considered in "case_info" *)
-  Lemma test : forall x, A.f x = B.f x.
-  intro x. unfold B.f, A.f.
-  destruct x; reflexivity.
-  Qed.
+Ltac2 @ external nblocks : data -> int := "ltac2" "ind_nblocks".
+(** Returns the number of inductive types appearing in a mutual block. *)
 
-  (* Check equivalence is considered in pattern-matching *)
-  Definition f (x : A.t) := match x with B.A.a => true | B.A.b => false end.
+Ltac2 @ external nconstructors : data -> int := "ltac2" "ind_nconstructors".
+(** Returns the number of constructors appearing in the current block. *)
 
-  End C.
+Ltac2 @ external get_block : data -> int -> data := "ltac2" "ind_get_block".
+(** Returns the block corresponding to the nth inductive type. Index must range
+    between [0] and [nblocks data - 1], otherwise the function panics. *)
 
-(* Check subtyping of the context of parameters of the inductive types *)
-(* Only the number of expected uniform parameters and the convertibility *)
-(* of the inductive arities and constructors types are checked *)
-
-Module Type S. Inductive I (x:=0) (y:nat): Set := c: x=y -> I y. End S.
-Module P : S.  Inductive I (y':nat) (z:=y'): Set := c : 0=y' -> I y'. End P.
+Ltac2 @ external get_constructor : data -> int -> constructor := "ltac2" "ind_get_constructor".
+(** Returns the nth constructor of the inductive type. Index must range between
+    [0] and [nconstructors data - 1], otherwise the function panics. *)

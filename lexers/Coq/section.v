@@ -1,12 +1,6 @@
-Section Foo.
-  Variable A : Type.
+(* Test bug 2168: ending section of some name was removing objects of the
+   same name *)
 
-  Definition bla := A.
+Require Import make_notation.
 
-  Variable B : bla.
-
-  Lemma blu : {X:Type & X}.
-  Proof using A B.
-    exists bla;exact B.
-  Qed.
-End Foo.
+Check add2 3.

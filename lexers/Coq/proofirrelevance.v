@@ -1,13 +1,22 @@
-(* This was working in version 8.1beta (bug in template polymorphism),
-   but this is inconsistent with classical logic in Prop *)
+(************************************************************************)
+(*         *   The Coq Proof Assistant / The Coq Development Team       *)
+(*  v      *         Copyright INRIA, CNRS and contributors             *)
+(* <O___,, * (see version control and CREDITS file for authors & dates) *)
+(*   \VV/  **************************************************************)
+(*    //   *    This file is distributed under the terms of the         *)
+(*         *     GNU Lesser General Public License Version 2.1          *)
+(*         *     (see LICENSE file for the text of the license)         *)
+(************************************************************************)
 
-Inductive bool_in_prop : Type := hide : bool -> bool_in_prop
-with bool : Type := true : bool | false : bool.
+(** This file axiomatizes proof-irrelevance and derives some consequences *)
 
-Lemma not_proof_irrelevance : ~ forall (P:Prop) (p p':P), p=p'.
-intro H.
-Fail pose proof (H bool_in_prop (hide true) (hide false)).
-Abort.
-(*discriminate.
-Qed.*)
+Require Import ProofIrrelevanceFacts.
 
+Axiom proof_irrelevance : forall (P:Prop) (p1 p2:P), p1 = p2.
+
+Register proof_irrelevance as core.proof_irrelevance.
+
+Module PI. Definition proof_irrelevance := proof_irrelevance. End PI.
+
+Module ProofIrrelevanceTheory := ProofIrrelevanceTheory(PI).
+Export ProofIrrelevanceTheory.

@@ -1,379 +1,247 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2015-2021 Zig Contributors
-// This file is part of [zig](https://ziglang.org/), which is MIT licensed.
-// The MIT license requires this copyright notice to be included in all copies
-// and substantial portions of the software.
 const std = @import("std");
-const builtin = std.builtin;
-const page_size = std.mem.page_size;
+const mem = std.mem;
+const assert = std.debug.assert;
+const Allocator = std.mem.Allocator;
+const Module = @import("../Module.zig");
+const Compilation = @import("../Compilation.zig");
+const fs = std.fs;
+const codegen = @import("../codegen/c.zig");
+const link = @import("../link.zig");
+const trace = @import("../tracy.zig").trace;
+const C = @This();
 
-pub const tokenizer = @import("c/tokenizer.zig");
-pub const Token = tokenizer.Token;
-pub const Tokenizer = tokenizer.Tokenizer;
-pub const parse = @import("c/parse.zig").parse;
-pub const ast = @import("c/ast.zig");
-pub const builtins = @import("c/builtins.zig");
+pub const base_tag: link.File.Tag = .c;
+pub const zig_h = @embedFile("C/zig.h");
 
-test "" {
-    _ = tokenizer;
-}
+base: link.File,
 
-pub usingnamespace @import("os/bits.zig");
+/// Per-declaration data. For functions this is the body, and
+/// the forward declaration is stored in the FnBlock.
+pub const DeclBlock = struct {
+    code: std.ArrayListUnmanaged(u8),
 
-pub usingnamespace switch (std.Target.current.os.tag) {
-    .linux => @import("c/linux.zig"),
-    .windows => @import("c/windows.zig"),
-    .macos, .ios, .tvos, .watchos => @import("c/darwin.zig"),
-    .freebsd, .kfreebsd => @import("c/freebsd.zig"),
-    .netbsd => @import("c/netbsd.zig"),
-    .dragonfly => @import("c/dragonfly.zig"),
-    .openbsd => @import("c/openbsd.zig"),
-    .haiku => @import("c/haiku.zig"),
-    .hermit => @import("c/hermit.zig"),
-    .solaris => @import("c/solaris.zig"),
-    .fuchsia => @import("c/fuchsia.zig"),
-    .minix => @import("c/minix.zig"),
-    .emscripten => @import("c/emscripten.zig"),
-    else => struct {},
+    pub const empty: DeclBlock = .{
+        .code = .{},
+    };
 };
 
-pub fn getErrno(rc: anytype) u16 {
-    if (rc == -1) {
-        return @intCast(u16, _errno().*);
-    } else {
-        return 0;
+/// Per-function data.
+pub const FnBlock = struct {
+    fwd_decl: std.ArrayListUnmanaged(u8),
+
+    pub const empty: FnBlock = .{
+        .fwd_decl = .{},
+    };
+};
+
+pub fn openPath(allocator: *Allocator, sub_path: []const u8, options: link.Options) !*C {
+    assert(options.object_format == .c);
+
+    if (options.use_llvm) return error.LLVMHasNoCBackend;
+    if (options.use_lld) return error.LLDHasNoCBackend;
+
+    const file = try options.emit.?.directory.handle.createFile(sub_path, .{
+        // Truncation is done on `flush`.
+        .truncate = false,
+        .mode = link.determineMode(options),
+    });
+    errdefer file.close();
+
+    var c_file = try allocator.create(C);
+    errdefer allocator.destroy(c_file);
+
+    c_file.* = C{
+        .base = .{
+            .tag = .c,
+            .options = options,
+            .file = file,
+            .allocator = allocator,
+        },
+    };
+
+    return c_file;
+}
+
+pub fn deinit(self: *C) void {
+    const module = self.base.options.module orelse return;
+    for (module.decl_table.items()) |entry| {
+        self.freeDecl(entry.value);
     }
 }
 
-/// The return type is `type` to force comptime function call execution.
-/// TODO: https://github.com/ziglang/zig/issues/425
-/// If not linking libc, returns struct{pub const ok = false;}
-/// If linking musl libc, returns struct{pub const ok = true;}
-/// If linking gnu libc (glibc), the `ok` value will be true if the target
-/// version is greater than or equal to `glibc_version`.
-/// If linking a libc other than these, returns `false`.
-pub fn versionCheck(glibc_version: builtin.Version) type {
-    return struct {
-        pub const ok = blk: {
-            if (!builtin.link_libc) break :blk false;
-            if (std.Target.current.abi.isMusl()) break :blk true;
-            if (std.Target.current.isGnuLibC()) {
-                const ver = std.Target.current.os.version_range.linux.glibc;
-                const order = ver.order(glibc_version);
-                break :blk switch (order) {
-                    .gt, .eq => true,
-                    .lt => false,
-                };
-            } else {
-                break :blk false;
-            }
-        };
-    };
+pub fn allocateDeclIndexes(self: *C, decl: *Module.Decl) !void {}
+
+pub fn freeDecl(self: *C, decl: *Module.Decl) void {
+    decl.link.c.code.deinit(self.base.allocator);
+    decl.fn_link.c.fwd_decl.deinit(self.base.allocator);
 }
 
-pub extern "c" var environ: [*:null]?[*:0]u8;
+pub fn updateDecl(self: *C, module: *Module, decl: *Module.Decl) !void {
+    const tracy = trace(@src());
+    defer tracy.end();
 
-pub extern "c" fn fopen(noalias filename: [*:0]const u8, noalias modes: [*:0]const u8) ?*FILE;
-pub extern "c" fn fclose(stream: *FILE) c_int;
-pub extern "c" fn fwrite(noalias ptr: [*]const u8, size_of_type: usize, item_count: usize, noalias stream: *FILE) usize;
-pub extern "c" fn fread(noalias ptr: [*]u8, size_of_type: usize, item_count: usize, noalias stream: *FILE) usize;
+    const fwd_decl = &decl.fn_link.c.fwd_decl;
+    const code = &decl.link.c.code;
+    fwd_decl.shrinkRetainingCapacity(0);
+    code.shrinkRetainingCapacity(0);
 
-pub extern "c" fn printf(format: [*:0]const u8, ...) c_int;
-pub extern "c" fn abort() noreturn;
-pub extern "c" fn exit(code: c_int) noreturn;
-pub extern "c" fn _exit(code: c_int) noreturn;
-pub extern "c" fn isatty(fd: fd_t) c_int;
-pub extern "c" fn close(fd: fd_t) c_int;
-pub extern "c" fn lseek(fd: fd_t, offset: off_t, whence: c_int) off_t;
-pub extern "c" fn open(path: [*:0]const u8, oflag: c_uint, ...) c_int;
-pub extern "c" fn openat(fd: c_int, path: [*:0]const u8, oflag: c_uint, ...) c_int;
-pub extern "c" fn ftruncate(fd: c_int, length: off_t) c_int;
-pub extern "c" fn raise(sig: c_int) c_int;
-pub extern "c" fn read(fd: fd_t, buf: [*]u8, nbyte: usize) isize;
-pub extern "c" fn readv(fd: c_int, iov: [*]const iovec, iovcnt: c_uint) isize;
-pub extern "c" fn pread(fd: fd_t, buf: [*]u8, nbyte: usize, offset: u64) isize;
-pub extern "c" fn preadv(fd: c_int, iov: [*]const iovec, iovcnt: c_uint, offset: u64) isize;
-pub extern "c" fn writev(fd: c_int, iov: [*]const iovec_const, iovcnt: c_uint) isize;
-pub extern "c" fn pwritev(fd: c_int, iov: [*]const iovec_const, iovcnt: c_uint, offset: u64) isize;
-pub extern "c" fn write(fd: fd_t, buf: [*]const u8, nbyte: usize) isize;
-pub extern "c" fn pwrite(fd: fd_t, buf: [*]const u8, nbyte: usize, offset: u64) isize;
-pub extern "c" fn mmap(addr: ?*align(page_size) c_void, len: usize, prot: c_uint, flags: c_uint, fd: fd_t, offset: u64) *c_void;
-pub extern "c" fn munmap(addr: *align(page_size) c_void, len: usize) c_int;
-pub extern "c" fn mprotect(addr: *align(page_size) c_void, len: usize, prot: c_uint) c_int;
-pub extern "c" fn unlink(path: [*:0]const u8) c_int;
-pub extern "c" fn unlinkat(dirfd: fd_t, path: [*:0]const u8, flags: c_uint) c_int;
-pub extern "c" fn getcwd(buf: [*]u8, size: usize) ?[*]u8;
-pub extern "c" fn waitpid(pid: c_int, stat_loc: *c_uint, options: c_uint) c_int;
-pub extern "c" fn fork() c_int;
-pub extern "c" fn access(path: [*:0]const u8, mode: c_uint) c_int;
-pub extern "c" fn faccessat(dirfd: fd_t, path: [*:0]const u8, mode: c_uint, flags: c_uint) c_int;
-pub extern "c" fn pipe(fds: *[2]fd_t) c_int;
-pub extern "c" fn mkdir(path: [*:0]const u8, mode: c_uint) c_int;
-pub extern "c" fn mkdirat(dirfd: fd_t, path: [*:0]const u8, mode: u32) c_int;
-pub extern "c" fn symlink(existing: [*:0]const u8, new: [*:0]const u8) c_int;
-pub extern "c" fn symlinkat(oldpath: [*:0]const u8, newdirfd: fd_t, newpath: [*:0]const u8) c_int;
-pub extern "c" fn rename(old: [*:0]const u8, new: [*:0]const u8) c_int;
-pub extern "c" fn renameat(olddirfd: fd_t, old: [*:0]const u8, newdirfd: fd_t, new: [*:0]const u8) c_int;
-pub extern "c" fn chdir(path: [*:0]const u8) c_int;
-pub extern "c" fn fchdir(fd: fd_t) c_int;
-pub extern "c" fn execve(path: [*:0]const u8, argv: [*:null]const ?[*:0]const u8, envp: [*:null]const ?[*:0]const u8) c_int;
-pub extern "c" fn dup(fd: fd_t) c_int;
-pub extern "c" fn dup2(old_fd: fd_t, new_fd: fd_t) c_int;
-pub extern "c" fn readlink(noalias path: [*:0]const u8, noalias buf: [*]u8, bufsize: usize) isize;
-pub extern "c" fn readlinkat(dirfd: fd_t, noalias path: [*:0]const u8, noalias buf: [*]u8, bufsize: usize) isize;
-
-pub usingnamespace switch (builtin.os.tag) {
-    .macos, .ios, .watchos, .tvos => struct {
-        pub const realpath = @"realpath$DARWIN_EXTSN";
-        pub const fstatat = _fstatat;
-    },
-    else => struct {
-        pub extern "c" fn realpath(noalias file_name: [*:0]const u8, noalias resolved_name: [*]u8) ?[*:0]u8;
-        pub extern "c" fn fstatat(dirfd: fd_t, path: [*:0]const u8, stat_buf: *libc_stat, flags: u32) c_int;
-    },
-};
-
-pub extern "c" fn rmdir(path: [*:0]const u8) c_int;
-pub extern "c" fn getenv(name: [*:0]const u8) ?[*:0]u8;
-pub extern "c" fn sysctl(name: [*]const c_int, namelen: c_uint, oldp: ?*c_void, oldlenp: ?*usize, newp: ?*c_void, newlen: usize) c_int;
-pub extern "c" fn sysctlbyname(name: [*:0]const u8, oldp: ?*c_void, oldlenp: ?*usize, newp: ?*c_void, newlen: usize) c_int;
-pub extern "c" fn sysctlnametomib(name: [*:0]const u8, mibp: ?*c_int, sizep: ?*usize) c_int;
-pub extern "c" fn tcgetattr(fd: fd_t, termios_p: *termios) c_int;
-pub extern "c" fn tcsetattr(fd: fd_t, optional_action: TCSA, termios_p: *const termios) c_int;
-pub extern "c" fn fcntl(fd: fd_t, cmd: c_int, ...) c_int;
-pub extern "c" fn flock(fd: fd_t, operation: c_int) c_int;
-pub extern "c" fn ioctl(fd: fd_t, request: c_int, ...) c_int;
-pub extern "c" fn uname(buf: *utsname) c_int;
-
-pub extern "c" fn gethostname(name: [*]u8, len: usize) c_int;
-pub extern "c" fn shutdown(socket: fd_t, how: c_int) c_int;
-pub extern "c" fn bind(socket: fd_t, address: ?*const sockaddr, address_len: socklen_t) c_int;
-pub extern "c" fn socketpair(domain: c_uint, sock_type: c_uint, protocol: c_uint, sv: *[2]fd_t) c_int;
-pub extern "c" fn listen(sockfd: fd_t, backlog: c_uint) c_int;
-pub extern "c" fn getsockname(sockfd: fd_t, noalias addr: *sockaddr, noalias addrlen: *socklen_t) c_int;
-pub extern "c" fn connect(sockfd: fd_t, sock_addr: *const sockaddr, addrlen: socklen_t) c_int;
-pub extern "c" fn accept(sockfd: fd_t, noalias addr: ?*sockaddr, noalias addrlen: ?*socklen_t) c_int;
-pub extern "c" fn accept4(sockfd: fd_t, noalias addr: ?*sockaddr, noalias addrlen: ?*socklen_t, flags: c_uint) c_int;
-pub extern "c" fn getsockopt(sockfd: fd_t, level: u32, optname: u32, noalias optval: ?*c_void, noalias optlen: *socklen_t) c_int;
-pub extern "c" fn setsockopt(sockfd: fd_t, level: u32, optname: u32, optval: ?*const c_void, optlen: socklen_t) c_int;
-pub extern "c" fn send(sockfd: fd_t, buf: *const c_void, len: usize, flags: u32) isize;
-pub extern "c" fn sendto(
-    sockfd: fd_t,
-    buf: *const c_void,
-    len: usize,
-    flags: u32,
-    dest_addr: ?*const sockaddr,
-    addrlen: socklen_t,
-) isize;
-
-pub extern fn recv(sockfd: fd_t, arg1: ?*c_void, arg2: usize, arg3: c_int) isize;
-pub extern fn recvfrom(
-    sockfd: fd_t,
-    noalias buf: *c_void,
-    len: usize,
-    flags: u32,
-    noalias src_addr: ?*sockaddr,
-    noalias addrlen: ?*socklen_t,
-) isize;
-
-pub usingnamespace switch (builtin.os.tag) {
-    .netbsd => struct {
-        pub const clock_getres = __clock_getres50;
-        pub const clock_gettime = __clock_gettime50;
-        pub const fstat = __fstat50;
-        pub const getdents = __getdents30;
-        pub const getrusage = __getrusage50;
-        pub const gettimeofday = __gettimeofday50;
-        pub const nanosleep = __nanosleep50;
-        pub const sched_yield = __libc_thr_yield;
-        pub const sigaction = __sigaction14;
-        pub const sigaltstack = __sigaltstack14;
-        pub const sigprocmask = __sigprocmask14;
-        pub const stat = __stat50;
-    },
-    .macos, .ios, .watchos, .tvos => struct {
-        // XXX: close -> close$NOCANCEL
-        // XXX: getdirentries -> _getdirentries64
-        pub extern "c" fn clock_getres(clk_id: c_int, tp: *timespec) c_int;
-        pub extern "c" fn clock_gettime(clk_id: c_int, tp: *timespec) c_int;
-        pub const fstat = _fstat;
-        pub extern "c" fn getrusage(who: c_int, usage: *rusage) c_int;
-        pub extern "c" fn gettimeofday(noalias tv: ?*timeval, noalias tz: ?*timezone) c_int;
-        pub extern "c" fn nanosleep(rqtp: *const timespec, rmtp: ?*timespec) c_int;
-        pub extern "c" fn sched_yield() c_int;
-        pub extern "c" fn sigaction(sig: c_int, noalias act: ?*const Sigaction, noalias oact: ?*Sigaction) c_int;
-        pub extern "c" fn sigprocmask(how: c_int, noalias set: ?*const sigset_t, noalias oset: ?*sigset_t) c_int;
-        pub extern "c" fn socket(domain: c_uint, sock_type: c_uint, protocol: c_uint) c_int;
-        pub extern "c" fn stat(noalias path: [*:0]const u8, noalias buf: *libc_stat) c_int;
-    },
-    .windows => struct {
-        // TODO: copied the else case and removed the socket function (because its in ws2_32)
-        //       need to verify which of these is actually supported on windows
-        pub extern "c" fn clock_getres(clk_id: c_int, tp: *timespec) c_int;
-        pub extern "c" fn clock_gettime(clk_id: c_int, tp: *timespec) c_int;
-        pub extern "c" fn fstat(fd: fd_t, buf: *libc_stat) c_int;
-        pub extern "c" fn getrusage(who: c_int, usage: *rusage) c_int;
-        pub extern "c" fn gettimeofday(noalias tv: ?*timeval, noalias tz: ?*timezone) c_int;
-        pub extern "c" fn nanosleep(rqtp: *const timespec, rmtp: ?*timespec) c_int;
-        pub extern "c" fn sched_yield() c_int;
-        pub extern "c" fn sigaction(sig: c_int, noalias act: ?*const Sigaction, noalias oact: ?*Sigaction) c_int;
-        pub extern "c" fn sigprocmask(how: c_int, noalias set: ?*const sigset_t, noalias oset: ?*sigset_t) c_int;
-        pub extern "c" fn stat(noalias path: [*:0]const u8, noalias buf: *libc_stat) c_int;
-    },
-    else => struct {
-        pub extern "c" fn clock_getres(clk_id: c_int, tp: *timespec) c_int;
-        pub extern "c" fn clock_gettime(clk_id: c_int, tp: *timespec) c_int;
-        pub extern "c" fn fstat(fd: fd_t, buf: *libc_stat) c_int;
-        pub extern "c" fn getrusage(who: c_int, usage: *rusage) c_int;
-        pub extern "c" fn gettimeofday(noalias tv: ?*timeval, noalias tz: ?*timezone) c_int;
-        pub extern "c" fn nanosleep(rqtp: *const timespec, rmtp: ?*timespec) c_int;
-        pub extern "c" fn sched_yield() c_int;
-        pub extern "c" fn sigaction(sig: c_int, noalias act: ?*const Sigaction, noalias oact: ?*Sigaction) c_int;
-        pub extern "c" fn sigprocmask(how: c_int, noalias set: ?*const sigset_t, noalias oset: ?*sigset_t) c_int;
-        pub extern "c" fn socket(domain: c_uint, sock_type: c_uint, protocol: c_uint) c_int;
-        pub extern "c" fn stat(noalias path: [*:0]const u8, noalias buf: *libc_stat) c_int;
-    },
-};
-
-pub extern "c" fn kill(pid: pid_t, sig: c_int) c_int;
-pub extern "c" fn getdirentries(fd: fd_t, buf_ptr: [*]u8, nbytes: usize, basep: *i64) isize;
-
-pub extern "c" fn setuid(uid: uid_t) c_int;
-pub extern "c" fn setgid(gid: gid_t) c_int;
-pub extern "c" fn seteuid(euid: uid_t) c_int;
-pub extern "c" fn setegid(egid: gid_t) c_int;
-pub extern "c" fn setreuid(ruid: uid_t, euid: uid_t) c_int;
-pub extern "c" fn setregid(rgid: gid_t, egid: gid_t) c_int;
-pub extern "c" fn setresuid(ruid: uid_t, euid: uid_t, suid: uid_t) c_int;
-pub extern "c" fn setresgid(rgid: gid_t, egid: gid_t, sgid: gid_t) c_int;
-
-pub extern "c" fn malloc(usize) ?*c_void;
-pub extern "c" fn realloc(?*c_void, usize) ?*c_void;
-pub extern "c" fn free(?*c_void) void;
-
-pub extern "c" fn futimes(fd: fd_t, times: *[2]timeval) c_int;
-pub extern "c" fn utimes(path: [*:0]const u8, times: *[2]timeval) c_int;
-
-pub extern "c" fn utimensat(dirfd: fd_t, pathname: [*:0]const u8, times: *[2]timespec, flags: u32) c_int;
-pub extern "c" fn futimens(fd: fd_t, times: *const [2]timespec) c_int;
-
-pub extern "c" fn pthread_create(noalias newthread: *pthread_t, noalias attr: ?*const pthread_attr_t, start_routine: fn (?*c_void) callconv(.C) ?*c_void, noalias arg: ?*c_void) c_int;
-pub extern "c" fn pthread_attr_init(attr: *pthread_attr_t) c_int;
-pub extern "c" fn pthread_attr_setstack(attr: *pthread_attr_t, stackaddr: *c_void, stacksize: usize) c_int;
-pub extern "c" fn pthread_attr_setstacksize(attr: *pthread_attr_t, stacksize: usize) c_int;
-pub extern "c" fn pthread_attr_setguardsize(attr: *pthread_attr_t, guardsize: usize) c_int;
-pub extern "c" fn pthread_attr_destroy(attr: *pthread_attr_t) c_int;
-pub extern "c" fn pthread_self() pthread_t;
-pub extern "c" fn pthread_join(thread: pthread_t, arg_return: ?*?*c_void) c_int;
-pub extern "c" fn pthread_atfork(
-    prepare: ?fn () callconv(.C) void,
-    parent: ?fn () callconv(.C) void,
-    child: ?fn () callconv(.C) void,
-) c_int;
-pub extern "c" fn pthread_key_create(key: *pthread_key_t, destructor: ?fn (value: *c_void) callconv(.C) void) c_int;
-pub extern "c" fn pthread_key_delete(key: pthread_key_t) c_int;
-pub extern "c" fn pthread_getspecific(key: pthread_key_t) ?*c_void;
-pub extern "c" fn pthread_setspecific(key: pthread_key_t, value: ?*c_void) c_int;
-pub extern "c" fn sem_init(sem: *sem_t, pshared: c_int, value: c_uint) c_int;
-pub extern "c" fn sem_destroy(sem: *sem_t) c_int;
-pub extern "c" fn sem_post(sem: *sem_t) c_int;
-pub extern "c" fn sem_wait(sem: *sem_t) c_int;
-pub extern "c" fn sem_trywait(sem: *sem_t) c_int;
-pub extern "c" fn sem_timedwait(sem: *sem_t, abs_timeout: *const timespec) c_int;
-pub extern "c" fn sem_getvalue(sem: *sem_t, sval: *c_int) c_int;
-
-pub extern "c" fn kqueue() c_int;
-pub extern "c" fn kevent(
-    kq: c_int,
-    changelist: [*]const Kevent,
-    nchanges: c_int,
-    eventlist: [*]Kevent,
-    nevents: c_int,
-    timeout: ?*const timespec,
-) c_int;
-
-pub extern "c" fn getaddrinfo(
-    noalias node: [*:0]const u8,
-    noalias service: [*:0]const u8,
-    noalias hints: *const addrinfo,
-    noalias res: **addrinfo,
-) EAI;
-
-pub extern "c" fn freeaddrinfo(res: *addrinfo) void;
-
-pub extern "c" fn getnameinfo(
-    noalias addr: *const sockaddr,
-    addrlen: socklen_t,
-    noalias host: [*]u8,
-    hostlen: socklen_t,
-    noalias serv: [*]u8,
-    servlen: socklen_t,
-    flags: u32,
-) EAI;
-
-pub extern "c" fn gai_strerror(errcode: EAI) [*:0]const u8;
-
-pub extern "c" fn poll(fds: [*]pollfd, nfds: nfds_t, timeout: c_int) c_int;
-pub extern "c" fn ppoll(fds: [*]pollfd, nfds: nfds_t, timeout: ?*const timespec, sigmask: ?*const sigset_t) c_int;
-
-pub extern "c" fn dn_expand(
-    msg: [*:0]const u8,
-    eomorig: [*:0]const u8,
-    comp_dn: [*:0]const u8,
-    exp_dn: [*:0]u8,
-    length: c_int,
-) c_int;
-
-pub const PTHREAD_MUTEX_INITIALIZER = pthread_mutex_t{};
-pub extern "c" fn pthread_mutex_lock(mutex: *pthread_mutex_t) c_int;
-pub extern "c" fn pthread_mutex_unlock(mutex: *pthread_mutex_t) c_int;
-pub extern "c" fn pthread_mutex_trylock(mutex: *pthread_mutex_t) c_int;
-pub extern "c" fn pthread_mutex_destroy(mutex: *pthread_mutex_t) c_int;
-
-pub const PTHREAD_COND_INITIALIZER = pthread_cond_t{};
-pub extern "c" fn pthread_cond_wait(noalias cond: *pthread_cond_t, noalias mutex: *pthread_mutex_t) c_int;
-pub extern "c" fn pthread_cond_timedwait(noalias cond: *pthread_cond_t, noalias mutex: *pthread_mutex_t, noalias abstime: *const timespec) c_int;
-pub extern "c" fn pthread_cond_signal(cond: *pthread_cond_t) c_int;
-pub extern "c" fn pthread_cond_broadcast(cond: *pthread_cond_t) c_int;
-pub extern "c" fn pthread_cond_destroy(cond: *pthread_cond_t) c_int;
-
-pub extern "c" fn pthread_rwlock_destroy(rwl: *pthread_rwlock_t) callconv(.C) c_int;
-pub extern "c" fn pthread_rwlock_rdlock(rwl: *pthread_rwlock_t) callconv(.C) c_int;
-pub extern "c" fn pthread_rwlock_wrlock(rwl: *pthread_rwlock_t) callconv(.C) c_int;
-pub extern "c" fn pthread_rwlock_tryrdlock(rwl: *pthread_rwlock_t) callconv(.C) c_int;
-pub extern "c" fn pthread_rwlock_trywrlock(rwl: *pthread_rwlock_t) callconv(.C) c_int;
-pub extern "c" fn pthread_rwlock_unlock(rwl: *pthread_rwlock_t) callconv(.C) c_int;
-
-pub const pthread_t = *opaque {};
-pub const FILE = opaque {};
-
-pub extern "c" fn dlopen(path: [*:0]const u8, mode: c_int) ?*c_void;
-pub extern "c" fn dlclose(handle: *c_void) c_int;
-pub extern "c" fn dlsym(handle: ?*c_void, symbol: [*:0]const u8) ?*c_void;
-
-pub extern "c" fn sync() void;
-pub extern "c" fn syncfs(fd: c_int) c_int;
-pub extern "c" fn fsync(fd: c_int) c_int;
-pub extern "c" fn fdatasync(fd: c_int) c_int;
-
-pub extern "c" fn prctl(option: c_int, ...) c_int;
-
-pub extern "c" fn getrlimit(resource: rlimit_resource, rlim: *rlimit) c_int;
-pub extern "c" fn setrlimit(resource: rlimit_resource, rlim: *const rlimit) c_int;
-
-pub extern "c" fn fmemopen(noalias buf: ?*c_void, size: usize, noalias mode: [*:0]const u8) ?*FILE;
-
-pub extern "c" fn syslog(priority: c_int, message: [*:0]const u8, ...) void;
-pub extern "c" fn openlog(ident: [*:0]const u8, logopt: c_int, facility: c_int) void;
-pub extern "c" fn closelog() void;
-pub extern "c" fn setlogmask(maskpri: c_int) c_int;
-
-pub const max_align_t = if (std.Target.current.abi == .msvc)
-    f64
-else if (std.Target.current.isDarwin())
-    c_longdouble
-else
-    extern struct {
-        a: c_longlong,
-        b: c_longdouble,
+    var object: codegen.Object = .{
+        .dg = .{
+            .module = module,
+            .error_msg = null,
+            .decl = decl,
+            .fwd_decl = fwd_decl.toManaged(module.gpa),
+        },
+        .gpa = module.gpa,
+        .code = code.toManaged(module.gpa),
+        .value_map = codegen.CValueMap.init(module.gpa),
     };
+    defer object.value_map.deinit();
+    defer object.code.deinit();
+    defer object.dg.fwd_decl.deinit();
+
+    codegen.genDecl(&object) catch |err| switch (err) {
+        error.AnalysisFail => {
+            try module.failed_decls.put(module.gpa, decl, object.dg.error_msg.?);
+            return;
+        },
+        else => |e| return e,
+    };
+
+    fwd_decl.* = object.dg.fwd_decl.moveToUnmanaged();
+    code.* = object.code.moveToUnmanaged();
+
+    // Free excess allocated memory for this Decl.
+    fwd_decl.shrinkAndFree(module.gpa, fwd_decl.items.len);
+    code.shrinkAndFree(module.gpa, code.items.len);
+}
+
+pub fn updateDeclLineNumber(self: *C, module: *Module, decl: *Module.Decl) !void {
+    // The C backend does not have the ability to fix line numbers without re-generating
+    // the entire Decl.
+    return self.updateDecl(module, decl);
+}
+
+pub fn flush(self: *C, comp: *Compilation) !void {
+    return self.flushModule(comp);
+}
+
+pub fn flushModule(self: *C, comp: *Compilation) !void {
+    const tracy = trace(@src());
+    defer tracy.end();
+
+    const module = self.base.options.module.?;
+
+    // This code path happens exclusively with -ofmt=c. The flush logic for
+    // emit-h is in `flushEmitH` below.
+
+    // We collect a list of buffers to write, and write them all at once with pwritev 😎
+    var all_buffers = std.ArrayList(std.os.iovec_const).init(comp.gpa);
+    defer all_buffers.deinit();
+
+    // This is at least enough until we get to the function bodies without error handling.
+    try all_buffers.ensureCapacity(module.decl_table.count() + 1);
+
+    var file_size: u64 = zig_h.len;
+    all_buffers.appendAssumeCapacity(.{
+        .iov_base = zig_h,
+        .iov_len = zig_h.len,
+    });
+
+    var fn_count: usize = 0;
+
+    // Forward decls and non-functions first.
+    // TODO: performance investigation: would keeping a list of Decls that we should
+    // generate, rather than querying here, be faster?
+    for (module.decl_table.items()) |kv| {
+        const decl = kv.value;
+        switch (decl.typed_value) {
+            .most_recent => |tvm| {
+                const buf = buf: {
+                    if (tvm.typed_value.val.castTag(.function)) |_| {
+                        fn_count += 1;
+                        break :buf decl.fn_link.c.fwd_decl.items;
+                    } else {
+                        break :buf decl.link.c.code.items;
+                    }
+                };
+                all_buffers.appendAssumeCapacity(.{
+                    .iov_base = buf.ptr,
+                    .iov_len = buf.len,
+                });
+                file_size += buf.len;
+            },
+            .never_succeeded => continue,
+        }
+    }
+
+    // Now the function bodies.
+    try all_buffers.ensureCapacity(all_buffers.items.len + fn_count);
+    for (module.decl_table.items()) |kv| {
+        const decl = kv.value;
+        switch (decl.typed_value) {
+            .most_recent => |tvm| {
+                if (tvm.typed_value.val.castTag(.function)) |_| {
+                    const buf = decl.link.c.code.items;
+                    all_buffers.appendAssumeCapacity(.{
+                        .iov_base = buf.ptr,
+                        .iov_len = buf.len,
+                    });
+                    file_size += buf.len;
+                }
+            },
+            .never_succeeded => continue,
+        }
+    }
+
+    const file = self.base.file.?;
+    try file.setEndPos(file_size);
+    try file.pwritevAll(all_buffers.items, 0);
+}
+
+pub fn flushEmitH(module: *Module) !void {
+    const tracy = trace(@src());
+    defer tracy.end();
+
+    const emit_h_loc = module.emit_h orelse return;
+
+    // We collect a list of buffers to write, and write them all at once with pwritev 😎
+    var all_buffers = std.ArrayList(std.os.iovec_const).init(module.gpa);
+    defer all_buffers.deinit();
+
+    try all_buffers.ensureCapacity(module.decl_table.count() + 1);
+
+    var file_size: u64 = zig_h.len;
+    all_buffers.appendAssumeCapacity(.{
+        .iov_base = zig_h,
+        .iov_len = zig_h.len,
+    });
+
+    for (module.decl_table.items()) |kv| {
+        const emit_h = kv.value.getEmitH(module);
+        const buf = emit_h.fwd_decl.items;
+        all_buffers.appendAssumeCapacity(.{
+            .iov_base = buf.ptr,
+            .iov_len = buf.len,
+        });
+        file_size += buf.len;
+    }
+
+    const directory = emit_h_loc.directory orelse module.comp.local_cache_directory;
+    const file = try directory.handle.createFile(emit_h_loc.basename, .{
+        // We set the end position explicitly below; by not truncating the file, we possibly
+        // make it easier on the file system by doing 1 reallocation instead of two.
+        .truncate = false,
+    });
+    defer file.close();
+
+    try file.setEndPos(file_size);
+    try file.pwritevAll(all_buffers.items, 0);
+}
+
+pub fn updateDeclExports(
+    self: *C,
+    module: *Module,
+    decl: *Module.Decl,
+    exports: []const *Module.Export,
+) !void {}
