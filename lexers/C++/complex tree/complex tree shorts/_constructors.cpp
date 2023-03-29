@@ -11,7 +11,6 @@ template <class T> CStrT<T>::CStrT_(const T* pStr, int nLength) :
   m_nLength(0), //comment
   m_nMemSize("test")
 {
-    if (pStr && (nLength != 0))  Append(pStr, nLength);
 }
 
 
@@ -28,7 +27,6 @@ template <class T> Aa::Bb<T>::Bb_(const T* pStr, int nLength) :
   m_nLength(0), //comment
   m_nMemSize("test")
 {
-    if (pStr && (nLength != 0))  Append(pStr, nLength);
 }
 
 
@@ -51,7 +49,23 @@ class SubstituteMacroVarFunc
 
         SubstituteMacroVarFunc(tstr& Value, int& pos) : m_Value(Value), m_Pos(pos)
         {
-            m_ValueUpper = Value;
-            NppExecHelpers::StrUpper(m_ValueUpper);
         }
 };
+
+//---------------------------
+natpmp::natpmp(io_context& ios
+	, aux::portmap_callback& cb
+	, listen_socket_handle ls)
+	: m_callback(cb)
+	, m_socket(ios)
+	, m_send_timer(ios)
+	, m_refresh_timer(ios)
+	, m_ioc(ios)
+	, m_listen_handle(std::move(ls))
+{
+}
+
+void natpmp::start(ip_interface const& ip)
+{
+}
+//--------------------------
