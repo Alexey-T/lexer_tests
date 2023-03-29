@@ -6,9 +6,9 @@ auto f4() & {}
 auto f5() && {}
 auto f10() -> int {}
 auto f11() -> decltype(a + b) {}
-auto f12() -> std::pair<decltype(n), decltype(n)> /*...*/ {}
+auto f12() -> std::pair<decltype(n)> /**/ {}
 struct s1 {}
-operator +(a, b) {}
+operator ++(a, b) {}
 
 auto Aa<T,TT>::f0() {}
 auto Aa<T,TT>::f1() const {}
@@ -18,7 +18,7 @@ auto Aa<T,TT>::f4() & {}
 auto Aa<T,TT>::f5() && {}
 auto Aa<T,TT>::f10() -> int {}
 auto Aa<T,TT>::f11() -> decltype(a + b) {}
-auto Aa<T,TT>::f12() -> std::pair<decltype(n), decltype(n)> /*...*/ {}
+auto Aa<T,TT>::f12() -> std::pair<decltype(n)> /**/ {}
 struct Aa<T,TT>::s1 {}
 
 auto Aa<T,TT>::Bb<T>::f0() {}
@@ -29,7 +29,7 @@ auto Aa<T,TT>::Bb<T>::f4() & {}
 auto Aa<T,TT>::Bb<T>::f5() && {}
 auto Aa<T,TT>::Bb<T>::f10() -> int {}
 auto Aa<T,TT>::Bb<T>::f11() -> decltype(a + b) {}
-auto Aa<T,TT>::Bb<T>::f12() -> std::pair<decltype(n), decltype(n)> /*...*/ {}
+auto Aa<T,TT>::Bb<T>::f12() -> std::pair<decltype(n)> /**/ {}
 struct Aa<T,TT>::Bb<T>::s1 {}
 
 auto Aa<T,TT>::Bb<T>::Cc::f0() {}
@@ -40,5 +40,5 @@ auto Aa<T,TT>::Bb<T>::Cc::f4() & {}
 auto Aa<T,TT>::Bb<T>::Cc::f5() && {}
 auto Aa<T,TT>::Bb<T>::Cc::f10() -> int {}
 auto Aa<T,TT>::Bb<T>::Cc::f11() -> decltype(a + b) {}
-auto Aa<T,TT>::Bb<T>::Cc::f12() -> std::pair<decltype(n), decltype(n)> /*...*/ {}
+auto Aa<T,TT>::Bb<T>::Cc::f12() -> std::pair<decltype(n)> /**/ {}
 struct Aa<T,TT>::Bb<T>::Cc::s1 {}
