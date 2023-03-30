@@ -1,0 +1,170 @@
+%YAML 1.2
+---
+# http://www.sublimetext.com/docs/syntax.html
+name: WGSL
+file_extensions: [wgsl]
+scope: source.wgsl
+contexts:
+  main:
+    - include: line_comments
+    - include: keywords
+    - include: attributes
+    - include: functions
+    - include: function_calls
+    - include: constants
+    - include: types
+    - include: variables
+    - include: punctuation
+  attributes:
+    # attribute declaration
+    - match: '(@)([A-Za-z_]+)'
+      scope: meta.attribute.wgsl
+      captures:
+        1: keyword.operator.attribute.at
+        2: entity.name.attribute.wgsl
+  constants:
+    # decimal float literal
+    - match: '(-?\b[0-9][0-9]*\.[0-9][0-9]*)([eE][+-]?[0-9]+)?\b'
+      scope: constant.numeric.float.wgsl
+    # int literal
+    - match: '-?\b0x[0-9a-fA-F]+\b|\b0\b|-?\b[1-9][0-9]*\b'
+      scope: constant.numeric.decimal.wgsl
+    # uint literal
+    - match: '\b0x[0-9a-fA-F]+u\b|\b0u\b|\b[1-9][0-9]*u\b'
+      scope: constant.numeric.decimal.wgsl
+    # boolean constant
+    - match: \b(true|false)\b
+      scope: constant.language.boolean.wgsl
+  function_calls:
+    # function/method calls
+    - match: '([A-Za-z0-9_]+)(\()'
+      captures:
+        1: entity.name.function.wgsl
+        2: punctuation.brackets.round.wgsl
+      push:
+        - meta_scope: meta.function.call.wgsl
+        - match: \)
+          captures:
+            0: punctuation.brackets.round.wgsl
+          pop: true
+        - include: line_comments
+        - include: keywords
+        - include: attributes
+        - include: function_calls
+        - include: constants
+        - include: types
+        - include: variables
+        - include: punctuation
+  functions:
+    # function definition
+    - match: '\b(fn)\s+([A-Za-z0-9_]+)((\()|(<))'
+      captures:
+        1: keyword.other.fn.wgsl
+        2: entity.name.function.wgsl
+        4: punctuation.brackets.round.wgsl
+      push:
+        - meta_scope: meta.function.definition.wgsl
+        - match: '\{'
+          captures:
+            0: punctuation.brackets.curly.wgsl
+          pop: true
+        - include: line_comments
+        - include: keywords
+        - include: attributes
+        - include: function_calls
+        - include: constants
+        - include: types
+        - include: variables
+        - include: punctuation
+  keywords:
+    # other keywords
+    - match: \b(bitcast|block|break|case|continue|continuing|default|discard|else|elseif|enable|fallthrough|for|function|if|loop|private|read|read_write|return|storage|switch|uniform|workgroup|write)\b
+      scope: keyword.control.wgsl
+    # reserved keywords
+    - match: \b(asm|const|do|enum|handle|mat|premerge|regardless|typedef|unless|using|vec|void|while)\b
+      scope: keyword.control.wgsl
+    # storage keywords
+    - match: \b(let|var)\b
+      scope: keyword.other.wgsl storage.type.wgsl
+    # type keyword
+    - match: \b(type)\b
+      scope: keyword.declaration.type.wgsl storage.type.wgsl
+    # enum keyword
+    - match: \b(enum)\b
+      scope: keyword.declaration.enum.wgsl storage.type.wgsl
+    # struct keyword
+    - match: \b(struct)\b
+      scope: keyword.declaration.struct.wgsl storage.type.wgsl
+    # fn
+    - match: \bfn\b
+      scope: keyword.other.fn.wgsl
+    # logical operators
+    - match: (\^|\||\|\||&&|<<|>>|!)(?!=)
+      scope: keyword.operator.logical.wgsl
+    # logical AND, borrow references
+    - match: '&(?![&=])'
+      scope: keyword.operator.borrow.and.wgsl
+    # assignment operators
+    - match: (\+=|-=|\*=|/=|%=|\^=|&=|\|=|<<=|>>=)
+      scope: keyword.operator.assignment.wgsl
+    # single equal
+    - match: '(?<![<>])=(?!=|>)'
+      scope: keyword.operator.assignment.equal.wgsl
+    # comparison operators
+    - match: (=(=)?(?!>)|!=|<=|(?<!=)>=)
+      scope: keyword.operator.comparison.wgsl
+    # math operators
+    - match: '(([+%]|(\*(?!\w)))(?!=))|(-(?!>))|(/(?!/))'
+      scope: keyword.operator.math.wgsl
+    # dot access
+    - match: \.(?!\.)
+      scope: keyword.operator.access.dot.wgsl
+    # dashrocket, skinny arrow
+    - match: '->'
+      scope: keyword.operator.arrow.skinny.wgsl
+  line_comments:
+    # single line comment
+    - match: \s*//.*
+      scope: comment.line.double-slash.wgsl
+  punctuation:
+    # comma
+    - match: ','
+      scope: punctuation.comma.wgsl
+    # curly braces
+    - match: '[{}]'
+      scope: punctuation.brackets.curly.wgsl
+    # parentheses, round brackets
+    - match: '[()]'
+      scope: punctuation.brackets.round.wgsl
+    # semicolon
+    - match: ;
+      scope: punctuation.semi.wgsl
+    # square brackets
+    - match: '[\[\]]'
+      scope: punctuation.brackets.square.wgsl
+    # angle brackets
+    - match: '(?<!=)[<>]'
+      scope: punctuation.brackets.angle.wgsl
+  types:
+    # scalar types
+    - match: \b(bool|i32|u32|f32)\b
+      scope: storage.type.wgsl
+    # reserved scalar types
+    - match: \b(i64|u64|f64)\b
+      scope: storage.type.wgsl
+    # vector/matrix types
+    - match: '\b(vec[2-4]|mat[2-4]x[2-4])\b'
+      scope: storage.type.wgsl
+    # atomic types
+    - match: \b(atomic)\b
+      scope: storage.type.wgsl
+    # array types
+    - match: \b(array)\b
+      scope: storage.type.wgsl
+    # Custom type
+    - match: '\b([A-Z][A-Za-z0-9]*)\b'
+      scope: entity.name.type.wgsl
+  variables:
+    # variables
+    - match: '\b(?<!(?<!\.)\.)(?:r#(?!(crate|[Ss]elf|super)))?[a-z0-9_]+\b'
+      scope: variable.other.wgsl
