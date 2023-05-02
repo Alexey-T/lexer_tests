@@ -1,0 +1,22 @@
+! Macro MASS.MAC for weight calculation
+! Weight for pre-selected elements is calculated (Shell 63 and solid 45)
+!
+steel=7850e-9    !density for steel 7850 kg/m3
+!
+oldelem=0
+volume=0
+!
+*get,ecount,elem,,count
+*do,ielem,1,ecount
+ *get,nxthelem,elem,oldelem,nxth
+ *get,elmvolu,elem,nxthelem,volu
+ volume=volume+elmvolu
+ oldelem=nxthelem
+*enddo
+!
+mass=volume*steel  
+
+
+
+
+
