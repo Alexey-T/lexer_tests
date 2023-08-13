@@ -1,0 +1,23 @@
+include "../show_log.pixi"
+
+fn find_string( $s1, $s2 )
+{
+    logf( "Searching for \"%s\": ", $s2 )
+    $p = strstr( $s1, $s2 ) //search for the string $s2 in the string $s1
+    if $p < 0
+    {
+	logf( "not found\n" )
+    }
+    else
+    {
+	logf( "first occurrence = %d\n", $p )
+    }
+}
+
+str = "Hello Pixi :)"
+logf( "%s\n", str )
+find_string( str, "hello" )
+find_string( str, "Hello" )
+find_string( str, ":)" )
+
+show_log()

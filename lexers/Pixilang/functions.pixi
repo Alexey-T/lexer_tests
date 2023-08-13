@@ -1,0 +1,76 @@
+include "show_log.pixi"
+
+//Some user-defined functions:
+fn add( $v1, $v2 )
+{
+    //$0 - number of parameters received;
+    //$1 - first parameter (the same as $val1);
+    //$2 - second parameter (the same as $val2);
+    //$3 - ...
+    ret( $v1 + $v2 ) //returns the sum of the parameters $val1 and $val2
+}
+fn add2()
+{
+    if $0 == 2
+    {
+	//If the number of parameters ($0) is 2:
+	//here we can use the parameters $1 and $2
+	ret( $1 + $2 ) //add two incoming parameters and return the result
+    }
+    ret( 0 ) //otherwise, return zero
+}
+fn add3()
+{
+    //Calculate the sum of all incoming parameters:
+    $sum = 0
+    if $0 > 0 { $sum + $1 }
+    if $0 > 1 { $sum + $2 }
+    if $0 > 2 { $sum + $3 }
+    if $0 > 3 { $sum + $4 }
+    ret( $sum )
+}
+fn add4( $v1, $v2, $optional_v3 )
+{
+    if $0 >= 3
+    {
+	//$optional_v3 is available here
+	$v3 = $optional_v3
+    }
+    else
+    {
+	//Number of parameters < 3,
+	//we can't use $optional_v3 here:
+	//writing to variable $optional_v3 will break the contents of the stack and lead to unpredictable results!
+	$v3 = 0
+    }
+    ret( $v1 + $v2 + $v3 )
+}
+add5 = { ret( $1 + $2 ) }
+fn show_text( $str )
+{
+    logf( "show_text(): %s\n", $str )
+}
+
+ts = ""
+sprintf( ts, "add( 1, 2 ) = %d", add( 1, 2 ) )
+show_text( ts )
+sprintf( ts, "add2( 3 ) = %d", add2( 3 ) )
+show_text( ts )
+sprintf( ts, "add2( 3, 3 ) = %d", add2( 3, 3 ) )
+show_text( ts )
+sprintf( ts, "add3( 1, 2, 3 ) = %d", add3( 1, 2, 3 ) )
+show_text( ts )
+sprintf( ts, "add4( 1, 1 ) = %d", add4( 1, 1 ) )
+show_text( ts )
+sprintf( ts, "add4( 1, 1, 1 ) = %d", add4( 1, 1, 1 ) )
+show_text( ts )
+sprintf( ts, "add5( 1, 2 ) = %d", add5( 1, 2 ) )
+show_text( ts )
+sprintf( ts, "add6( 1, 2 ) = %d", add6( 1, 2 ) )
+show_text( ts )
+
+show_log()
+
+//Another way to describe a function using a label and ret() command:
+add6:
+ret( $1 + $2 )

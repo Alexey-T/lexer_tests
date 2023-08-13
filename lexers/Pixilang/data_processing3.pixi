@@ -1,0 +1,27 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+img2 = clone( img )
+
+start_timer( 0 )
+
+while 1
+{
+	t = get_timer( 0 ) / 100
+	
+	copy( img, img2 )
+
+	c = get_color( sin( t ) * 128, cos( t / 3 ) * 128, sin( t / 2 ) * 128 )
+	op_cn( OP_COLOR_ADD, img, c, 16, 16, 128, 128 )
+	op_cn( OP_COLOR_SUB, img, c, 16 + 16 + 128, 16, 128, 128 )
+	op_cn( OP_COLOR_MUL, img, c, 16, 16 + 16 + 128, 128, 128 )
+	op_cn( OP_COLOR_DIV, img, c, 16 + 16 + 128, 16 + 16 + 128, 128, 128 )
+
+	pixi( img, 0, 0 )
+
+	while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+	frame()
+}
+

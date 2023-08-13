@@ -1,0 +1,22 @@
+/*
+
+  OpenGL utilities:
+
+  gl_load_image_8bit( $name )
+    Load image and convert it to 8bit alpha-channel.
+
+*/
+
+fn gl_load_image_8bit( $name )
+{
+    $rv = load( $name )
+    if $rv > 0
+    {
+        $new = new( get_xsize( $rv ), get_ysize( $rv ), INT8 )
+        split_rgb( 0, $rv, -1, $new, -1 )
+        remove_with_alpha( $rv )
+        $rv = $new
+    }
+    set_flags( $rv, GL_MIN_LINEAR | GL_MAG_LINEAR )
+    ret( $rv )
+}

@@ -1,0 +1,92 @@
+//
+// ffmpeg/avconv-based video import functions
+// (experimental)
+//
+
+fn ffmpeg_video_import_thread( $thread_id, $ff )
+{
+    $ts = ""
+    sprintf( 
+	$ts, 
+	"%s -y -i \"%s\" -pix_fmt bgr32 -f rawvideo \"%s\"", 
+	g_avconv,
+	$ff.name,
+	$ff.pipe_name )
+    logf( "Video import command: %s\n", $ts )
+    system( $ts )
+    logf( "Video import finished.\n" )
+}
+
+fn ffmpeg_video_import_open( $filename, $xsize, $ysize, $start_frame, $end_frame )
+{
+    g_avconv = -1
+    while 1
+    {
+        if system( "ffmpeg -version" ) == 0 { g_avconv = "ffmpeg" break }
+        if system( "avconv -version" ) == 0 { g_avconv = "avconv" break }
+        break
+    }
+    if g_avconv == -1
+    {
+        logf( "No AV converters detected. Please install ffmpeg or avconv!\n" )
+        logf( "Please also note that this library is designed for *nix systems (Linux, macOS, BSD, etc.) only.\n" )
+        ret( -1 )
+    }
+
+    $ff = new( 1, 1, INT )
+    $ff.xsize = $xsize
+    $ff.ysize = $ysize
+    $ff.name = $filename
+    $ff.pipe_name = new( 1, 1, INT8 )
+    sprintf( $ff.pipe_name, "/tmp/avconv_vpipe_%d", $ff )
+    $ff.frame = 0
+    $ff.start_frame = $start_frame
+    $ff.end_frame = $end_frame
+    
+    $ts = ""
+    sprintf( $ts, "mkfifo %s", $ff.pipe_name )
+    system( $ts )
+    $ff.th = thread_create( ffmpeg_video_import_thread, $ff )
+    sleep( 500 )
+    
+    ret( $ff )
+}
+
+fn ffmpeg_video_import_close( $ff )
+{
+    if $ff.pipe_f
+    {
+        fclose( $ff.pipe_f )
+    }
+    thread_destroy( $ff.th, INT_MAX )
+    remove_file( $ff.pipe_name )
+    /*$f = fopen( $ff.pipe_name, "rb" )
+    if $f
+    {
+	fclose( $f )
+	logf( "Pipe is still opened. Trying to kill ffmpeg...\n" )
+	system( "killall ffmpeg" )
+    }*/
+    remove( $ff.pipe_name )
+    remove( $ff )
+}
+
+fn ffmpeg_video_import_read( $ff, $buf )
+{
+    if $ff.pipe_f == 0 { $ff.pipe_f = fopen( $ff.pipe_name, "rb" ) }
+    if $ff.pipe_f
+    {
+	$size = $ff.xsize * $ff.ysize * 4
+	$rr = fread( $buf, $size, $ff.pipe_f )
+	if $rr != $size
+	{
+	    ret( 1 )
+	}
+	$ff.frame + 1
+	if $ff.end_frame && $ff.frame > $ff.end_frame
+        {
+            ret( 1 )
+        }
+    }
+    ret( 0 )
+}

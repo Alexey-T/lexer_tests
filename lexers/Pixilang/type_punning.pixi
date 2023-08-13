@@ -1,0 +1,11 @@
+include "show_log.pixi"
+
+v1 = 3.4
+
+v2 = reinterpret_type( v1, 0, 32 ) //reinterpret data type: FLOAT -> FLOAT32 -> INT;
+logf( "FLOAT->FLOAT32->INT: %f -> %d\n", v1, v2 )
+
+v3 = reinterpret_type( v2, 1, 32 ) //reinterpret data type: INT -> FLOAT32 -> FLOAT;
+logf( "INT->FLOAT32->FLOAT: %d -> %f\n", v2, v3 )
+
+show_log()

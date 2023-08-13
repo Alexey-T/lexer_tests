@@ -1,0 +1,5 @@
+include "../../../../pixilang3/projects/misc/icon_generator_lib.pixi"
+
+//Android:
+g_base_folder = "../../android_project/app/src/main/res/"
+make_icons_for_android( 1 )

@@ -1,0 +1,68 @@
+MIDI_OUT_DEVICE = "TiMidity port 0"
+
+//
+//
+//
+
+ts = ""
+
+mc = midi_open_client( "Pixi MIDI Client" )
+if mc >= 0
+{
+    fputs( "MIDI Client Opened\n" )
+    
+    //Scan devices:
+    dev_num = 0
+next_device:    
+    dev_name = midi_get_device( mc, dev_num, MIDI_PORT_READ | MIDI_PORT_WRITE )
+    if dev_name >= 0
+    {
+	sprintf( ts, "MIDI Device %d: %s\n", dev_num, dev_name )
+	fputs( ts )
+	remove( dev_name )
+	dev_num + 1
+	go next_device
+    }
+    
+    //Open device for writing:
+    p = midi_open_port( mc, "My OUT port", MIDI_OUT_DEVICE, MIDI_PORT_WRITE )
+    if p < 0
+    {
+	fputs( "ERROR: Can't open MIDI port for writing.\n" )
+    }
+    else
+    {
+	fputs( "MIDI port opened.\n" )
+
+	sleep( 200 )
+	
+	midi_event = new( 8, 1, INT8 )
+
+	i = 0 while( i < 8 )
+	{
+	    //Send Note ON:	
+    	    fputs( "Send Note ON event...\n" )
+	    midi_event[ 0 ] = 0x90 //Note ON on channel 0
+	    midi_event[ 1 ] = 0x40 + i //Note
+	    midi_event[ 2 ] = 0x7F //Velocity
+	    midi_send_event( mc, p, midi_event, 3, get_ticks() )
+
+	    sleep( 200 )
+
+	    //Send Note OFF:	
+	    fputs( "Send Note OFF event...\n" )
+	    midi_event[ 0 ] = 0x80 //Note OFF on channel 0
+	    midi_event[ 1 ] = 0x40 + i //Note
+    	    midi_event[ 2 ] = 0x7F //Velocity
+	    midi_send_event( mc, p, midi_event, 3, get_ticks() )
+	    
+	    i + 1
+	}
+
+	sleep( 200 )
+	
+	midi_close_port( mc, p )
+    }
+    
+    midi_close_client( mc )
+}

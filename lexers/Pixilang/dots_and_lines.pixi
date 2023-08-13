@@ -1,0 +1,42 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+screen = get_screen()
+xsize = get_xsize( screen )
+ysize = get_ysize( screen )
+
+start_timer( 0 )
+
+while 1
+{
+	t = get_timer( 0 )
+
+	transp( 16 )
+	clear()
+	transp( 255 )
+
+	t_reset()
+
+	t_rotate( t / 20, 0.8, 0.9, 1 )
+	t_scale( 4, 4, 4 )
+
+	bsize = abs( sin( t / 400 ) * 16 )
+	box( -32, -32, bsize, bsize, RED )
+	fbox( 32, -32, bsize, bsize, GREEN )
+
+	dot( 0, 0, WHITE )
+	dot( -64, 0, YELLOW )
+	dot( 0, -64, GREEN )
+	dot( 64, 0, ORANGE )
+	dot( 0, 64, WHITE )
+
+	line( 0, 0, 32, 0, ORANGE )
+	line3d( 0, 0, 0, 32, 0, 64, ORANGE )
+
+	frame()
+	while( get_event() )
+	{
+		if EVT[ EVT_TYPE ] == EVT_QUIT { halt }
+	}
+}
+

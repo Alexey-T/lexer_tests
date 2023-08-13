@@ -1,0 +1,7 @@
+include "../show_log.pixi"
+
+str = "Hello!"
+logf( "strlen( \"%s\" ) = %d\n", str, strlen( str ) )
+logf( "strlen( \"%s\", 2 ) = %d\n", str, strlen( str, 2 ) )
+
+show_log()

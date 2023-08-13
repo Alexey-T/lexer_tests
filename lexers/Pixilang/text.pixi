@@ -1,0 +1,52 @@
+//set_pixel_size( WINDOW_XSIZE / 480 )
+
+mode = 0
+len = 4096
+txt = new( len, 1, INT8 )
+i = 0 while i < len
+{
+    txt[ i ] = 1 + ( rand() & 127 )
+    i + 1
+}
+
+//Read GL_CALLBACK.txt for more information
+prev_fps = 0
+fn gl_callback( $userdata )
+{
+    set_screen( GL_SCREEN )
+
+    clear()
+
+    t_reset()
+    transp( 255 )
+    //if mode & 1 { t_scale( 8, 8, 8 ) }
+    if mode & 1 { t_translate( 4000, 0, 0 ) }
+    print( txt, 0, 0, BLUE )
+    transp( 255 )
+
+    t_reset()
+    $ts = ""
+    sprintf( $ts, "FPS:%u", FPS )
+    print( $ts, -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    if prev_fps != FPS { logf( "%s\n", $ts ) }
+    prev_fps = FPS
+
+    set_screen( 0 )
+}
+
+set_gl_callback(
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() )
+{
+    type = EVT[ EVT_TYPE ]
+    if type == EVT_QUIT { halt }
+    if type == EVT_MOUSEBUTTONDOWN
+    {
+	mode + 1
+    }
+}
+frame()
+go start

@@ -1,0 +1,20 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+clear();
+pixi( img, 0, 0 )
+
+while 1 
+{
+    effector( EFF_SPREAD_LEFT, 2, WHITE )
+    effector( EFF_SPREAD_RIGHT, 2, WHITE )
+    effector( EFF_SPREAD_UP, 2, WHITE )
+    effector( EFF_SPREAD_DOWN, 2, WHITE )
+
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+}
+

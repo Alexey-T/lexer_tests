@@ -1,0 +1,52 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+
+//Base image:
+xsize = 128
+ysize = 128
+mask = xsize * ysize - 1
+img = new( xsize, ysize )
+set_screen( img )
+i = load( "images/test.jpg" )
+pixi( i )
+remove( i )
+set_screen( scr )
+
+//Map:
+map = new( xsize, ysize )
+i = 0
+s = xsize / 4
+y = 0 while( y < ysize )
+{
+    x = 0 while( x < xsize )
+    {
+	map[ i ] = sin( x / 16 ) * s + cos( y / 16 ) * s + i
+	i + 1
+	x + 1
+    }
+    y + 1
+}
+
+//Result:
+img2 = new( xsize, ysize )
+clean( img2 )
+
+s1 = get_xsize( scr ) div xsize
+s2 = get_ysize( scr ) div ysize
+if s1 < s2 { scale = s1 } else { scale = s2 }
+
+while 1
+{
+    clear()
+    
+    op_cn( OP_ADD, map, 1 )
+    op_cn( OP_AND, map, mask )
+    replace_values( img2, map, img )
+    replace_values( img2, map, img2 )
+    pixi( img2, 0, 0, WHITE, scale, scale )
+    
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame( 50 )
+}

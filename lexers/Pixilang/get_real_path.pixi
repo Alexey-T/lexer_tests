@@ -1,0 +1,18 @@
+include "../show_log.pixi"
+
+filename = "1:/some_file"
+realpath = get_real_path( filename )
+logf( "File name: %s; Real path: %s\n", filename, realpath )
+remove( realpath )
+
+filename = "2:/some_file"
+realpath = get_real_path( filename )
+logf( "File name: %s; Real path: %s\n", filename, realpath )
+remove( realpath )
+
+filename = "3:/some_file"
+realpath = get_real_path( filename )
+logf( "File name: %s; Real path: %s\n", filename, realpath )
+remove( realpath )
+
+show_log()

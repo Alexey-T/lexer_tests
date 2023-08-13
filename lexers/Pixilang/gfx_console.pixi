@@ -1,0 +1,24 @@
+scr = get_screen( scr )
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+con_y = -hysize
+con_color = WHITE
+
+fn con_print( $text )
+{
+    $ty = get_text_ysize( $text )
+    if con_y + $ty > hysize
+    {
+	$offset = con_y + $ty - hysize
+	pixi( scr, 0, -$offset )
+	con_y - $offset
+	fbox( -hxsize, hysize - $offset, xsize, $offset, BLACK )
+    }
+    print( $text, -hxsize, con_y, con_color, LEFT | TOP )
+    printf( "%s\n", $text )
+    frame()
+    con_y + $ty
+}

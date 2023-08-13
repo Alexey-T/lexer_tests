@@ -1,0 +1,11 @@
+name = new( 256, 1, INT8 )
+
+fputs( "Please enter your name: " )
+
+fgets( name, 256, STDIN )
+
+fputs( "Hello, " )
+fputs( name )
+fputs( "!\n" )
+
+remove( name )

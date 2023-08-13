@@ -1,0 +1,56 @@
+include "../show_log.pixi"
+
+//Create a new container:
+c = new( 2, 2, INT32 )
+c[ 0 ] = 1
+c[ 1 ] = 2
+c[ 2 ] = 3
+c[ 3 ] = 4
+
+//Open container-based file for reading:
+f = fopen_mem( c )
+if f
+{
+    i = 0 while 1
+    {
+	b = fgetc( f ) //read next byte from the stream f
+	if b == -1 { break } //end of file
+	logf( "%d: %d\n", i, b )
+	i + 1
+    }
+    fclose( f ) //close the stream f
+}
+
+//Open container-based file for writing:
+f = fopen_mem( c )
+if f
+{
+    fputc( 2, f ) //write next byte
+    fputc( 0, f ) //...
+    fputc( 0, f )
+    fputc( 0, f )
+    fputc( 3, f )
+    fputc( 0, f )
+    fputc( 0, f )
+    fputc( 0, f )
+    fputc( 4, f )
+    fputc( 0, f )
+    fputc( 0, f )
+    fputc( 0, f )
+    fputc( 5, f )
+    fputc( 0, f )
+    fputc( 0, f )
+    fputc( 0, f )
+    fputc( 1, f )
+    fputc( 1, f )
+    fputc( 0, f )
+    fputc( 0, f )
+    fclose( f ) //close the stream f
+}
+
+//Get new container parameters:
+logf( "New XSize = %d\n", get_xsize( c ) )
+logf( "New YSize = %d\n", get_ysize( c ) )
+logf( "c[ 4 ] = %d\n", c[ 4 ] );
+
+show_log()

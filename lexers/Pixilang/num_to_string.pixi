@@ -1,0 +1,48 @@
+include "../show_log.pixi"
+
+//Number to string converting
+
+//Method 1 (just output the text to the log):
+v = 12345.5
+logf( "%f\n", v )
+
+//Method 2 (intermediate buffer + sprintf()):
+v = 12345.6
+s = "" //some temporary string (not necessarily empty)
+sprintf( s, "%f\n", v )
+logf( s ) //print the resulting string
+sprintf( s, "%.02f\n", v ) //two chars after the dot
+logf( s )
+sprintf( s, "%d\n", v ) //integer only
+logf( s )
+
+//Method 3 (intermediate buffer + num2str):
+v = 12345.7 //floating point number
+s = ""
+num2str( s, v )
+logf( "%s\n", s ) //print the resulting string
+
+//num2str options:
+
+v = 12345
+s = ""
+
+//Hexadecimal:
+num2str( s, v, 16 )
+logf( "HEX: %s\n", s )
+
+//Decimal:
+num2str( s, v, 10 )
+logf( "DEC: %s\n", s )
+
+//Decimal + offset:
+s = "DEC: ??"
+num2str( s, v, 10, 5 )
+logf( "%s\n", s )
+
+//Decimal + offset + no NULL terminator at the end of the generated string:
+s = "DEC: ????????"
+num2str( s, v, 10, 6, 1 )
+logf( "%s\n", s )
+
+show_log()

@@ -1,0 +1,157 @@
+fn midi_selector( $mc, $flags )
+{
+    if xsize == 0
+    {
+	xsize = get_xsize( get_screen() )
+	ysize = get_ysize( get_screen() )
+	hxsize = xsize div 2
+	hysize = ysize div 2
+	char_xsize = 8
+	char_ysize = 8
+	atom_size = 16
+    }
+    
+    $ok_size = atom_size * 2
+    $top_size = atom_size * 2
+    $dev_size = atom_size
+    
+    $sel_color = #605040
+    
+    //Scan devices:
+    $devs = new( 256, 1, INT )
+    clean( $devs, -1 )
+    $devs_num = 0
+next_mdevice:    
+    $dev_name = midi_get_device( $mc, $devs_num, $flags )
+    if $dev_name >= 0
+    {
+	$devs[ $devs_num ] = $dev_name
+	$devs_num + 1
+	go next_mdevice
+    }
+    
+    $break = 0
+    $tcnt = 0
+    while( $break == 0 )
+    {
+	transp( 16 + $tcnt ) $tcnt + 2
+	clear( BLACK )
+	transp( 256 )
+	
+	$cols = 1
+	$y = -hysize + $top_size
+	$x = -hxsize
+	dev_num = 1
+	if midi_dev == -1 { transp( 256 ) } else { transp( 32 ) }
+	fbox( $x, $y, xsize, $dev_size - 1, $sel_color )
+	transp( 256 )
+	print( "None", $x, $y + $dev_size / 2, WHITE, LEFT )
+	$y + $dev_size
+	$i = 0 while( $i < $devs_num )
+	{
+	    $c = WHITE
+	    if ( $i & 1 ) == 0 { $c = #D0D0D0 }
+	    $dev_name = $devs[ $i ]
+	    $sc = $sel_color
+	    if strcmp( $dev_name, midi_dev ) { $sc = get_blend( BLACK, $sel_color, 100 ) }
+	    fbox( $x, $y, xsize, $dev_size - 1, $sc )
+	    transp( 256 )
+	    print( $dev_name, $x, $y + $dev_size / 2, $c, LEFT )
+	    $y + $dev_size
+	    if $y + $dev_size > hysize - $ok_size
+	    {
+		$y = -hysize + $top_size
+		$x + hxsize
+		if $cols > 1 
+		{
+		    if $dev_size > char_ysize
+		    {
+			$dev_size - 1
+		    }
+		}
+		$cols = 2
+		fbox( $x - 2, -hysize, hxsize + 2, ysize, BLACK )
+	    }
+	    $i + 1
+	}
+
+	//Channels:
+	$s = xsize / 16
+	$i = 0 while( $i < 16 )
+	{
+	    $x = -hxsize + $i * $s
+	    $ts = "" sprintf( $ts, "%d", $i + 1 )
+	    if midi_ch == $i
+	    {
+		fbox( $x, -hysize, $s, $top_size - 1, $sel_color )
+	    }
+	    $c = WHITE
+	    if $i & 1 { $c = #808080 }
+	    print( $ts, $x + $s / 2, -hysize + $top_size div 2 + 1, $c, TOP )
+	    $i + 1
+	}
+	print( "MIDI Channel:", 0, -hysize + $top_size div 2 - 1, WHITE, BOTTOM )
+	
+	fbox( -hxsize, hysize - $ok_size, xsize, $ok_size, $sel_color )
+	print( "OK", 0, hysize - $ok_size div 2, WHITE )
+	
+	while( get_event() ) 
+	{ 
+	    $xx = EVT[ EVT_X ]
+	    $yy = EVT[ EVT_Y ]
+	    if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONDOWN || EVT[ EVT_TYPE ] == EVT_MOUSEMOVE
+	    {
+		if EVT[ EVT_KEY ] & 1
+		{
+		    if $yy < -hysize + $top_size 
+		    { 
+			midi_ch = ( $xx + hxsize ) div $s 
+		    }
+		    else
+		    {
+			if $yy < hysize - $ok_size
+			{
+			    $i = ( $yy + ( hysize - $top_size ) ) div $dev_size
+			    if $cols > 1
+			    {
+				$i + ( ( $xx + hxsize ) div ( xsize div $cols ) ) * ( ( ysize - $top_size - $ok_size ) div $dev_size )
+			    }
+			    if $i >= 0 && $i < $devs_num + 1
+			    {
+				remove( midi_dev )
+				if $i == 0
+				{
+				    midi_dev = -1
+				}
+				else
+				{
+				    midi_dev = clone( $devs[ $i - 1 ] )
+				}
+			    }
+			}
+		    }
+		}
+		if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONDOWN || EVT[ EVT_TYPE ] == EVT_MOUSEMOVE
+		{
+		    if EVT[ EVT_KEY ] & 1
+		    {
+			if $yy > hysize - $ok_size
+			{
+			    $break = 1
+			}
+		    }
+		}
+	    }
+	    if EVT[ EVT_TYPE ] == EVT_QUIT { $break = 1 } 
+	}
+	
+	frame()
+    }
+    
+    $i = 0 while( $i < $devs_num )
+    {
+	remove( $devs[ $i ] )
+	$i + 1
+    }
+    remove( $devs )
+}

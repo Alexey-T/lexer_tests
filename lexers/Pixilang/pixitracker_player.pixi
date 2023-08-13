@@ -1,0 +1,17 @@
+set_pixel_size( WINDOW_XSIZE / 256 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+include "../../lib/pixitracker_audio_engine.pixi"
+
+pta_init()
+pta_load_song( "sound_files/workdays.piximod" )
+pta_play( 1 )
+while 1
+{
+    clear()
+    effector( EFF_NOISE, 255, #504030 )
+    print( "This music was created\nin PixiTracker\nwarmplace.ru/soft/pixitracker", 0, 0, WHITE )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { break2 } }
+    frame()
+}
+pta_deinit()

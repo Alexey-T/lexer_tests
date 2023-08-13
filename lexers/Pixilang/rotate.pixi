@@ -1,0 +1,32 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+//Set perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.001
+
+start_timer( 0 )
+
+while( 1 )
+{
+	t = get_timer( 0 )
+	t2 = t / 500
+
+	clear( BLACK )
+	
+	t_set_matrix( matrix )
+	s = 1
+	t_scale( s, s, s )
+	t_rotate( t / 800, 0.8, 0.9, 1 )
+	pixi( img, 0, 0, WHITE, 1, 1 )
+
+        while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+	
+	frame()
+}
+

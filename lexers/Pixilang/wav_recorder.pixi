@@ -1,0 +1,96 @@
+//Sound recorder: from Input (Mic/Line) to WAV file
+
+set_pixel_size( WINDOW_XSIZE / 256 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    if $in_channels >= 0
+    {
+	//Copy samples from the input (non interleaved) to the temp buffer (interleaved LRLRLR...):
+	$ch = 0 while $ch < channel_count
+	{
+	    copy( temp_audio_buf, $in_channels[ $ch ], $ch, 0, $frames, channel_count, 1 )
+	    $ch + 1
+	}
+
+	//Write temp buffer to the file:
+	recorded_bytes + fwrite( temp_audio_buf, $frames * channel_count * 2, out_file )
+
+	//Visualization:
+	copy( visual_buf, $in_channels[ 0 ] )
+    }
+    ret( 0 )
+}
+
+visual_buf = new( 256, 1, INT16 )
+temp_audio_buf = new( 8000, 1, INT16 )
+clean( visual_buf )
+clean( temp_audio_buf )
+
+recorded_bytes = 0
+out_file_name = "3:/out.raw"
+out_file = fopen( out_file_name, "wb" )
+
+channel_count = 2
+sample_rate = 44100
+set_audio_callback( audio_callback, 0, sample_rate, INT16, channel_count )
+enable_audio_input( 1 )
+
+xsize = get_xsize( get_screen() )
+ysize = get_ysize( get_screen() )
+hxsize = xsize / 2
+hysize = ysize / 2
+
+save_request = 0
+while 1
+{
+    transp( 128 );
+    clear()
+    transp( 255 );
+
+    x = 0 while( x < 256 )
+    {
+        line( x - 128, 0, x - 128, visual_buf[ x ] / 512, GREEN )
+        x + 1
+    }
+
+    ts = ""
+    sprintf( ts, "recorded %d bytes\nTAP TO STOP", recorded_bytes )
+    print( ts, 0, 32 )
+
+    while( get_event() )
+    {
+	if EVT[ EVT_TYPE ] == EVT_QUIT { breakall }
+	if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONUP { save_request = 1 ; breakall }
+    }
+
+    frame()
+}
+
+fclose( out_file )
+
+remove( visual_buf )
+remove( temp_audio_buf )
+
+if save_request && get_file_size( out_file_name ) > 0
+{
+    snd_data = load( out_file_name )
+    resize( snd_data, get_size( snd_data ) div 2, 1, INT16 )
+    snd_data.sample_rate = sample_rate
+    snd_data.channels = channel_count
+    defname = ""
+    sprintf( defname, "%02d.%02d.%02d %02d.%02d", get_year(), get_month(), get_day(), get_hours(), get_minutes() )
+    save_to = file_dialog( "Save to WAV", "wav", ".save_wav", defname )
+    save( snd_data, save_to, FORMAT_WAVE )
+    remove( snd_data )
+}
+
+remove_file( out_file_name )

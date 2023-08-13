@@ -1,0 +1,223 @@
+//GIF_EXPORT = "phase.gif"
+$frame_count = 0
+$loop_len = 64 //number of frames
+$wave_types = 4
+$oversampling = 8
+
+scr = new( 180, 180 )
+scr2 = clone( scr )
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+anim = clone( scr )
+set_screen( scr )
+create_anim( anim )
+anim.fps = 20
+
+min_wsize = WINDOW_XSIZE
+if WINDOW_YSIZE < min_wsize { min_wsize = WINDOW_YSIZE }
+set_pixel_size( min_wsize / xsize )
+
+load_font()
+load_strings()
+load_images()
+load_sounds()
+
+$y0 = ysize / 4
+$y1 = -hysize + $y0 + 7
+$y2 = -hysize + $y0 * 3 - 7
+$ys = $y0 * 0.6
+
+//Draw background:
+set_screen( scr2 )
+clear( WHITE )
+transp( 40 )
+fbox( -hxsize, $y1, xsize, 1, BLACK )
+fbox( -hxsize, $y2, xsize, 1, BLACK )
+transp( 32 )
+$c = GREEN
+fbox( -hxsize, $y1 - $ys, xsize, $ys * 2, $c )
+fbox( -hxsize, $y2 - $ys, xsize, $ys * 2, $c )
+transp( 40 )
+$i = 0 while $i < wav_size
+{
+    $x = -hxsize + $i / wav_size * xsize
+    $y = $y2 + wav[ $i ] / 32768 * $ys
+    dot( $x, $y, BLACK )
+    $i + 1
+}
+set_screen( scr )
+transp( 255 )
+
+while 1
+{
+    copy( scr, scr2 )
+    
+    $t = ( $frame_count % $loop_len ) / $loop_len
+    $t2 = $t * M_PI * 2    
+
+    $wave_type = $frame_count * $wave_types div $loop_len
+    $i = 0 while $i < xsize * $oversampling
+    {
+	$i2 = $i / $oversampling
+	$i3 = $i2 / xsize
+	$x = $i2 - hxsize
+	
+	$v = get_wave( $i3, $wave_type )
+	aadot( $x, $y1 + $v * $ys, BLACK )
+	
+	$i + 1
+    }
+    transp( 128 )
+    $i = 0 while $i < xsize
+    {
+	$i2 = $i / xsize
+	$x = $i - hxsize
+	$y = $y1 + get_wave( $i2, $wave_type ) * $ys
+	line( $x, $y1, $x, $y, GREEN )
+	$i + 1
+    }
+    
+    transp( 255 )
+    print( str_period, 0, $y1 + 6, BLACK, 0, xsize )
+    print( str_or, 0, ( $y1 + $y2 ) / 2, BLACK )
+    print( str_sample, 0, $y2 + $ys - 6, BLACK, 0, xsize )
+    $x = -hxsize + $t * xsize
+    fbox( $x, -hysize, 1, ysize, BLACK ) 
+    t_scale( 2, 2, 2 )
+    //print( str_phase, $x div 2, ( hysize - 12 ) div 2, BLACK )
+    //ts = "" sprintf( ts, "%d%%", $t * 100 ) print( ts, $x div 2, ( hysize - 4 ) div 2, BLACK )
+    $c = BLACK
+    print( str_phase, $x / 2 - 2, ( hysize - 8 ) div 2, $c, RIGHT )
+    ts = "" sprintf( ts, "%d%%", $t * 100 ) print( ts, $x / 2 + 2, ( hysize - 8 ) div 2, $c, LEFT )
+    t_reset()
+    
+    $s = 0.4
+    $y = $y1 + get_wave( $t, $wave_type ) * $ys
+    pixi( halo, $x, $y, BLACK, $s, $s )
+    $y = $y2 + wav[ $t * wav_size ] / 32768 * $ys
+    pixi( halo, $x, $y, BLACK, $s, $s )
+
+    if GIF_EXPORT
+    {
+	if $frame_count < $loop_len
+	{    
+	    copy( anim, scr )
+	    pack_frame( anim )
+	    if $frame_count < $loop_len - 1
+	    {
+		clone_frame( anim )
+		anim.frame + 1
+	    }
+	}
+    }
+    
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame( 1000 / anim.fps )
+    $frame_count + 1
+    if $frame_count >= $loop_len 
+    { 
+	$frame_count = 0 
+	if GIF_EXPORT
+	{
+	    break
+	}
+    }
+}
+
+if GIF_EXPORT
+{
+    $name = GIF_EXPORT
+    save( anim, $name, FORMAT_GIF, 0 ) //GIF_DITHER )
+    ts = "" sprintf( ts, "gifsicle -b -O3 %s", $name ) system( ts )
+}
+
+fn load_font()
+{
+    $f = load( "images/font8x8_2.png" )
+    set_key_color( $f, BLACK )
+    set_font( 0x20, $f, 16, 6 )
+
+    $f = load( "images/font8x8_2_cyr.png" )
+    set_key_color( $f, BLACK )
+    set_font( 0x410, $f, 16, 4 )
+}
+
+fn load_strings()
+{
+    if strstr( LANG_NAME, "ru_" ) >= 0
+    {
+        //Russian:
+        str_period = "Колебание генератора"
+        str_or = "ИЛИ"
+        str_sample = "Сэмпл"
+        str_phase = "Фаза"
+    }
+    else
+    {
+        //English:
+        str_period = "Waveform cycle"
+        str_or = "OR"
+        str_sample = "Sample"
+        str_phase = "Phase"
+    }
+}
+
+fn load_images()
+{
+    halo = load( "images/halo.png" )
+}
+
+fn load_sounds()
+{
+    wav = load( "../sound/sound_files/drums.wav" )
+    wav_size = get_xsize( wav )
+}
+
+fn get_wave( $t, $type )
+{
+    $v = 0
+    if $type == 0
+    {
+	$v = sin( $t * M_PI * 2 )
+    }
+    if $type == 1
+    {
+	if $t < 0.5 { $v = $t * 2 } else { $v = -1 + ( $t - 0.5 ) * 2 }
+    }
+    if $type == 2
+    {
+	if $t < 0.5 { $v = 1 } else { $v = -1 }
+    }
+    if $type == 3
+    {
+	$t + 0.25
+	if $t > 1 { $t - 1 }
+	if $t < 0.5 { $v = -1 + $t * 4 } else { $v = 1 - ( $t - 0.5 ) * 4 }
+    }
+    ret( $v )
+}
+
+fn aadot( $x, $y, $color )
+{
+    $t = get_transp()
+    $xx = ( $x + 1024 ) * 256
+    $xc = $xx & 255
+    $yy = ( $y + 1024 ) * 256
+    $yc = $yy & 255
+    $ycc = 255 - $yc
+    $tx1 = 255 - $xc
+    $tx2 = $xc
+    $x = ( $xx >> 8 ) - 1024
+    $y = ( $yy >> 8 ) - 1024
+    transp( ( ( ( $tx1 * $ycc ) >> 8 ) * $t ) >> 8 )
+    dot( $x, $y, $color )
+    transp( ( ( ( $tx2 * $ycc ) >> 8 ) * $t ) >> 8 )
+    dot( $x + 1, $y, $color )
+    transp( ( ( ( $tx1 * $yc ) >> 8 ) * $t ) >> 8 )
+    dot( $x, $y + 1, $color )
+    transp( ( ( ( $tx2 * $yc ) >> 8 ) * $t ) >> 8 )
+    dot( $x + 1, $y + 1, $color )
+    transp( $t )
+}

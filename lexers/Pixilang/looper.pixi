@@ -1,0 +1,191 @@
+//Simple looper
+
+set_pixel_size( WINDOW_XSIZE / 180 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+//Setup:
+sample_rate = 44100
+buf_maxlen = sample_rate * 6 * 4 //4 minutes max
+
+fn buf_save( $filename ) //Save to WAV
+{
+    $w = new( buf_len * 2, 1, INT16 )
+    copy( $w, buf1, 0, 0, buf_len, 2, 1 )
+    copy( $w, buf2, 1, 0, buf_len, 2, 1 )
+    $w.sample_rate = sample_rate
+    $w.channels = 2
+    $w.loop_start = 0
+    $w.loop_len = buf_len
+    $w.loop_type = 1
+    save( $w, $filename, FORMAT_WAVE )
+}
+
+fn buf_op( $dest, $src, $dest_ptr, $src_ptr, $size, $r )
+{
+    $p = 0
+    while $p < $size
+    {
+        $step = $size
+        if buf_len
+	{
+	    if $dest_ptr + $step > buf_len
+	    {
+	        $step = $dest_ptr + $step - buf_len
+	    }
+	}
+	if $r == 0
+	{
+	    op_cc( OP_SADD, $dest, $src, $dest_ptr, $src_ptr, $step )
+	}
+	else
+	{
+	    op_cc( OP_COPY, $src, $dest, $src_ptr, $dest_ptr, $step )
+	}
+        $p + $step
+        $src_ptr + $step
+        $dest_ptr + $step
+        if buf_len
+	{
+	    $dest_ptr % buf_len
+	}        
+    }    
+}
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    $rv = 0
+    if buf_rec_request > 0
+    {
+	//REC:
+    	if buf_len == 0
+	{
+	    //First time:
+	    buf_ptr = 0
+	}
+	buf_rec = 1
+	buf_rec_request = 0
+    }
+    if buf_rec_request < 0
+    {
+	//STOP:
+	if buf_len == 0
+	{
+	    buf_len = buf_ptr
+	}
+	buf_rec = 0
+	buf_rec_request = 0
+    }
+    if $in_channels >= 0
+    {
+	if buf_rec == 0 && buf_len == 0
+	{
+	    //Copy input channels to the output:
+    	    $ch = 0 while $ch < 2
+    	    {
+        	copy( $channels[ $ch ], $in_channels[ $ch ], 0, 0, $frames )
+        	$ch + 1
+    	    }
+	}
+	else
+	{
+	    if buf_rec
+	    {
+		//Input to buffer:
+		buf_op( buf1, $in_channels[ 0 ], buf_ptr, 0, $frames, 0 )
+		buf_op( buf2, $in_channels[ 1 ], buf_ptr, 0, $frames, 0 )
+	    }
+	    //Buffer to output:
+	    buf_op( buf1, $channels[ 0 ], buf_ptr, 0, $frames, 1 )
+    	    buf_op( buf2, $channels[ 1 ], buf_ptr, 0, $frames, 1 )
+    	    if buf_rec == 0
+	    {
+		//Add input channels to the output:
+    		$ch = 0 while $ch < 2
+    		{
+        	    op_cc( OP_SADD, $channels[ $ch ], $in_channels[ $ch ], 0, 0, $frames )
+        	    $ch + 1
+    		}
+	    }
+	    buf_ptr + $frames
+	    if buf_len
+	    {
+		buf_ptr % buf_len
+	    }	
+	}
+	//Visualization:
+	copy( visual_buf, $channels[ 0 ] )
+	$rv = 1 //output is not empty
+    }
+    ret( $rv )
+}
+
+visual_buf = new( 256, 1, INT16 )
+clean( visual_buf )
+
+buf1 = new( buf_maxlen, 1, INT16 )
+buf2 = new( buf_maxlen, 1, INT16 )
+clean( buf1 )
+clean( buf2 )
+buf_len = 0
+buf_ptr = 0
+buf_rec = 0
+buf_rec_request = 0
+
+set_audio_callback( audio_callback, 0, sample_rate, INT16, 2 )
+enable_audio_input( 1 )
+
+xsize = get_xsize( get_screen() )
+ysize = get_ysize( get_screen() )
+hxsize = xsize / 2
+hysize = ysize / 2
+
+while 1
+{
+    transp( 64 );
+    clear()
+    transp( 256 );
+
+    x = 0 while( x < 256 )
+    {
+        dot( x - 128, visual_buf[ x ] / 512, BLUE )
+        x + 1
+    }
+    
+    if buf_rec == 0
+    {
+	print( "TAP TO RECORD", 0, 0, WHITE )
+    }
+    else
+    {
+        print( "Recording...\nTAP TO STOP", 0, 0, WHITE )
+    }
+    ts = "" sprintf( ts, "len: %d\nptr: %d\nrec: %d", buf_len, buf_ptr, buf_rec )
+    print( ts, 0, 32, WHITE )
+
+    while( get_event() ) 
+    {
+	if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONUP 
+	{ 
+	    if buf_rec
+	    {
+		buf_rec_request = -1
+	    }
+	    else
+	    {
+		buf_rec_request = 1
+	    }
+	} 
+	if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } 
+    }
+
+    frame()
+}
+
+//buf_save( "OUT.wav" )

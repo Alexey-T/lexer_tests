@@ -1,0 +1,45 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+screen = get_screen()
+xsize = get_xsize( screen )
+ysize = get_ysize( screen )
+
+img = load( "images/test.jpg" )
+img2 = new( get_xsize( img ), get_ysize( img ), INT16 )
+img3 = clone( img )
+img_gray = clone( img2 )
+split_rgb( 0, img, -1, img_gray, -1 ) // img --> green channel
+
+start_timer( 0 )
+
+while( 1 )
+{
+	t = get_timer( 0 ) / 500
+
+	clear()
+	
+	copy( img2, img_gray )
+	
+	$size = get_size( img2 )
+	$speed = ( sin( t ) + 1 ) * 4
+	$a = 0
+	$i = 0 while $i < $size
+	{
+	    $v = img2[ $i ]
+	    if $a < $v { $a + $speed } else { $a - $speed }
+	    img2[ $i ] = $a
+	    $i + 1
+	}
+	
+	split_rgb( 1, img3, img2, img2, img2 ) // grayscale --> img3
+	pixi( img3 )
+
+	ts = ""
+	sprintf( ts, "FPS:%u", FPS )
+	print( ts, -xsize / 2 + 8, -ysize / 2 + 8, WHITE, TOP | LEFT )
+
+	while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+	frame()
+}

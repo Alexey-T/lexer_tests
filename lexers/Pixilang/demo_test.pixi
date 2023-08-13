@@ -1,0 +1,75 @@
+include "../../../lib/demo.pixi"
+
+demo_show_fps = 1
+demo_xsize = 320
+demo_ysize = 240
+demo_sound_rate = 44100
+demo_sound_type = INT16
+demo_sound_channels = 1
+demo_sound_fn = audio_callback
+//demo_video_export = "video.avi"
+
+demo_init()
+demo_add_scene( 0, 0, 0, scene1 ) //layer0, start time 0 ms
+//demo_add_scene( 0, 0, 3000, DEMO_STOP ) //layer0, start time 3000 ms
+demo_add_scene( 1, 0, 2000, scene2 ) //layer1, start time 2000 ms
+
+audio_pause = 1
+audio_t = 0
+
+demo_play()
+demo_deinit()
+
+fn scene1( $t1, $t2, $len, $frame )
+{
+    //$t1 - current time;
+    //$t2 - current time relative to the beginning of the scene;
+    //$len - scene length;
+    //time function = 0 (main); time unit = millisecond;
+    t_scale( 2, 2, 2 )
+    audio_pause = 0
+    clear( #304010 )
+    sprintf( demo_ts, "cur time %d\nscene time %d\nscene length %d\nframe counter %d", $t1, $t2, $len, $frame )
+    print( demo_ts )
+    t_reset()
+}
+
+fn scene2( $t1, $t2, $len, $frame )
+{
+    $s = ( sin( $t2/1000 ) + 2 ) * 64
+    $x = -$s/2
+    $y = -$s/2
+    transp(200)
+    effector( EFF_HBLUR, 16, WHITE, $x, $y, $s, $s )
+    effector( EFF_VBLUR, 16, WHITE, $x, $y, $s, $s )
+    transp(32)
+    fbox( $x, $y, $s, $s, YELLOW )
+    transp(255)
+}
+
+fn audio_callback(
+    $stream,
+    $userdata,
+    $channels,
+    $frames,
+    $output_time,
+    $in_channels,
+    $latency_in_frames )
+{
+    if audio_pause { ret( 0 ) }
+    $out = $channels[ 0 ]
+    $i = 0 while $i < $frames
+    {
+	$t2 = audio_t >> 4
+        $v =
+            ( $t2 << 10 | $t2 << 9 | $t2 << 4 ) + $t2
+            + ( ( $t2 << 12 & $t2 << 2 | $t2 << 6 ) - $t2 )
+            - ( ( audio_t << 9 ) & ( audio_t >> 5 ) )
+        $out[ $i ] = ( $v & 32767 ) >> 2
+        $i + 1
+        audio_t + 1
+    }
+    ret( 1 )
+}
+
+show_memory_debug_messages( 1 )

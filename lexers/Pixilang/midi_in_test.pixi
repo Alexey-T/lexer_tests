@@ -1,0 +1,68 @@
+MIDI_IN_DEVICE = "nanoKEY Studio nanoKEY Studio _"
+
+//
+//
+//
+
+ts = ""
+
+mc = midi_open_client( "Pixi MIDI Client" )
+if mc >= 0
+{
+    fputs( "MIDI Client Opened\n" )
+    
+    //Scan devices:
+    dev_num = 0
+next_device:    
+    dev_name = midi_get_device( mc, dev_num, MIDI_PORT_READ | MIDI_PORT_WRITE )
+    if dev_name >= 0
+    {
+	sprintf( ts, "MIDI Device %d: %s\n", dev_num, dev_name )
+	fputs( ts )
+	remove( dev_name )
+	dev_num + 1
+	go next_device
+    }
+    
+    //Open device for reading:
+    p = midi_open_port( mc, "My IN port", MIDI_IN_DEVICE, MIDI_PORT_READ )
+    if p < 0
+    {
+	fputs( "ERROR: Can't open MIDI port for reading.\n" )
+    }
+    else
+    {
+	fputs( "MIDI port opened.\n" )
+
+	midi_event = new( 1, 1, INT8 )
+
+	$break = 0
+	while( $break == 0 )
+	{
+	    evt_size = midi_get_event( mc, p, midi_event )
+	    if evt_size > 0 
+	    {
+		evt_time = midi_get_event_time( mc, p )
+		sprintf( ts, "EVT. t:%x. data:", evt_time )
+		fputs( ts )
+		i = 0 while( i < evt_size )
+		{
+		    sprintf( ts, "%02x ", midi_event[ i ] & 255 )
+		    fputs( ts )
+		    i + 1
+		}
+		fputs( "\n" )
+		midi_next_event( mc, p )
+	    }
+	    else
+	    {
+		sleep( 50 )
+	    }
+	    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { $break = 1 } }
+	}	
+
+	midi_close_port( mc, p )
+    }
+
+    midi_close_client( mc )
+}

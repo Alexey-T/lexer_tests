@@ -1,0 +1,57 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+tests_num = 4
+test_results = new( 5, tests_num, FLOAT )
+clean( test_results )
+
+fn gl_callback( $userdata )
+{
+    $t = get_timer( 0 ) / 1000
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    transp( 255 )
+    clear( get_color( sin($t+0.5) * 128, cos($t+1) * 128, sin($t+2) * 128 ) )
+
+    $t1 = get_ticks()
+    copy( screenshot, get_screen() )
+    $t2 = get_ticks()
+    
+    $d = ( ( $t2 - $t1 ) * 1000 ) / get_tps()
+    test_results[ 2, test_num ] + $d
+    test_results[ 3, test_num ] + 1000 / $d
+    test_results[ 4, test_num ] + ( ( 1000 / $d ) * xsize * ysize ) / 1000000
+
+    f + 1
+
+    set_screen( 0 ) //Back to the default screen
+}
+
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+test_num = 0 while test_num < tests_num
+{
+    xsize = WINDOW_XSIZE >> test_num
+    ysize = WINDOW_YSIZE >> test_num
+    test_results[ 0, test_num ] = xsize
+    test_results[ 1, test_num ] = ysize
+    screenshot = new( xsize, ysize )
+    start_timer( 0 )
+    f = 0
+    while 1
+    {
+	while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+	frame()
+	if get_timer( 0 ) > 1000 * 4 { break }
+    }
+    remove( screenshot )
+    test_results[ 2, test_num ] / f
+    test_results[ 3, test_num ] / f
+    test_results[ 4, test_num ] / f
+    logf( "%d x %d : %f ms; %f FPS; %d mpixels per second\n", xsize, ysize, test_results[ 2, test_num ], test_results[ 3, test_num ], test_results[ 4, test_num ] )
+    test_num + 1
+}

@@ -1,0 +1,65 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+include "../../lib/gl_primitives.pixi"
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) / 1000
+
+    t_reset()
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+
+    $xsize = get_xsize( buf )
+    $ysize = get_ysize( buf )
+
+    gl_bind_framebuffer( buf )
+    
+    gl_gradient( -$xsize / 2, -$ysize / 2, 0, $xsize, $ysize, RED, 255, GREEN, 255, BLUE, 255, YELLOW, 255 )
+    gl_fstar( 0, 0, 0, sin( t ) * $xsize / 1, cos( t ) * $xsize / 1, 16, #FF8020, 255, #FF8020, 0 )
+    gl_circle( 0, 0, 0, $xsize / 4, ( sin( t * 3 ) + 1 ) * 64, WHITE )
+    transp( 128 )
+    gl_fcircle( 0, 0, 0, $xsize / 8, ( sin( t * 3 ) + 1 ) * 64, YELLOW )
+    transp( 256 )
+    gl_fcircle( 0, 0, 0, $xsize / 3, ( sin( t * 3 ) + 1 ) * 64, #FF8040, 255, #FF8040, 0 )
+    gl_star( 0, 0, 0, sin( t ) * $xsize / 6, cos( t ) * $xsize / 6, 16, WHITE )
+    transp( 128 )
+    gl_fstar( 0, 0, 0, sin( t ) * $xsize / 5, cos( t ) * $xsize / 5, 16, #FF8040 )
+    transp( 256 )
+    
+    print( "Rendering to\nOpenGL texture" )
+
+    gl_bind_framebuffer()
+    
+    clear()
+    $blur_len = 16
+    $i = 0 while $i < $blur_len
+    {
+	$s = 1 + ( $i / $blur_len ) * sin( t )
+	transp( 255 - ( $i / $blur_len ) * 255 )
+	pixi( buf, 0, 0, WHITE, ( WINDOW_XSIZE / $xsize / 2 ) * ( sin( t ) + 2 ) * $s, ( WINDOW_YSIZE / $ysize / 2 ) * -( cos( t ) + 2 ) * $s )
+	$i + 1
+    }
+    transp( 255 )
+    
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+start_timer( 0 )
+
+buf = new( 256, 256 )
+set_flags( buf, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NO_XREPEAT | GL_NO_YREPEAT | GL_NO_ALPHA )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

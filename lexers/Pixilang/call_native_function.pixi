@@ -1,0 +1,98 @@
+include "gfx_console.pixi"
+clear()
+con_buf = new( 1024, 1, INT8 )
+
+load_dll()
+
+sprintf( con_buf, "Call test_function1() ..." ) con_print( con_buf )
+rv = dlcall( dll, dll_test_function1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 )
+sprintf( con_buf, "Ret value = %f", rv ) con_print( con_buf )
+
+sprintf( con_buf, "Call test_function2() ..." ) con_print( con_buf )
+rv = dlcall( dll, dll_test_function2, 1, 2 )
+sprintf( con_buf, "Ret value = %f", rv ) con_print( con_buf )
+
+sprintf( con_buf, "Call test_function3() ..." ) con_print( con_buf )
+cont = new( 4, 4, INT32 )
+cont[ 0 ] = 1
+cont[ 1 ] = 2
+rv = dlcall( dll, dll_test_function3, cont )
+sprintf( con_buf, "Ret value (container) = %s", rv ) con_print( con_buf )
+remove( cont )
+remove( rv )
+
+unload_dll()
+
+while 1
+{
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame( 100 )
+}
+
+//
+//
+//
+
+fn load_dll()
+{
+    dll = -1
+    if dll == -1 && strstr( OS_NAME, "win32" ) >= 0
+    {
+	dll = dlopen( "lib_windows_x86/library.dll" )
+    }
+    if dll == -1 && strstr( OS_NAME, "win64" ) >= 0
+    {
+	dll = dlopen( "lib_windows_x86_64/library.dll" )
+    }
+    if dll == -1 && strstr( OS_NAME, "android" ) >= 0
+    {
+	if strstr( ARCH_NAME, "armv7-a" ) >= 0
+	{
+	    dll = dlopen( "lib_android_arm_v7a/library.so" )
+	}
+	if dll == -1 && strstr( ARCH_NAME, "arm" ) >= 0
+	{
+	    dll = dlopen( "lib_android_arm/library.so" )
+	}
+    }
+    if dll == -1 && strstr( OS_NAME, "linux" ) >= 0
+    {
+	if strstr( ARCH_NAME, "x86_64" ) >= 0
+	{
+	    dll = dlopen( "lib_linux_x86_64/library.so" )
+	}
+        if dll == -1 && strstr( ARCH_NAME, "x86" ) >= 0
+	{
+    	    dll = dlopen( "lib_linux_x86/library.so" )
+	}
+    }
+    if dll == -1 && strstr( OS_NAME, "osx" ) >= 0
+    {
+	if strstr( ARCH_NAME, "x86_64" ) >= 0
+	{
+	    dll = dlopen( "lib_osx_x86_64/library.dylib" )
+	}
+	if dll == -1 && strstr( ARCH_NAME, "x86" ) >= 0
+	{
+	    dll = dlopen( "lib_osx_x86/library.dylib" )
+	}
+    }
+    if dll == -1
+    {
+	sprintf( con_buf, "Native library not found" ) con_print( con_buf )
+    }
+    else
+    {
+	dll_test_function1 = dlsym( dll, "test_function1", "f(ififidifcsififid)" )
+	dll_test_function2 = dlsym( dll, "test_function2", "f(if)" )
+	dll_test_function3 = dlsym( dll, "test_function3", "p(p)" )
+	sprintf( con_buf, "Native library loaded" ) con_print( con_buf )
+    }
+    ret( dll )
+}
+
+fn unload_dll()
+{
+    dlclose( dll )
+    sprintf( con_buf, "Native library unloaded" ) con_print( con_buf )
+}

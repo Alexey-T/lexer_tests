@@ -1,0 +1,274 @@
+//By Roman Lahin, Alexander Zolotov
+//Wavefront .obj file loader
+//Supports the vertex colors specified after the x, y, z coordinates. (https://github.com/ynyBonfennil/blender-io-obj-vertex-color)
+
+/*
+  obj_load($file, $load_vertex_color (Optional))
+  Loads $file model and returns a container with vertices
+  which also contains "size" prop with the number of vertices
+  and the "cols", "uvs", "norms" containers.
+
+  Returns -1 if the file cannot be opened.
+*/
+
+/*
+  obj_remove($obj)
+  Destroys the obj model previously loaded with obj_load.
+*/
+
+/*
+  Example:
+  obj = obj_load("test2.obj", true)
+
+  fn gl_callback($userdata) {
+    gl_draw_arrays(GL_TRIANGLES, 0, obj.size, 255, 255, 255, 255, tex, obj, obj.cols, obj.uvs)
+  }
+
+  obj_remove(obj)
+*/
+
+fn obj_load( $file, $load_vertex_color )
+{
+    $f = fopen( $file, "rb" )
+    if !$f
+    {
+        printf( "Can't open file %s\n", $file )
+        ret(-1)
+    }
+
+    $line = new( 1024, 1, INT8 )
+    $line.ts = new( 1024, 1, INT8 ) //temp str
+
+    //Init data arrays
+    $initial_size = 32
+    
+    $verts = new( 3, $initial_size, FLOAT32 )
+    $cols = -1
+    if $load_vertex_color  { $cols = new(3, $initial_size, FLOAT32) }
+    $uvs = new( 2, $initial_size, FLOAT32 )
+    $norms = new( 3, $initial_size, FLOAT32 )
+
+    //Init data arrays
+    $mdlVerts = new( 3, $initial_size, FLOAT32 )
+    $mdlCols = -1
+    if $load_vertex_color { $mdlCols = new(3, $initial_size, FLOAT32) }
+    $mdlUvs = new( 2, $initial_size, FLOAT32 )
+    $mdlNorms = new( 3, $initial_size, FLOAT32 )
+
+    $lin = 0
+    while 1
+    {
+        $line.len = fgets( $line, 1024, $f )
+        if $line.len < 0 { break }
+        if $line.len == 0 && feof( $f ) { break }
+        //printf( "line: %d %s\n", $lin, $line )
+        
+        if strstr( $line, "v " ) == 0
+        {
+            _objl_load_vertex( $line, 2, $verts, 3, $cols, 3 )
+        }
+        if strstr( $line, "vt " ) == 0
+        {
+            _objl_load_vertex( $line, 3, $uvs, 2, -1, 0 )
+            $uvs[1, $uvs.size - 1] = 1 - $uvs[1, $uvs.size - 1] //v tex coord fix
+        }
+        if strstr( $line, "vn " ) == 0
+        {
+            _objl_load_vertex( $line, 3, $norms, 3, -1, 0 )
+        }
+        if strstr( $line, "f " ) == 0
+        {
+            _objl_load_face( $line, $verts, $cols, $uvs, $norms, $mdlVerts, $mdlCols, $mdlUvs, $mdlNorms )
+        }
+        $lin+1
+    }
+
+    remove( $line.ts )
+    remove( $line )
+    fclose( $f )
+
+    resize( $mdlVerts, get_xsize($mdlVerts), $mdlVerts.size )
+    remove( $verts )
+
+    if $load_vertex_color
+    {
+        resize( $mdlCols, get_xsize($mdlCols), $mdlCols.size )
+        if ($mdlCols.size == 0 || $cols.size == 0) { remove( $mdlCols ) ; $mdlCols = -1 }
+        remove( $cols )
+    }
+    $mdlVerts.cols = $mdlCols
+
+    resize( $mdlUvs, get_xsize($mdlUvs), $mdlUvs.size )
+    if ($mdlUvs.size == 0 || $uvs.size == 0) { remove( $mdlUvs ) ; $mdlUvs = -1 }
+    remove( $uvs )
+    $mdlVerts.uvs = $mdlUvs
+
+    resize( $mdlNorms, get_xsize($mdlNorms), $mdlNorms.size )
+    if ($mdlNorms.size == 0 || $norms.size == 0) { remove( $mdlNorms ) ; $mdlNorms = -1 }
+    remove( $norms )
+    $mdlVerts.normals = $mdlNorms
+
+    ret( $mdlVerts )
+}
+
+fn obj_remove( $obj )
+{
+    remove( $obj.cols )
+    remove( $obj.uvs )
+    remove( $obj.normals )
+    remove( $obj )
+}
+
+fn _objl_push( $arr )
+{
+    if $arr.size == get_ysize($arr)
+    {
+        resize( $arr, -1, (get_ysize($arr) * 3 div 2) + 1 )
+    }
+    $arr.size + 1
+}
+
+fn _objl_push_copy( $dest, $src, $src_yoffset )
+{
+    if $dest.size == get_ysize( $dest )
+    {
+        resize( $dest, -1, (get_ysize($dest) * 3 div 2) + 1 )
+    }
+    
+    copy( $dest, $src, $dest.size * get_xsize( $dest ), $src_yoffset * get_xsize( $src ), get_xsize( $dest ) )
+    $dest.size + 1
+}
+
+fn _objl_str2num( $line, $pos )
+{
+    $ts_p = 0
+    while 1
+    {
+        $c = $line[ $pos ]
+        if ( $c <= 0x20 || $c == '/' ) { break }
+        $line.ts[ $ts_p ] = $c ; $ts_p + 1
+        $pos + 1
+    }
+    
+    $line.ts[ $ts_p ] = 0
+    $line.str2num_end = $pos
+    ret( str_to_num( $line.ts ) )
+}
+
+fn _objl_load_vertex( $line, $pos, $arr, $axes_count, $arr2, $axes_count2 )
+{
+    _objl_push( $arr )
+
+    //iterate axes
+    $axis = 0
+    while( $axis < $axes_count && $pos < $line.len )
+    {
+        $arr[ $axis, $arr.size - 1 ] = _objl_str2num( $line, $pos )
+        $axis + 1
+        $pos = $line.str2num_end + 1
+    }
+
+    if $arr2 >= 0
+    {
+        //for vertex color
+        _objl_push( $arr2 )
+        //iterate axes
+        $axis = 0
+        while( $axis < $axes_count2 && $pos < $line.len )
+        {
+            $arr2[ $axis, $arr2.size - 1 ] = _objl_str2num( $line, $pos )
+            $pos = $line.str2num_end + 1
+            $axis + 1
+        }
+        //if we dont have vertex colors
+        if( $axis < $axes_count2 ) { op_cn( OP_COPY, $arr2, 1, 0, $arr2.size - 1, $axes_count2 - $axis, 1 ) }
+    }
+}
+
+fn _objl_load_face( $line, $verts, $cols, $uvs, $norms, $mdlVerts, $mdlCols, $mdlUvs, $mdlNorms )
+{
+    $pos = 2
+    $vert = 0
+
+    //iterate verts
+    while( $pos < $line.len )
+    {
+        $v = 0; $uv = 0; $n = 0
+
+        //$iterate attribs 
+        //v or v/uv or v/uv/n or v//n
+        $attrib = 0
+        while( $pos < $line.len )
+        {
+            if $attrib == 0 { $v = _objl_str2num( $line, $pos ) }
+            if $attrib == 1 { $uv = _objl_str2num( $line, $pos ) }
+            if $attrib == 2 { $n = _objl_str2num( $line, $pos ) }
+
+            $attrib + 1
+            $pos = $line.str2num_end + 1
+
+            if $line[ $pos - 1 ] == ' ' { break } //attribs iteration end
+            if $line[ $pos ] == '/' { $pos + 1; $attrib + 1 } //skip uv
+        }
+
+        if $vert >= 3
+        {
+            //polygon triangulation
+            _objl_push_copy( $mdlVerts, $mdlVerts, $mdlVerts.size - $vert )
+            _objl_push_copy( $mdlVerts, $mdlVerts, $mdlVerts.size - 2 )
+
+            if $mdlCols != -1
+            {
+                _objl_push_copy( $mdlCols, $mdlCols, $mdlCols.size - $vert )
+                _objl_push_copy( $mdlCols, $mdlCols, $mdlCols.size - 2 )
+            }
+
+            _objl_push_copy( $mdlUvs, $mdlUvs, $mdlUvs.size - $vert )
+            _objl_push_copy( $mdlUvs, $mdlUvs, $mdlUvs.size - 2 )
+
+            _objl_push_copy( $mdlNorms, $mdlNorms, $mdlNorms.size - $vert )
+            _objl_push_copy( $mdlNorms, $mdlNorms, $mdlNorms.size - 2 )
+
+            $vert + 2
+        }
+
+        //add vertex
+        //-1 = last element; 0 - not used?
+        if $v < 0 { _objl_push_copy( $mdlVerts, $verts, $verts.size + $v ) }
+        if $v > 0 { _objl_push_copy( $mdlVerts, $verts, $v - 1 ) }
+        if $v == 0 
+        { 
+            _objl_push( $mdlVerts )
+            op_cn( OP_COPY, $mdlVerts, 0, 0, $mdlVerts.size - 1, get_xsize($mdlVerts), 1 )
+        }
+
+        if $mdlCols != -1
+        {
+            if $v < 0 { _objl_push_copy( $mdlCols, $cols, $cols.size + $v ) }
+            if $v > 0 { _objl_push_copy( $mdlCols, $cols, $v - 1 ) }
+            if $v == 0 
+            { 
+                _objl_push( $mdlCols )
+                op_cn( OP_COPY, $mdlCols, 255, 0, $mdlCols.size - 1, get_xsize($mdlCols), 1 )
+            }
+        }
+
+        if $uv < 0 { _objl_push_copy( $mdlUvs, $uvs, $uvs.size + $uv ) }
+        if $uv > 0 { _objl_push_copy( $mdlUvs, $uvs, $uv - 1 ) }
+        if $uv == 0 
+        { 
+            _objl_push( $mdlUvs )
+            op_cn( OP_COPY, $mdlUvs, 0, 0, $mdlUvs.size - 1, get_xsize($mdlUvs), 1 )
+        }
+
+        if $n < 0 { _objl_push_copy( $mdlNorms, $norms, $norms.size + $n ) }
+        if $n > 0 { _objl_push_copy( $mdlNorms, $norms, $n - 1 ) }
+        if $n == 0 
+        { 
+            _objl_push( $mdlNorms )
+            op_cn( OP_COPY, $mdlNorms, 0, 0, $mdlNorms.size - 1, get_xsize($mdlNorms), 1 )
+        }
+
+        $vert + 1
+    }
+}

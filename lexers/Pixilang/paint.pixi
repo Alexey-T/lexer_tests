@@ -1,0 +1,28 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+print( "Click on the screen" )
+
+start:
+
+frame()
+
+while( get_event() )
+{
+    draw = 0
+    if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONDOWN { draw = 1 }
+    if EVT[ EVT_TYPE ] == EVT_MOUSEMOVE { draw = 1 }
+    if EVT[ EVT_TYPE ] == EVT_QUIT { halt }
+    if draw && ( EVT[ EVT_KEY ] == KEY_MOUSE_LEFT )
+    {
+	x = EVT[ EVT_X ]
+	y = EVT[ EVT_Y ]
+	size = 8
+	color = WHITE
+	transp( 64 )
+	fbox( x - size / 2, y - size / 2, size, size, color )
+    }
+}
+
+go start
+

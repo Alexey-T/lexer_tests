@@ -1,0 +1,149 @@
+/*
+
+  File utilities:
+
+  get_sorted_file_list( $path, $mask )
+    Get sorted list of files.
+    Return value: array[X,Y], where Y - file number; X - file property (0 - name (container), 1 - file/directory (integer))
+    Example:
+      list = get_sorted_file_list( CURRENT_PATH, "txt/doc" )
+      if list > 0 { remove_file_list( list ) }
+
+  remove_file_list( $list )
+    Remove created list of files.
+
+  fwrite_int32( $value, $f )
+    Write 32bit integer.
+    Return value: 4 if success.
+
+  crop_file_name( $name )
+    Remove directory from the file name ("dir/filename" -> "filename")
+    Return value: container with the file name (without directory); must be removed by user.
+
+  crop_dir_name( $name )
+    Delete the file name and leave the directory name ("dir/filename" -> "dir/")
+    Return value: container with the path (without file); must be removed by user.
+
+*/
+
+fn get_sorted_file_list( $path, $mask )
+{
+    $list = -1
+    $n = 0
+    $fl = new_flist( $path, $mask )
+    if $fl >= 0
+    {
+        while( 1 )
+        {
+            $n + 1
+            $file_name = get_flist_name( $fl )
+            if $file_name < 0
+            {
+        	//No files
+        	break
+            }
+            $file_type = get_flist_type( $fl ) //0 - file; 1 - directory;
+            if $list == -1
+            {
+                $list = new( 2, 1, INT )
+            }
+            else
+            {
+                resize( $list, 2, $n, INT )
+            }
+            $list[ 0, $n - 1 ] = new( strlen( $file_name ), 1, INT8 )
+            copy( $list[ 0, $n - 1 ], $file_name )
+            $list[ 1, $n - 1 ] = $file_type
+            if flist_next( $fl ) == 0 //Go to the next file
+            {
+                //No more files
+                break
+            }
+        }
+        remove_flist( $fl )
+    }
+    //Sort:
+    $changed = 1
+    while( $changed )
+    {
+        $changed = 0
+        $i = 0 while( $i < $n )
+        {
+            $file_name = $list[ 0, $i ]
+            $file_type = $list[ 1, $i ]
+            if $i < $n - 1
+            {
+                $file_name2 = $list[ 0, $i + 1 ]
+                $file_type2 = $list[ 1, $i + 1 ]
+                if strcmp( $file_name, $file_name2 ) > 0
+                {
+                    $list[ 0, $i ] = $file_name2
+                    $list[ 1, $i ] = $file_type2
+                    $list[ 0, $i + 1 ] = $file_name
+                    $list[ 1, $i + 1 ] = $file_type
+                    $changed = 1
+                }
+            }
+            $i + 1
+        }
+    }
+    ret( $list )
+}
+
+fn remove_file_list( $list )
+{
+    $size = get_ysize( $list )
+    $i = 0 while( $i < $size )
+    {
+        remove( $list[ 0, $i ] )
+        $i + 1
+    }
+}
+
+fn fwrite_int32( $value, $f )
+{
+    if fputc( $value & 255, $f ) == -1 { ret( 0 ) }
+    if fputc( ( $value >> 8 ) & 255, $f ) == -1 { ret( 0 ) }
+    if fputc( ( $value >> 16 ) & 255, $f ) == -1 { ret( 0 ) }
+    if fputc( ( $value >> 24 ) & 255, $f ) == -1 { ret( 0 ) }
+    ret( 4 )
+}
+
+fn fwrite_int16( $value, $f )
+{
+    if fputc( $value & 255, $f ) == -1 { ret( 0 ) }
+    if fputc( ( $value >> 8 ) & 255, $f ) == -1 { ret( 0 ) }
+    ret( 2 )
+}
+
+fn crop_file_name( $name ) //"dir/filename" -> "filename"
+{
+    if $name < 0 { ret( -1 ) }
+    $size = strlen( $name )
+    $i = $size - 1 while $i >= 0
+    {
+	if $name[ $i ] == '/' { break }
+	$i - 1
+    }
+    $i + 1
+    $new_name = new( $size - $i, 1, INT8 )
+    copy( $new_name, $name, 0, $i, $size - $i )
+    ret( $new_name )
+}
+
+fn crop_dir_name( $str ) //"dir/filename" -> "dir/"
+{
+    $rv = clone( $str )
+    $len = strlen( $str )
+    $i = $len - 1 while $i > 0
+    {
+        if $rv[ $i ] == '/'
+        {
+            $rv[ $i + 1 ] = 0
+            break
+        }
+        $i - 1
+    }
+    if $i <= 0 { remove( $rv ) $rv = -1 }
+    ret( $rv )
+}

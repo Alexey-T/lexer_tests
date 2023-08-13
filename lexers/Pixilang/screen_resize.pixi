@@ -1,0 +1,28 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+screen = get_screen()
+xsize = get_xsize( screen )
+ysize = get_ysize( screen )
+
+t = 0
+
+while( 1 )
+{
+    if WINDOW_XSIZE != xsize || WINDOW_YSIZE != ysize
+    {
+    	xsize = WINDOW_XSIZE
+    	ysize = WINDOW_YSIZE
+    	resize( screen, xsize, ysize )
+    	clean( screen )
+    }
+    y = 0 while( y < ysize )
+    {
+	fbox( -xsize / 2, -ysize / 2 + y, 2000, 1, get_blend( RED, YELLOW, ( y / ysize ) * 256 ) )
+	y + 1
+    }
+    print( "Hello!", 0, 0, BLACK )
+    frame()
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}
+

@@ -1,0 +1,73 @@
+//effector() can't work with OpenGL screen directly, but the following trick can be used
+
+set_pixel_size( WINDOW_XSIZE / 480 ) //This only affects the coordinates, but does not affect the resolution of the OpenGL framebuffer
+zoom = get_pixel_size()
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) / 32
+
+    set_screen( GL_SCREEN )
+    set_zbuf( GL_ZBUF )
+
+    clear()
+    clear_zbuf()
+
+    $win_xsize2 = WINDOW_XSIZE * zoom
+    $win_ysize2 = WINDOW_YSIZE * zoom
+
+    $s1 = WINDOW_XSIZE / get_xsize( img )
+    $s2 = WINDOW_YSIZE / get_ysize( img )
+    $s = $s1
+    if $s2 < $s1 { $s = $s2 }
+    $s * 0.5
+    t_set_matrix( matrix )
+    t_rotate( t, 1, 2, 3 )
+    t_scale( $s, $s, $s )
+    pixi( img )
+    t_set_matrix( matrix )
+    t_rotate( -t, 3, 2, 1 )
+    t_scale( $s, $s, $s )
+    pixi( img, 0, 0, GREEN )
+
+    set_zbuf( -1 )
+    t_reset()
+
+    $prev_screen = get_screen()
+    if temp_img <= 0 { temp_img = new( $win_xsize2, $win_ysize2, PIXEL ) } else { resize( temp_img, $win_xsize2, $win_ysize2 ) }
+    copy( temp_img, $prev_screen ) //Copy pixels from the OpenGL screen to the temp_img
+    set_screen( temp_img ) //Switch to the temp_img (soft render)
+    effector( EFF_HBLUR, 64, WHITE, -$win_xsize2/4, -$win_ysize2/4, $win_xsize2/2, $win_ysize2/2 ) //Apply the effector
+    set_screen( $prev_screen ) //Switch back to the OpenGL screen
+    update_gl_data( temp_img ) //Update temp_img - copy modified pixels to GPU memory
+    pixi( temp_img, 0, 0, WHITE, 1 / zoom, 1 / zoom ) //Show temp_img
+
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+
+    set_zbuf( -1 )
+    set_screen( 0 )
+}
+
+//Create perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.004
+
+img = load( "../graphics/images/test.jpg" )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR )
+
+start_timer( 0 )
+
+set_gl_callback(
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

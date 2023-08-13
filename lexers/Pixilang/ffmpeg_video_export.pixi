@@ -1,0 +1,109 @@
+//
+// ffmpeg/avconv-based video export functions
+// (experimental)
+//
+
+fn ffmpeg_video_export_thread( $thread_id, $ff )
+{
+    if $ff < 0 { ret( 0 ) }
+    $ts = ""
+    $audio = ""
+    $audio2 = ""
+    if $ff.audio_file_name > 0
+    {
+	sprintf( $audio, "-i \"%s\"", $ff.audio_file_name )
+	$audio2 = "-acodec pcm_s16le"
+    }
+    $vcodec = ""
+    if $ff.kbits == 0
+    {
+	sprintf( $vcodec, "-vcodec libx264 -b:v 2000k -preset fast" )
+    }
+    else
+    {
+	sprintf( $vcodec, "-vcodec libx264 -b:v %uk -preset slow", $ff.kbits )
+    }
+    sprintf( 
+	$ts, 
+	"%s %s -y -pix_fmt bgr32 -s %dx%d -f rawvideo -r %d -i \"%s\" %s %s \"%s\"", 
+	g_avconv,
+	$audio,
+	$ff.xsize, 
+	$ff.ysize,
+	$ff.fps,
+	$ff.pipe_name,
+	$vcodec,
+	$audio2,
+	$ff.name )
+    printf( "FFmpeg (output) command: %s\n", $ts )
+    system( $ts )
+}
+
+fn ffmpeg_video_export_open( $filename, $xsize, $ysize, $fps, $kbits, $max_frames, $audio_file_name )
+{
+    g_avconv = -1
+    while 1
+    {
+	if system( "ffmpeg -version" ) == 0 { g_avconv = "ffmpeg" break }
+	if system( "avconv -version" ) == 0 { g_avconv = "avconv" break }
+	break
+    }
+    if g_avconv == -1
+    {
+	logf( "No AV converters detected. Please install ffmpeg or avconv!\n" )
+	logf( "Please also note that this library is designed for *nix systems (Linux, macOS, BSD, etc.) only.\n" )
+	ret( -1 )
+    }
+
+    $ff = new( 1, 1, INT )
+    $ff.xsize = $xsize
+    $ff.ysize = $ysize
+    $ff.fps = $fps
+    $ff.kbits = $kbits
+    $ff.name = $filename
+    $ff.pipe_name = new( 1, 1, INT8 )
+    sprintf( $ff.pipe_name, "/tmp/avconv_vpipe_%d", $ff )
+    $ff.frame = 0
+    $ff.max_frames = $max_frames
+    if $0 >= 7
+    {
+	$ff.audio_file_name = $audio_file_name
+    }
+    
+    $ts = ""
+    sprintf( $ts, "mkfifo %s", $ff.pipe_name )
+    system( $ts )
+    $ff.th = thread_create( ffmpeg_video_export_thread, $ff )
+    
+    ret( $ff )
+}
+
+fn ffmpeg_video_export_close( $ff )
+{
+    if $ff < 0 { ret( 0 ) }
+    if $ff.pipe_f
+    {
+        fclose( $ff.pipe_f )
+    }
+    thread_destroy( $ff.th, INT_MAX )
+    remove_file( $ff.pipe_name )
+    remove( $ff.pipe_name )
+    remove( $ff )
+}
+
+fn ffmpeg_video_export_write( $ff, $buf )
+{
+    if $ff < 0 { ret( 0 ) }
+    if $ff.pipe_f == 0 { $ff.pipe_f = fopen( $ff.pipe_name, "wb" ) }
+    if $ff.pipe_f
+    {
+	fwrite( $buf, get_size( $buf ) * get_esize( $buf ), $ff.pipe_f )
+	$ff.frame + 1
+	if $ff.max_frames && $ff.frame >= $ff.max_frames
+        {
+            fputs( "FFmpeg export stop\n" )
+            ret( 1 )
+        }
+    }
+    ret( 0 )
+}

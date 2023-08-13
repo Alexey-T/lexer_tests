@@ -1,0 +1,8 @@
+printf( "PRINTF TEST: %% %% [ %s ] [ %c ] [ %d ] [ %04u ] [ %f ] [ %05.2f ]\n", "argument1", '?', -100, 123, 2.2, 4.45 )
+printf( "23.3 * 44.1 = %f\n", 23.3 * 44.1 )
+
+//Print to file:
+f = fopen( "some_file.txt", "wb" )
+fprintf( f, "Hello!\n%d", 123 )
+fclose( f )
+remove_file( "some_file.txt" )

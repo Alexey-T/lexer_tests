@@ -1,0 +1,7 @@
+include "../show_log.pixi"
+
+logf( "Current working dir: %s\n", CURRENT_PATH )
+logf( "User dir: %s\n", USER_PATH ) //user directory for configs, templates and some hidden data
+logf( "Temp dir: %s\n", TEMP_PATH )
+
+show_log()

@@ -1,0 +1,44 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+f = load( "images/font8x8.jpg" )
+
+xsize = get_xsize( f )
+ysize = get_ysize( f )
+
+out = fopen( "../../../lib_pixilang/pixilang_font.h", "wb" )
+ts = "" num_to_str( ts, xsize )
+fputs( "int g_font8x8_xsize = ", out ) fputs( ts, out ) fputs( ";\n", out )
+num_to_str( ts, ysize )
+fputs( "int g_font8x8_ysize = ", out ) fputs( ts, out ) fputs( ";\n", out )
+fputs( "int g_font8x8_xchars = 16;\n", out )
+fputs( "int g_font8x8_ychars = 6;\n", out )
+fputs( "uint8_t g_font8x8[] = {\n", out )
+
+p = 0
+y = 0 while( y < ysize )
+{
+    x = 0 while( x < xsize )
+    {
+	byte = 0
+	i = 0 while( i < 8 )
+	{
+	    byte << 1
+	    if get_red( f[ p ] ) > 128 { byte | 1 }
+	    p + 1
+	    f[ p - 1 ] = YELLOW
+	    i + 1
+	}
+	ts = ""
+	num_to_str( ts, byte )
+	fputs( ts, out )
+	fputs( ",\n", out )
+	x + 8
+    }
+    pixi( f, 0, 0 )
+    if ( y & 3 ) == 0 { frame() }
+    y + 1
+}
+
+fputs( "};\n", out )
+fclose( out )

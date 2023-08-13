@@ -1,0 +1,42 @@
+include "../show_log.pixi"
+
+fn print_file_format( $filename, $f )
+{
+    $ff = get_file_format( $filename, $f )
+    if $filename <= 0 { $filename = "stream" }
+    if $ff == FORMAT_RAW
+    {
+	logf( "%s format: raw (text file or some unknown file format)\n", $filename )
+    }
+    else
+    {
+	$mime = get_fformat_mime( $ff )
+	$extension = get_fformat_ext( $ff )
+	logf( "%s format: %d, %s, %s\n", $filename, $ff, $mime, $extension )
+	remove( $mime )
+	remove( $extension )
+    }
+}
+
+//Get file format:
+
+print_file_format( "../../graphics/images/alpha.png", 0 )
+print_file_format( "../../graphics/images/dark.jpg", 0 )
+print_file_format( "../../graphics/images/test.gif", 0 )
+print_file_format( "get_file_format.pixi", 0 )
+
+//Get stream format:
+
+c = new( 1, 1, INT8 ) //create storage c
+
+f = fopen_mem( c ) //open c as a file
+fsave( get_screen(), f, FORMAT_JPEG, 50 ) //save JPEG to stream f
+print_file_format( -1, f )
+fclose( f )
+
+f = fopen_mem( c ) //open c as a file
+fsave( get_screen(), f, FORMAT_PNG ) //save PNG to stream f
+print_file_format( -1, f )
+fclose( f )
+
+show_log()

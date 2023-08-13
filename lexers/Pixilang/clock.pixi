@@ -1,0 +1,68 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+screen = get_screen()
+xsize = get_xsize( screen )
+ysize = get_ysize( screen )
+
+halo = load( "images/halo.png" )
+
+start_timer( 0 )
+fade = 1
+
+clear( BLACK )
+
+while 1
+{
+    tt = get_timer( 0 ) / 10
+    if fade != 0
+    {
+	fade = 1 - tt / 256
+	if fade < 0 { fade = 0 }
+	fade * fade * fade * fade
+    }
+
+    effector( EFF_HBLUR, 10, WHITE )
+    effector( EFF_VBLUR, 10, WHITE )
+    effector( EFF_NOISE, 64, BLACK )
+    
+    size = xsize / 4
+    
+    t = get_hours()
+    a = -M_PI / 2 + ( ( t + get_minutes() / 60 ) / 12 ) * M_PI * 2
+    x = cos( a ) * size * 0.7 y = sin( a ) * size * 0.7
+    line( 0, 0, x, y, WHITE )
+    transp( 32 ) line( 0, 0, x * 8, y * 8, WHITE ) transp( 256 )
+    pixi( halo, x, y, #908070, 0.5 + fade * 8, 0.5 + fade * 8 )
+
+    t = get_minutes()
+    a = -M_PI / 2 + ( ( t + get_seconds() / 60 ) / 60 ) * M_PI * 2
+    x = cos( a ) * size y = sin( a ) * size
+    line( 0, 0, x, y, YELLOW )
+    transp( 32 ) line( 0, 0, x * 8, y * 8, YELLOW ) transp( 256 )
+    pixi( halo, x, y, YELLOW, 0.5 + fade * 8, 0.5 + fade * 8 )
+
+    t = get_seconds()
+    a = -M_PI / 2 + ( t / 60 ) * M_PI * 2
+    x = cos( a ) * size * 0.9 y = sin( a ) * size * 0.9
+    transp( 128 )
+    line( 0, 0, x, y, GREEN )
+    transp( 32 ) line( 0, 0, x * 8, y * 8, GREEN ) transp( 128 )
+    pixi( halo, x, y, GREEN, 0.5 + fade * 8, 0.5 + fade * 8 )
+    transp( 256 )
+    
+    t_reset()
+    t_scale( 4 + fade * 8, 4 + fade * 8, 4 + fade * 8 )
+    ts = "" sprintf( ts, "%02d:%02d:%02d", get_hours(), get_minutes(), get_seconds() ) 
+    transp( 256 - fade * 256 )
+    print( ts, 0, 0, WHITE )
+    transp( 256 )
+
+    frame()
+
+    print( ts, 0, 0, BLUE )
+
+    t_reset()
+
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}

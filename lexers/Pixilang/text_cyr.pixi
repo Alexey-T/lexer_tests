@@ -1,0 +1,39 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+font = load( "images/font_cyr.jpg" )
+
+alpha = new( get_xsize( font ), get_ysize( font ), INT8 )
+set_alpha( font, alpha )
+size = get_size( alpha ) i = 0 while( i < size )
+{
+    p = font[ i ]
+    alpha[ i ] = ( get_red( p ) + get_green( p ) + get_blue( p ) ) div 3
+    i + 1
+}
+
+set_font( 0x410, font, 16, 4 )
+
+start_timer( 0 )
+
+transp( 14 )
+
+start:
+
+box( -100, -100, 200, 200 )
+c = WHITE
+print( "Лево", -100, 0, c, LEFT )
+print( "Право", 100, 0, c, RIGHT )
+print( "Верх", 0, -100, c, TOP )
+print( "Низ", 0, 100, c, BOTTOM )
+print( "Центр\nЦЕНТР", 0, 0, c )
+print( "Верх\nЛево", -100, -100, c, TOP | LEFT )
+print( "Верх\nПраво", 100, -100, c, TOP | RIGHT )
+print( "Низ\nЛево", -100, 100, c, BOTTOM | LEFT )
+print( "Низ\nПраво", 100, 100, c, BOTTOM | RIGHT )
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+frame()
+
+go start

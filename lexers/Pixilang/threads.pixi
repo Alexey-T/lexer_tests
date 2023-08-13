@@ -1,0 +1,79 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+xsize = get_xsize( get_screen() )
+ysize = get_ysize( get_screen() )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+clear()
+
+threads_num = 4
+threads = new( threads_num, 1, INT )
+threads_base_time = new( threads_num, 1, INT )
+threads_start_time = new( threads_num, 1, INT )
+
+fn thread_body( $thread_id, $user_data )
+{
+    $tnum = $user_data
+    threads_start_time[ $tnum ] = get_ticks()
+    $cnt = 4
+    while $cnt >= 0
+    {
+	printf( "Thread %d; $cnt = %d\n", $thread_id, $cnt )
+	fbox( $tnum * 9, $cnt * 9, 8, 8, GREEN )
+	if $tnum == 0 { frame() }
+	sleep( 1000 )
+	if $tnum == 0 { frame() }
+	$cnt - 1
+    }
+}
+
+tn = 0 while tn < threads_num
+{
+    t1 = get_ticks()
+    threads[ tn ] = thread_create( thread_body, tn )
+    //threads[ tn ] = thread_create( thread_body, tn, THREAD_FLAG_AUTO_DESTROY ) //thread with this option will be destroyed automatically
+    t2 = get_ticks()
+    threads_base_time[ tn ] = t1
+    ts = "" sprintf( ts, "thread_create %d time: %f ms\n", threads[ tn ], ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() ) * 1000 )
+    printf( ts )
+    print( ts, -hxsize, -hysize + tn * 8, YELLOW, LEFT | TOP )
+
+    //thread_create time on various devices:
+    // x86_64; Core i5; Linux; Pixilang 3.4.2:			~0.06 ... 0.16 ms
+    // ARM; SA-1110; WinCE; Pixilang 3.4.2:			~0.8 ms
+    // ARM; MSM7227T; Android 2.3; Pixilang 3.4.2:		~1 ms
+
+    tn + 1
+}
+
+tn = 0 while tn < threads_num
+{
+    if thread_destroy( threads[ tn ], INT_MAX ) == 0 { printf( "Thread %d closed.\n", threads[ tn ] ) }
+    tn + 1
+}
+
+ts = ""
+sprintf( ts, "Delay between thread_create() and the first instruction of the thread_body:\n" )
+printf( ts )
+print( ts, -hxsize, hysize - threads_num * 8, RED, LEFT | BOTTOM )
+tn = 0 while tn < threads_num
+{
+    sprintf( ts, "Thread %d: %f ms.\n", threads[ tn ], ( ( ( threads_start_time[ tn ] - threads_base_time[ tn ] ) & 0xFFFFFFFF ) / get_tps() ) * 1000 )
+    printf( ts )
+    print( ts, -hxsize, hysize - tn * 8, RED, LEFT | BOTTOM )
+
+    //Delay on various devices:
+    // x86_64; Core i5; Linux; Pixilang 3.8:			~0.08 ... 0.3 ms
+    // ARM; SA-1110; WinCE. Pixilang 3.4.2:			~60 ms
+    // ARM; MSM7227T; Android 2.3; Pixilang 3.4.2:		~4 ms
+
+    tn + 1
+}
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

@@ -1,0 +1,27 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+logf( "Initial container size: %d\n", get_size( img ) * get_esize( img ) )
+
+// Other variants:
+// packed_img = zlib_pack( img, Z_NO_COMPRESSION )
+// packed_img = zlib_pack( img, Z_BEST_SPEED )
+// packed_img = zlib_pack( img, Z_BEST_COMPRESSION )
+
+packed_img = zlib_pack( img ) //Default compression level
+logf( "Size after zlib compression: %d\n", get_size( packed_img ) * get_esize( packed_img ) )
+remove( img )
+img = zlib_unpack( packed_img )
+logf( "Size after zlib decompression: %d\n", get_size( img ) * get_esize( img ) )
+remove( packed_img )
+
+l = get_log()
+
+while 1
+{
+    pixi( img )
+    print( l, -get_xsize( 0 ) / 2, -get_ysize( 0 ) / 2, WHITE, TOP | LEFT )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame( 100 )
+}

@@ -1,0 +1,311 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+version = "version 2.0"
+
+xsize = get_xsize( get_screen() )
+ysize = get_ysize( get_screen() )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+clear( #404040 )
+frame()
+
+t1 = get_ticks()
+i = 0 while( i < 10000000 )
+{
+    i + 1
+}
+t2 = get_ticks()
+loops = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+clear( #808080 )
+frame()
+
+t1 = get_ticks()
+a = 0
+i = 0 while( i < 10000000 div 20 )
+{
+    a = a + 2
+    a = a + 3
+    a = a + 4
+    a = a + 5
+    a = a + 6
+    a = a + 7
+    a = a + 8
+    a = a + 9
+    a = a + 10
+    a = a + 11
+    a = a + 2
+    a = a + 3
+    a = a + 4
+    a = a + 5
+    a = a + 6
+    a = a + 7
+    a = a + 8
+    a = a + 9
+    a = a + 10
+    a = a + 11
+    i + 1
+}
+t2 = get_ticks()
+add = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+clear( GREEN )
+frame()
+
+t1 = get_ticks()
+a = 0
+i = 0 while( i < 10000000 div 20 )
+{
+    a = a + 2.2
+    a = a + 3.21
+    a = a + 4.22
+    a = a + 5.23
+    a = a + 6.24
+    a = a + 7.25
+    a = a + 8.26
+    a = a + 9.27
+    a = a + 10.28
+    a = a + 11.299
+    a = a + 2.2
+    a = a + 3.21
+    a = a + 4.22
+    a = a + 5.23
+    a = a + 6.24
+    a = a + 7.25
+    a = a + 8.26
+    a = a + 9.27
+    a = a + 10.28
+    a = a + 11.299
+    i + 1
+}
+t2 = get_ticks()
+fadd = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+clear( YELLOW )
+frame()
+
+t1 = get_ticks()
+a = 1
+i = 0 while( i < 10000000 div 20 )
+{
+    a = a * 33
+    a = a * 43
+    a = a * 53
+    a = a * 63
+    a = a * 73
+    a = a * 83
+    a = a * 93
+    a = a * 113
+    a = a * 223
+    a = a * 333
+    a = a * 33
+    a = a * 43
+    a = a * 53
+    a = a * 63
+    a = a * 73
+    a = a * 83
+    a = a * 93
+    a = a * 113
+    a = a * 223
+    a = a * 333
+    i + 1
+}
+t2 = get_ticks()
+mul = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+clear( RED )
+frame()
+
+t1 = get_ticks()
+a = 1
+i = 0 while( i < 10000000 div 20 )
+{
+    a = a * 3.3
+    a = a * 4.31
+    a = a * 5.32
+    a = a * 6.33
+    a = a * 7.34
+    a = a * 8.355
+    a = a * 9.366
+    a = a * 10.3777
+    a = a * 11.3888
+    a = a * 12.39999
+    a = a * 3.3
+    a = a * 4.31
+    a = a * 5.32
+    a = a * 6.33
+    a = a * 7.34
+    a = a * 8.355
+    a = a * 9.366
+    a = a * 10.3777
+    a = a * 11.3888
+    a = a * 12.39999
+    i + 1
+}
+t2 = get_ticks()
+fmul = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+clear( WHITE )
+frame()
+
+t1 = get_ticks()
+a = 100
+i = 0 while( i < 10000000 div 20 )
+{
+    a = a div 3
+    a = a div 4
+    a = a div 5
+    a = a div 6
+    a = a div 7
+    a = a div 8
+    a = a div 9
+    a = a div 10
+    a = a div 11
+    a = a div 12
+    a = a div 3
+    a = a div 4
+    a = a div 5
+    a = a div 6
+    a = a div 7
+    a = a div 8
+    a = a div 9
+    a = a div 10
+    a = a div 11
+    a = a div 12
+    i + 1
+}
+t2 = get_ticks()
+idiv = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+clear( #807090 )
+frame()
+
+t1 = get_ticks()
+a = 100
+i = 0 while( i < 10000000 div 20 )
+{
+    a = a / 3.3
+    a = a / 4.31
+    a = a / 5.32
+    a = a / 6.33
+    a = a / 7.34
+    a = a / 8.355
+    a = a / 9.3666
+    a = a / 10.3777
+    a = a / 11.38888
+    a = a / 12.399999
+    a = a / 3.3
+    a = a / 4.31
+    a = a / 5.32
+    a = a / 6.33
+    a = a / 7.34
+    a = a / 8.355
+    a = a / 9.3666
+    a = a / 10.3777
+    a = a / 11.38888
+    a = a / 12.399999
+    i + 1
+}
+t2 = get_ticks()
+fdiv = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+resize( get_screen(), 320, 240 )
+t1 = get_ticks()
+sa = 128
+sb = -128
+smagn = 128
+i = 0 while i < 20
+{
+    t = i + 20
+    a = sa - 3 * t
+    b = sb + 1 * t
+    magn = smagn + 2 * t
+    draw_fract()
+    frame()
+    i + 1
+}
+fn draw_fract()
+{
+    y = -hysize while( y < hysize )
+    {
+        x = -hxsize while( x < hxsize )
+        {
+            xx = ( x * magn ) >> 7
+            yy = ( y * magn ) >> 7
+            col = 0 while( col < 256 )
+            {
+                xxx = ( xx * xx ) >> 7
+                yyy = ( yy * yy ) >> 7
+                if xxx + yyy > 4 * 128 { go endfor }
+                new_x = xxx - yyy + a
+                new_y = 2 * ( ( xx * yy ) >> 7 ) + b
+                xx = new_x
+                yy = new_y
+                col + 8
+            }
+endfor:
+            dot( x, y, get_color( col, col, col << 2 ) )
+            x + 1
+        }
+        y + 1
+    }
+}
+t2 = get_ticks()
+fract = 20 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+resize( get_screen(), xsize, ysize )
+
+clear( #405060 )
+frame()
+
+c1 = new( 128, 128, INT )
+c2 = new( 128, 128, INT )
+c3 = new( 128, 128, INT )
+i = 0 while i < 128 * 128
+{
+    c1[ i ] = rand()
+    c2[ i ] = rand()
+    i + 1
+}
+t1 = get_ticks()
+a = 100
+i = 0 while i < 10000000 div ( 128 * 128 )
+{
+    i2 = 0 while i2 < 128 * 128
+    {
+	c3[ i2 ] = c3[ i2 ] + c2[ i2 ] + c1[ i2 ]
+	i2 + 1
+    }
+    i + 1
+}
+t2 = get_ticks()
+fcont = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+
+ts = ""
+sprintf( ts, "===========================
+Math benchmark %s
+===========================
+(operations per second)
+Empty \"while\" cycles: %u
+Addition: %u
+Addition (float): %u
+Multiplication: %u
+Multiplication (float): %u
+Division: %u
+Division (float): %u
+Fractal rendering: %f
+Container math: %u
+", version, loops, add, fadd, mul, fmul, idiv, fdiv, fract, fcont )
+
+logf( ts )
+
+xsize = get_xsize( get_screen() )
+ysize = get_ysize( get_screen() )
+
+while( 1 )
+{
+    print( ts, -xsize / 2, -ysize / 2, WHITE, TOP | LEFT )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

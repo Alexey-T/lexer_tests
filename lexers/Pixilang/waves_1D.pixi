@@ -1,0 +1,94 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+len = 128
+vv = new( len, 1, FLOAT ) //velocity
+ll = new( len, 1, FLOAT ) //level
+clean( vv )
+clean( ll )
+
+ll[ len / 2 ] = 1
+
+yamp = ysize / 2
+pressed = 0
+mouse_i = 0
+mouse_i0 = 0
+mouse_y = 0
+
+while 1
+{
+    while( get_event() )
+    {
+	evt_type = EVT[ EVT_TYPE ]
+	if evt_type == EVT_QUIT { breakall }
+	if evt_type == EVT_MOUSEBUTTONDOWN || evt_type == EVT_MOUSEBUTTONUP || evt_type == EVT_MOUSEMOVE
+	{
+	    if EVT[ EVT_KEY ] == KEY_MOUSE_LEFT
+	    {
+		if evt_type == EVT_MOUSEBUTTONUP
+		{
+		    pressed = 0
+		}
+		else
+		{
+		    pressed = 1
+    		    x = EVT[ EVT_X ]
+    		    y = EVT[ EVT_Y ]
+		    mouse_i = ( x + hxsize ) / xsize * len
+	    	    mouse_y = y / yamp
+	    	    if evt_type == EVT_MOUSEBUTTONDOWN
+	    	    {
+	    		mouse_i0 = mouse_i
+	    	    }
+		}
+	    }
+	}
+    }
+    if pressed
+    {
+	i0 = mouse_i0
+	i1 = mouse_i
+	if i1 < i0 { t = i0 ; i0 = i1 ; i1 = t }
+	for( i = i0; i <= i1; i + 1 )
+	{
+    	    ll[ i ] = mouse_y
+    	}
+    	mouse_i0 = mouse_i
+    }
+
+    transp(128)
+    clear()
+    transp(255)
+
+    speed = 0.1
+    for( i = 0; i < len; i + 1 )
+    {
+	v = vv[ i ]
+	d = ( ll[i-1] + ll[i+1] ) / 2 - ll[i]
+	v = v + d * speed
+	vv[ i ] = v * 0.99
+    }
+    prev_x = 0
+    prev_y = 0
+    for( i = 0; i < len; i + 1 )
+    {
+	ll[ i ] + vv[ i ]
+
+	x = i * xsize / (len-1) - hxsize
+	y = ll[ i ] * yamp
+	if i > 0
+	{
+	    line( prev_x, prev_y, x, y, WHITE )
+	}
+	prev_x = x
+	prev_y = y
+    }
+
+    frame( 1000 / 60 )
+}

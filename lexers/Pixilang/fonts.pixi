@@ -1,0 +1,76 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+
+load_fonts()
+
+start_timer( 0 )
+
+while 1
+{
+    t = get_timer( 0 )
+    fnum = ( t div 1024 ) % font_count
+    change_font( fnum )
+
+    transp( 32 )
+    clear()
+    transp( 255 )
+    effector( EFF_HBLUR, 16 )
+    effector( EFF_VBLUR, 16 )
+
+    ts = ""
+    sprintf( ts, "Font %d TEST\nПроверка шрифта %d", fnum, fnum )
+    print( ts )
+
+    frame()
+    while( get_event() )
+    {
+    	if EVT[ EVT_TYPE ] == EVT_QUIT { halt }
+    }
+}
+
+fn change_font( $fnum )
+{
+    $f1 = fonts1[ $fnum ]
+    $f2 = fonts2[ $fnum ]
+    set_font( 0x20, $f1, 16, 6 ) //Unicode Basic Latin: 0x20...
+    set_font( 0x410, $f2, 16, 4 ) //Unicode Cyrillic: 0x410...
+}
+
+fn load_fonts()
+{
+    fonts1 = new( 32, 1, INT ) //Unicode Basic Latin: 0x20...
+    fonts2 = new( 32, 1, INT ) //Unicode Cyrillic: 0x410...
+    fonts1[ 0 ] = load( "images/font8x8.jpg" )
+    fonts1[ 1 ] = load( "images/font8x8_2.png" )
+    fonts1[ 2 ] = load( "images/font10x10.png" )
+    fonts1[ 3 ] = load( "images/font24x32.png" )
+    fonts2[ 0 ] = load( "images/font_cyr.jpg" )
+    fonts2[ 1 ] = load( "images/font8x8_2_cyr.png" )
+    fonts2[ 2 ] = load( "images/font8x8_2_cyr.png" )
+    fonts2[ 3 ] = load( "images/font24x32_cyr.png" )
+    fix_font_colors( fonts1[ 0 ] ) //remove JPG noise
+    fix_font_colors( fonts2[ 0 ] ) //remove JPG noise
+    font_count = 4
+    $i = 0 while $i < font_count
+    {
+	set_key_color( fonts1[ $i ], fonts1[ $i ][ 0 ] )
+	set_key_color( fonts2[ $i ], fonts2[ $i ][ 0 ] )
+	$i + 1
+    }
+}
+
+fn fix_font_colors( $f )
+{
+    $size = get_size( $f )
+    $i = 0 while $i < $size
+    {
+	$c = $f[ $i ]
+	$c = ( get_red( $c ) + get_green( $c ) + get_blue( $c ) ) / 3
+	if $c < 32 { $f[ $i ] = BLACK }
+	$i + 1
+    }
+}

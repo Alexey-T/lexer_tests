@@ -1,0 +1,440 @@
+/*
+
+  OpenGL primitives:
+
+  gl_circle( $x, $y, $z, $radius, $number_of_points, $color )
+    Draw a circle.
+
+  gl_fcircle( $x, $y, $z, $radius, $number_of_points, $color, $transp, $color2, $transp2 )
+    Draw a filled circle.
+    Optional gradient parameters: transp, color2, transp2.
+
+  gl_star( $x, $y, $z, $radius1, $radius2, $number_of_points, $color )
+    Draw a star.
+
+  gl_fstar( $x, $y, $z, $radius1, $radius2, $number_of_points, $color, $transp, $color2, $transp2 )
+    Draw a filled star.
+    Optional gradient parameters: transp, color2, transp2.
+
+  gl_gradient( $x, $y, $z, $xsize, $ysize, $color1, $transp1, $color2, $transp2, $color3, $transp3, $color4, $transp4 )
+  gl_gradient2( $x, $y, $z, $xsize, $ysize, $color, $transp1, $transp2, $transp3, $transp4 )
+    Draw a filled rectangle with gradient.
+
+  gl_v_smooth_line( $x, $y, $z, $xsize, $ysize, $color, $transp )
+    Draw smooth vertical line.
+
+*/
+
+g_gl_circle_v = -1 //Vertices
+g_gl_circle_vp = 0 //Number of vertices
+
+fn gl_circle( $x, $y, $z, $radius, $number_of_points, $color )
+{
+    if $number_of_points < 3 { ret }
+    $number_of_points div 1
+    
+    $tr = get_transp()
+    if $tr == 0 { ret }
+    
+    if g_gl_circle_v == -1
+    {
+	g_gl_circle_v = new( 2, $number_of_points, FLOAT32 )
+    }
+    if g_gl_circle_vp != $number_of_points
+    {
+	if $number_of_points > get_ysize( g_gl_circle_v )
+	{
+	    resize( g_gl_circle_v, 2, $number_of_points )
+	}
+	$pp = 0 $p = 0 while $p < $number_of_points
+	{
+	    $v = $p / $number_of_points
+	    g_gl_circle_v[ $pp ] = cos( M_PI * 2 * $v ) $pp + 1
+	    g_gl_circle_v[ $pp ] = sin( M_PI * 2 * $v ) $pp + 1
+	    $p + 1
+	}
+	g_gl_circle_vp = $number_of_points
+    }
+    t_push_matrix()
+    t_translate( $x, $y, $z )
+    if $radius != 1 { t_scale( $radius, $radius, $radius ) }
+    gl_draw_arrays( 
+	GL_LINE_LOOP, 0, $number_of_points, 
+	get_red( $color ), get_green( $color ), get_blue( $color ), $tr,
+	-1, //texture
+	g_gl_circle_v //vertex array
+    )
+    t_pop_matrix()
+}
+
+g_gl_fcircle_v = -1 //Vertices
+g_gl_fcircle_c = -1 //Colors
+g_gl_fcircle_vp = 0 //Number of vertices
+g_gl_fcircle_vp2 = 0 //Number of vertices (for color array)
+g_gl_fcircle_c2 = 0 //Color2
+g_gl_fcircle_t2 = 0 //Transp2
+
+fn gl_fcircle( $x, $y, $z, $radius, $number_of_points, $color, $transp, $color2, $transp2 )
+{
+    if $number_of_points < 3 { ret }
+    $number_of_points div 1
+
+    $tr = get_transp()
+    if $tr == 0 { ret }
+
+    $colors = -1
+    if $0 > 6
+    {
+	//With gradient
+	if g_gl_fcircle_c == -1
+	{
+	    g_gl_fcircle_c = new( 4, $number_of_points + 2, INT8 )
+	    g_gl_fcircle_c2 = $color2 + 1
+            g_gl_fcircle_t2 = $transp2 + 1
+	}
+	if g_gl_fcircle_vp2 != $number_of_points
+	{
+	    if $number_of_points > get_ysize( g_gl_fcircle_c ) - 2
+	    {
+		resize( g_gl_fcircle_c, 4, $number_of_points + 2 )
+	    }
+	    g_gl_fcircle_vp2 = $number_of_points
+	    g_gl_fcircle_c2 = $color2 + 1
+            g_gl_fcircle_t2 = $transp2 + 1
+	}
+	//First point (center):
+	$pp = 0 
+	$r1 = get_red( $color )
+	$g1 = get_green( $color )
+	$b1 = get_blue( $color )
+	g_gl_fcircle_c[ $pp ] = $r1 $pp + 1
+	g_gl_fcircle_c[ $pp ] = $g1 $pp + 1
+	g_gl_fcircle_c[ $pp ] = $b1 $pp + 1
+	g_gl_fcircle_c[ $pp ] = ( $transp * $tr ) >> 8
+	//Next points:
+	if g_gl_fcircle_c2 != $color2 
+	{
+	    $pp = 4
+	    $r2 = get_red( $color2 )
+	    $g2 = get_green( $color2 )
+	    $b2 = get_blue( $color2 )
+	    $p = 0 while $p <= $number_of_points
+	    {  
+		g_gl_fcircle_c[ $pp ] = $r2 $pp + 1
+		g_gl_fcircle_c[ $pp ] = $g2 $pp + 1
+		g_gl_fcircle_c[ $pp ] = $b2 $pp + 1
+		$pp + 1
+		$p + 1
+	    }
+	    g_gl_fcircle_c2 = $color2
+	}
+	if g_gl_fcircle_t2 != $transp2 
+	{
+	    $pp = 7
+	    $tr2 = ( $transp2 * $tr ) >> 8
+	    $p = 0 while $p <= $number_of_points
+	    {
+		g_gl_fcircle_c[ $pp ] = $tr2 
+		$pp + 4		
+		$p + 1
+	    }
+	    g_gl_fcircle_t2 = $transp2
+	}	
+	$colors = g_gl_fcircle_c
+    }
+    if g_gl_fcircle_v == -1
+    {
+	g_gl_fcircle_v = new( 2, $number_of_points + 2, FLOAT32 )
+    }
+    if g_gl_fcircle_vp != $number_of_points
+    {
+	if $number_of_points > get_ysize( g_gl_fcircle_v ) - 2
+	{
+	    resize( g_gl_fcircle_v, 2, $number_of_points + 2 )
+	}
+	//First point (center):
+	$pp = 0 
+	g_gl_fcircle_v[ $pp ] = 0 $pp + 1
+	g_gl_fcircle_v[ $pp ] = 0 $pp + 1
+	//Next points:
+	$p = 0 while $p <= $number_of_points
+	{
+	    $v = $p / $number_of_points
+	    g_gl_fcircle_v[ $pp ] = cos( M_PI * 2 * $v ) $pp + 1
+	    g_gl_fcircle_v[ $pp ] = sin( M_PI * 2 * $v ) $pp + 1
+	    $p + 1
+	}
+	g_gl_fcircle_vp = $number_of_points
+    }
+    t_push_matrix()
+    t_translate( $x, $y, $z )
+    if $radius != 1 { t_scale( $radius, $radius, $radius ) }
+    gl_draw_arrays( 
+	GL_TRIANGLE_FAN, 0, $number_of_points + 2, 
+	get_red( $color ), get_green( $color ), get_blue( $color ), $tr,
+	-1, //texture
+	g_gl_fcircle_v, //vertex array
+	$colors //color array
+    )
+    t_pop_matrix()
+}
+
+g_gl_star_v = -1 //Vertices
+
+fn gl_star( $x, $y, $z, $radius1, $radius2, $number_of_points, $color )
+{
+    if $number_of_points < 3 { ret }
+    $number_of_points div 1
+
+    $tr = get_transp()
+    if $tr == 0 { ret }
+
+    if g_gl_star_v == -1
+    {
+	g_gl_star_v = new( 3, $number_of_points, FLOAT32 )
+    }
+    $pp = 0 $p = 0 while $p < $number_of_points
+    {
+        $v = $p / $number_of_points
+        if $p & 1
+        {
+    	    $r = $radius1
+        }
+        else
+    	{
+    	    $r = $radius2
+    	}
+        g_gl_star_v[ $pp ] = $x + cos( M_PI * 2 * $v ) * $r $pp + 1
+        g_gl_star_v[ $pp ] = $y + sin( M_PI * 2 * $v ) * $r $pp + 1
+        g_gl_star_v[ $pp ] = $z $pp + 1
+        $p + 1
+    }
+    gl_draw_arrays( 
+	GL_LINE_LOOP, 0, $number_of_points, 
+	get_red( $color ), get_green( $color ), get_blue( $color ), $tr,
+	-1, //texture
+	g_gl_star_v //vertex array
+    )
+}
+
+g_gl_fstar_v = -1 //Vertices
+g_gl_fstar_c = -1 //Colors
+g_gl_fstar_vp2 = 0 //Number of vertices (for color array)
+g_gl_fstar_c2 = 0 //Color2
+g_gl_fstar_t2 = 0 //Transp2
+
+fn gl_fstar( $x, $y, $z, $radius1, $radius2, $number_of_points, $color, $transp, $color2, $transp2 )
+{
+    if $number_of_points < 3 { ret }
+    $number_of_points div 1
+
+    $tr = get_transp()
+    if $tr == 0 { ret }
+
+    $colors = -1
+    if $0 > 7
+    {
+	//With gradient
+	if g_gl_fstar_c == -1
+	{
+	    g_gl_fstar_c = new( 4, $number_of_points + 2, INT8 )
+	    g_gl_fstar_c2 = $color2 + 1
+	    g_gl_fstar_t2 = $transp2 + 1
+	}
+	if g_gl_fstar_vp2 != $number_of_points
+	{
+	    if $number_of_points > get_ysize( g_gl_fstar_c ) - 2
+	    {
+		resize( g_gl_fstar_c, 4, $number_of_points + 2 )
+	    }
+	    g_gl_fstar_vp2 = $number_of_points
+	    g_gl_fstar_c2 = $color2 + 1
+	    g_gl_fstar_t2 = $transp2 + 1
+	}
+	//First point (center):
+	$pp = 0
+	$r1 = get_red( $color )
+	$g1 = get_green( $color )
+	$b1 = get_blue( $color )
+	g_gl_fstar_c[ $pp ] = $r1 $pp + 1
+	g_gl_fstar_c[ $pp ] = $g1 $pp + 1
+	g_gl_fstar_c[ $pp ] = $b1 $pp + 1
+	g_gl_fstar_c[ $pp ] = ( $transp * $tr ) >> 8
+	//Next points:
+	if g_gl_fstar_c2 != $color2 
+	{
+	    $pp = 4
+	    $r2 = get_red( $color2 )
+	    $g2 = get_green( $color2 )
+	    $b2 = get_blue( $color2 )
+	    $p = 0 while $p <= $number_of_points
+	    {  
+		g_gl_fstar_c[ $pp ] = $r2 $pp + 1
+		g_gl_fstar_c[ $pp ] = $g2 $pp + 1
+		g_gl_fstar_c[ $pp ] = $b2 $pp + 1
+		$pp + 1
+		$p + 1
+	    }
+	    g_gl_fstar_c2 = $color2
+	}
+	if g_gl_fstar_t2 != $transp2 
+	{
+	    $pp = 7
+	    $tr2 = ( $transp2 * $tr ) >> 8
+	    $p = 0 while $p <= $number_of_points
+	    {
+		g_gl_fstar_c[ $pp ] = $tr2 
+		$pp + 4		
+		$p + 1
+	    }
+	    g_gl_fstar_t2 = $transp2
+	}	
+	$colors = g_gl_fstar_c
+    }
+    if g_gl_fstar_v == -1
+    {
+	g_gl_fstar_v = new( 3, $number_of_points + 2, FLOAT32 )
+    }
+    //First point:
+    $pp = 0 
+    g_gl_fstar_v[ $pp ] = $x $pp + 1
+    g_gl_fstar_v[ $pp ] = $y $pp + 1
+    g_gl_fstar_v[ $pp ] = $z $pp + 1
+    //Next points:
+    $p = 0 while $p <= $number_of_points
+    {
+        $v = $p / $number_of_points
+        if $p & 1
+        {
+    	    $r = $radius1
+        }
+        else
+    	{
+    	    $r = $radius2
+    	}
+        g_gl_fstar_v[ $pp ] = $x + cos( M_PI * 2 * $v ) * $r $pp + 1
+        g_gl_fstar_v[ $pp ] = $y + sin( M_PI * 2 * $v ) * $r $pp + 1
+        g_gl_fstar_v[ $pp ] = $z $pp + 1
+        $p + 1
+    }
+    gl_draw_arrays( 
+	GL_TRIANGLE_FAN, 0, $number_of_points + 2, 
+	get_red( $color ), get_green( $color ), get_blue( $color ), $tr,
+	-1, //texture
+	g_gl_fstar_v, //vertex array
+	$colors //color array
+    )
+}
+
+g_gl_grad_v = -1 //Vertices
+g_gl_grad_c = -1 //Colors
+
+fn gl_gradient( $x, $y, $z, $xsize, $ysize, $color1, $transp1, $color2, $transp2, $color3, $transp3, $color4, $transp4 )
+{
+    $tr = get_transp()
+    if $tr == 0 { ret }
+
+    if g_gl_grad_v == -1
+    {
+	g_gl_grad_v = new( 3, 4, FLOAT32 )
+    }
+    if g_gl_grad_c == -1
+    {
+	g_gl_grad_c = new( 4, 4, INT8 )
+    }
+    g_gl_grad_v[ 0 ] = $x
+    g_gl_grad_v[ 1 ] = $y
+    g_gl_grad_v[ 2 ] = $z
+    g_gl_grad_v[ 3 ] = $x + $xsize
+    g_gl_grad_v[ 4 ] = $y
+    g_gl_grad_v[ 5 ] = $z
+    g_gl_grad_v[ 6 ] = $x + $xsize
+    g_gl_grad_v[ 7 ] = $y + $ysize
+    g_gl_grad_v[ 8 ] = $z
+    g_gl_grad_v[ 9 ] = $x
+    g_gl_grad_v[ 10 ] = $y + $ysize
+    g_gl_grad_v[ 11 ] = $z
+    g_gl_grad_c[ 0 ] = get_red( $color1 )
+    g_gl_grad_c[ 1 ] = get_green( $color1 )
+    g_gl_grad_c[ 2 ] = get_blue( $color1 )
+    g_gl_grad_c[ 3 ] = ( $transp1 * $tr ) >> 8
+    g_gl_grad_c[ 4 ] = get_red( $color2 )
+    g_gl_grad_c[ 5 ] = get_green( $color2 )
+    g_gl_grad_c[ 6 ] = get_blue( $color2 )
+    g_gl_grad_c[ 7 ] = ( $transp2 * $tr ) >> 8
+    g_gl_grad_c[ 8 ] = get_red( $color3 )
+    g_gl_grad_c[ 9 ] = get_green( $color3 )
+    g_gl_grad_c[ 10 ] = get_blue( $color3 )
+    g_gl_grad_c[ 11 ] = ( $transp3 * $tr ) >> 8
+    g_gl_grad_c[ 12 ] = get_red( $color4 )
+    g_gl_grad_c[ 13 ] = get_green( $color4 )
+    g_gl_grad_c[ 14 ] = get_blue( $color4 )
+    g_gl_grad_c[ 15 ] = ( $transp4 * $tr ) >> 8
+    gl_draw_arrays(
+        GL_TRIANGLE_FAN, 0, 4,
+        255, 255, 255, 255,
+        -1, //texture
+        g_gl_grad_v, //vertex array
+        g_gl_grad_c //color array
+    )
+}
+
+fn gl_gradient2( $x, $y, $z, $xsize, $ysize, $color, $transp1, $transp2, $transp3, $transp4 )
+{
+    $tr = get_transp()
+    if $tr == 0 { ret }
+
+    if g_gl_grad_v == -1
+    {
+	g_gl_grad_v = new( 3, 4, FLOAT32 )
+    }
+    if g_gl_grad_c == -1
+    {
+	g_gl_grad_c = new( 4, 4, INT8 )
+    }
+    g_gl_grad_v[ 0 ] = $x
+    g_gl_grad_v[ 1 ] = $y
+    g_gl_grad_v[ 2 ] = $z
+    g_gl_grad_v[ 3 ] = $x + $xsize
+    g_gl_grad_v[ 4 ] = $y
+    g_gl_grad_v[ 5 ] = $z
+    g_gl_grad_v[ 6 ] = $x + $xsize
+    g_gl_grad_v[ 7 ] = $y + $ysize
+    g_gl_grad_v[ 8 ] = $z
+    g_gl_grad_v[ 9 ] = $x
+    g_gl_grad_v[ 10 ] = $y + $ysize
+    g_gl_grad_v[ 11 ] = $z
+    $r = get_red( $color )
+    $g = get_green( $color )
+    $b = get_blue( $color )
+    g_gl_grad_c[ 0 ] = $r
+    g_gl_grad_c[ 1 ] = $g
+    g_gl_grad_c[ 2 ] = $b
+    g_gl_grad_c[ 3 ] = ( $transp1 * $tr ) >> 8
+    g_gl_grad_c[ 4 ] = $r
+    g_gl_grad_c[ 5 ] = $g
+    g_gl_grad_c[ 6 ] = $b
+    g_gl_grad_c[ 7 ] = ( $transp2 * $tr ) >> 8
+    g_gl_grad_c[ 8 ] = $r
+    g_gl_grad_c[ 9 ] = $g
+    g_gl_grad_c[ 10 ] = $b
+    g_gl_grad_c[ 11 ] = ( $transp3 * $tr ) >> 8
+    g_gl_grad_c[ 12 ] = $r
+    g_gl_grad_c[ 13 ] = $g
+    g_gl_grad_c[ 14 ] = $b
+    g_gl_grad_c[ 15 ] = ( $transp4 * $tr ) >> 8
+    gl_draw_arrays(
+        GL_TRIANGLE_FAN, 0, 4,
+        255, 255, 255, 255,
+        -1, //texture
+        g_gl_grad_v, //vertex array
+        g_gl_grad_c //color array
+    )
+}
+
+fn gl_v_smooth_line( $x, $y, $z, $xsize, $ysize, $color, $transp )
+{
+    $xsize2 = $xsize / 2
+    gl_gradient2( $x - $xsize2, $y, $z, $xsize2, $ysize, $color, 0, $transp, $transp, 0 )
+    gl_gradient2( $x, $y, $z, $xsize2, $ysize, $color, $transp, 0, 0, $transp )
+}

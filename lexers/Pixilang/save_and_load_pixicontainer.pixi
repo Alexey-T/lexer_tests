@@ -1,0 +1,68 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+//Create a new container with animation:
+img = new( 128, 128 )
+clean( img )
+create_anim( img )
+img.fps = 2
+set_screen( img )
+y = 0 while( y < 128 )
+{
+    fbox( -128 / 2, -128 / 2 + y, 2000, 1, get_blend( RED, YELLOW, ( y / 128 ) * 256 ) )
+    y + 1
+}
+pack_frame( img )
+clone_frame( img )
+img.frame + 1
+print( "Hello!", 0, 0, BLACK )
+pack_frame( img )
+set_screen( 0 )
+
+//Set some properties of the new container:
+img.prop1 = 1
+img.prop2 = 2
+img.prop3 = 3
+img.prop4 = 4
+img.prop5 = 5
+img.prop6 = 6.1
+img.prop7 = 7.2
+img.prop8 = 8.3
+img.prop9 = 9.4
+img.prop10 = 10.5
+
+//Save container and remove it:
+if save( img, "pixicontainer", FORMAT_PIXICONTAINER ) { printf( "Save Error\n" ) }
+remove( img )
+img = -1
+
+//Load container:
+img = load( "pixicontainer" )
+if img < 0 { printf( "Load Error\n" ) }
+remove_file( "pixicontainer" )
+
+//Show the properties of loaded container:
+printf( "%d\n", img.prop1 )
+printf( "%d\n", img.prop2 )
+printf( "%d\n", img.prop3 )
+printf( "%d\n", img.prop4 )
+printf( "%d\n", img.prop5 )
+printf( "%f\n", img.prop6 )
+printf( "%f\n", img.prop7 )
+printf( "%f\n", img.prop8 )
+printf( "%f\n", img.prop9 )
+printf( "%f\n", img.prop10 )
+printf( "Frames: %d\n", img.frames )
+printf( "FPS: %d\n", img.fps )
+
+start_timer( 0 )
+
+play( img )
+
+while( 1 )
+{
+    $t = get_timer( 0 ) / 1000
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    pixi( img, sin( $t ) * 64, cos( $t ) * 64, WHITE )
+    frame()
+}

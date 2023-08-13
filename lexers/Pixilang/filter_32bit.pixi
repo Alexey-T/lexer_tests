@@ -1,0 +1,182 @@
+//
+// Based on Cookbook formulae for audio EQ biquad filter coefficients
+// by Robert Bristow-Johnson  <rbj@audioimagination.com>
+//
+
+set_pixel_size( WINDOW_XSIZE / 256 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+audio_mutex = mutex_create()
+
+buf = new( 256, 1, FLOAT32 )
+clean( buf )
+
+f = new_filter()
+if f == -1
+{	
+    logf( "new_filter() failed\n" )
+    halt
+}
+
+tick_size = 128
+tick_ptr = 0
+tick_counter = 0
+sample_rate = 44100
+filter_a = new( 3, 1, FLOAT32 ) //feedforward filter coefficients
+filter_b = new( 2, 1, FLOAT32 ) //feedback filter coefficients
+filter_type = 0
+
+set_audio_callback( audio_callback, 0, sample_rate, FLOAT32, 1 )
+
+while( 1 )
+{
+    clear()
+    
+    x = 0 while( x < 256 )
+    {
+	dot( x - 128, buf[ x ] * 128, GREEN )
+	x + 1
+    }
+    
+    fbox( ( tick_counter * 256 ) / 1024 - 128, -64, 1, 128, RED )
+    
+    print( "Click to change filter type", 0, 0, WHITE, BOTTOM )
+    $ts = ""
+    $fname = ""
+    if filter_type == 0 { $fname = "Low-pass" }
+    if filter_type == 1 { $fname = "High-pass" }
+    if filter_type == 2 { $fname = "Band-pass" }
+    if filter_type == 3 { $fname = "Notch" }
+    if filter_type == 4 { $fname = "All-pass" }
+    sprintf( $ts, "Current: %s", $fname )
+    print( $ts, 0, 0, YELLOW, TOP )
+    
+    while( get_event() ) 
+    { 
+	if EVT[ EVT_TYPE ] == EVT_QUIT { break2 } 
+	if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONDOWN 
+	{ 
+	    //Change filter type:
+	    mutex_lock( audio_mutex )	    
+	    change_filter_request = 1
+	    mutex_unlock( audio_mutex )	    
+	}
+    }
+    
+    frame()
+}
+
+//Stop audio:
+set_audio_callback( -1 )
+remove_filter( f )
+mutex_destroy( audio_mutex )
+
+//
+// END OF MAIN CODE
+//
+
+fn set_filter_parameters( $q, $freq )
+{
+    $omega = 2 * M_PI * $freq / sample_rate
+    $tsin = sin( $omega )
+    $tcos = cos( $omega )
+    $alpha = $tsin / ( 2 * $q )
+    if filter_type == 0
+    {
+	//Low-pass:
+	$b0 = ( 1 - $tcos ) / 2
+	$b1 = 1 - $tcos
+	$b2 = ( 1 - $tcos ) / 2
+	$a0 = 1 + $alpha
+	$a1 = -2 * $tcos
+	$a2 = 1 - $alpha
+    }
+    if filter_type == 1
+    {
+	//High-pass
+	$b0 = ( 1 + $tcos ) / 2
+	$b1 = -( 1 + $tcos )
+	$b2 = ( 1 + $tcos ) / 2
+	$a0 = 1 + $alpha
+	$a1 = -2 * $tcos
+	$a2 = 1 - $alpha
+    }
+    if filter_type == 2
+    {
+	//Band-pass:
+	$b0 = $alpha
+        $b1 = 0
+	$b2 = -$alpha
+	$a0 = 1 + $alpha
+	$a1 = -2 * $tcos
+	$a2 = 1 - $alpha
+    }
+    if filter_type == 3
+    {
+	//Notch:
+	$b0 = 1
+	$b1 = -2 * $tcos
+	$b2 = 1
+	$a0 = 1 + $alpha
+	$a1 = -2 * $tcos
+	$a2 = 1 - $alpha
+    }
+    if filter_type == 4
+    {
+	//All-pass:
+	$b0 = 1 - $alpha
+	$b1 = -2 * $tcos
+	$b2 = 1 + $alpha
+	$a0 = 1 + $alpha
+	$a1 = -2 * $tcos
+	$a2 = 1 - $alpha
+    }
+    filter_a[ 0 ] = $b0 / $a0
+    filter_a[ 1 ] = $b1 / $a0
+    filter_a[ 2 ] = $b2 / $a0
+    filter_b[ 0 ] = -$a1 / $a0
+    filter_b[ 1 ] = -$a2 / $a0
+    init_filter( f, filter_a, filter_b )
+}
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    mutex_lock( audio_mutex )
+    
+    generator( OP_RAND, $channels[ 0 ], 0, 1 / 4 )
+    $size = $frames
+    $ptr = 0
+    while $ptr < $size
+    {
+	$size2 = $size - $ptr
+	if $size2 > tick_size { $size2 = tick_size }
+	apply_filter( f, $channels[ 0 ], $channels[ 0 ], 0, $ptr, $size2 )
+	$ptr + $size2
+	tick_ptr + $size2
+	if tick_ptr >= tick_size
+	{
+	    tick_ptr = 0
+	    tick_counter = ( tick_counter + 1 ) & 1023
+	    if change_filter_request
+	    {
+		filter_type = ( filter_type + 1 ) % 5 
+		reset_filter( f )
+		change_filter_request = 0
+	    }
+	    set_filter_parameters( 4, ( sin( ( tick_counter / 1024 ) * M_PI * 2 ) + 1 ) * 10000 )
+	}
+    }
+
+    mutex_unlock( audio_mutex )
+
+    copy( buf, $channels[ 0 ] )
+    
+    ret( 1 )
+}

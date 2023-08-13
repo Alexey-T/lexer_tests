@@ -1,0 +1,29 @@
+// str1: "..str2..str2.." ---> str1: "..str3..str3.."
+fn replace_string( $str1, $str2, $str3 )
+{
+    $str1_len = strlen( $str1 )
+    $str2_len = strlen( $str2 )
+    $str3_len = strlen( $str3 )
+    if $str1_len <= 0 { ret }
+    if $str2_len <= 0 { ret }
+    if $str3_len < 0 { ret }
+    $ptr = 0
+    while 1
+    {
+        $ptr = strstr( $str1, $ptr, $str2, 0 )
+        if $ptr < 0 { break }
+        if $str2_len != $str3_len
+        {
+            $d = $str3_len - $str2_len
+            if $str1_len + $d > get_size( $str1 )
+            {
+                resize( $str1, $str1_len + $d, 1 )
+            }
+            copy( $str1, $str1, $ptr + $str3_len, $ptr + $str2_len, $str1_len )
+            copy( $str1, $str3, $ptr, 0, $str3_len )
+            $str1_len + $d
+            $str1[ $str1_len ] = 0
+            $ptr + $str3_len
+        }
+    }
+}

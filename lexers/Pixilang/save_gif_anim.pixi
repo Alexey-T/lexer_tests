@@ -1,0 +1,31 @@
+scr = get_screen()
+
+// FRAME 0:
+img = new( 64, 64, PIXEL )
+set_key_color( img, BLUE )
+set_screen( img )
+clear()
+fbox( 0, 0, 100, 100, BLUE )
+fbox( -2, -2, 4, 4, WHITE )
+set_screen( scr )
+
+create_anim( img )
+
+// FRAME 1:
+clone_frame( img )
+img.frame = 1
+set_screen( img )
+fbox( -4, -4, 8, 8, YELLOW )
+set_screen( scr )
+pack_frame( img )
+
+// FRAME 2:
+clone_frame( img )
+img.frame = 2
+set_screen( img )
+fbox( -8, -8, 16, 16, GREEN )
+set_screen( scr )
+pack_frame( img )
+
+// SAVE:
+save( img, "saved_gif_animation.gif", FORMAT_GIF )

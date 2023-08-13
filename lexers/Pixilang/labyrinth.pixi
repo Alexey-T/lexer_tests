@@ -1,0 +1,18 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+ysize = get_ysize( get_screen() )
+clear()
+ts = new( 99, 1, INT8 )
+y = -ysize / 2
+while 1
+{
+    i = 0 while i < 99 { if rand() & 1 { ts[ i ] = '/' } else { ts[ i ] = '\\' } i + 1 }
+    c = get_blend( WHITE, get_color( rand()&255, rand()&255, rand()&255 ), 128 )
+    print( ts, 0, y, c )
+    print( ts, 0, y + 1, c )
+    print( ts, -1, y + 1, c )
+    y + 8
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame( 100 )
+}

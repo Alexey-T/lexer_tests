@@ -1,0 +1,37 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = new( 256, 256 )
+size = get_size( img ) i = 0 while( i < size ) 
+{
+    r = i & 255
+    g = ( i >> 8 ) & 255
+    b = ( i >> 16 ) & 255
+    r + rand() & 7
+    g + rand() & 7
+    b + rand() & 7
+    img[ i ] = get_color( r, g, b )
+    i + 1
+}
+
+start_timer( 0 )
+
+start:
+
+t = get_timer( 0 ) / 1000
+
+clear( RED )
+
+transp( sin( t ) * 128 + 128 )
+pixi( img )
+transp( 256 )
+
+ts = ""
+sprintf( ts, "FPS:%u", FPS )
+print( ts, -get_xsize( get_screen() ) / 2 + 8, -get_ysize( get_screen() ) / 2 + 8, WHITE, TOP | LEFT )
+
+while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+frame()
+
+go start

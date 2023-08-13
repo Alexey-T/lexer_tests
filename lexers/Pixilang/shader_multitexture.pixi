@@ -1,0 +1,84 @@
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t1 = get_timer2( 2 )
+    
+    t_reset()
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    transp( 255 )
+    clear()
+    gl_bind_texture( img2, 1 )
+    gl_use_prog( gl_prog ) //Use user-defined GLSL program (vertex shader + fragment shader)
+    gl_uniform( gl_prog.g_time, t1 * M_PI * 2 )
+    gl_uniform( gl_prog.g_texture2, 1 ) //second texture
+    //gl_uniform( gl_prog.g_texture3, 2 ) //third texture
+    //etc...
+
+    $s = WINDOW_XSIZE / get_xsize( img1 )
+    if $s * get_ysize( img1 ) > WINDOW_YSIZE
+    {
+	$s = WINDOW_YSIZE / get_ysize( img1 )
+    }
+    pixi( img1, 0, 0, WHITE, $s, $s )
+
+    gl_use_prog() //Back to default GLSL program
+    set_screen( 0 ) //Back to the default screen
+}
+
+//
+// Init
+//
+
+gl_vshader = GL_SHADER_TEX_RGB_SOLID //Vertex shader = default shader for solid primitives drawing
+gl_fshader = //Fragment shader
+"PRECISION( HIGHP, float )
+uniform sampler2D g_texture;
+uniform sampler2D g_texture2;
+uniform float g_time;
+uniform vec4 g_color;
+IN vec2 tex_coord_var;
+void main()
+{
+    vec4 c1 = texture2D( g_texture, tex_coord_var );
+    vec4 c2 = texture2D( g_texture2, tex_coord_var );
+    float v = ( sin( g_time + tex_coord_var.x * 8.0 + tex_coord_var.y ) + 1.0 ) * 0.5;
+    c1 = c1 * v;
+    c2 = c2 * ( 1.0 - v );
+    gl_FragColor = ( c1 + c2 ) * g_color;
+}
+"
+gl_prog = gl_new_prog( gl_vshader, gl_fshader )
+
+img1 = load( "../graphics/images/test.gif" )
+img2 = load( "../graphics/images/test.png" )
+set_flags( img1, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+set_flags( img2, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+play( img1 )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+//
+// Main loop
+//
+
+start_timer( 0 )
+while 1 
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}
+
+remove( gl_prog )
+
+//
+// Other functions
+//
+
+fn get_timer2( $d )
+{
+    $d * 1024
+    ret( ( get_timer( 0 ) & ( $d - 1 ) ) / $d )
+}

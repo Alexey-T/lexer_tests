@@ -1,0 +1,53 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+include "../../lib/gl_primitives.pixi"
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) / 1000
+    
+    mode = ( get_timer( 0 ) div 2000 ) % 3
+
+    t_reset()
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    clear()
+    s1 = WINDOW_XSIZE / get_xsize( img )
+    s2 = WINDOW_YSIZE / get_ysize( img )
+    if s1 > s2 { s = s1 } else { s = s2 }
+    pixi( img, 0, 0, WHITE, s, s )
+    
+    desc = "Default"
+    if mode == 1 { gl_blend_func( GL_SRC_ALPHA, GL_ONE ) desc = "Addition" }
+    if mode == 2 { gl_blend_func( GL_ZERO, GL_SRC_COLOR ) desc = "Multiplication" }
+    
+    t_reset()
+    t_rotate( t * 32, 0, 0, 1 )
+    gl_fstar( 0, 0, 0, WINDOW_XSIZE / 6, WINDOW_XSIZE / 2, 16, #FF8040, 255, #FF8040, 0 )
+    t_reset()
+    
+    //Back to default:
+    gl_blend_func()
+    
+    ts = ""
+    sprintf( ts, "FPS:%u\nBlend mode:%s", FPS, desc )
+    print( ts, -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+img = load( "../graphics/images/test.jpg" )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+
+start_timer( 0 )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

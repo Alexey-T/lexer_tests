@@ -1,0 +1,46 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+resize( scr, 256, 256 )
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+
+img = clone( scr )
+alpha = new( xsize, ysize, INT8 )
+i = 0 while( i < 256 * 256 ) { alpha[ i ] = rand() img[ i ] = YELLOW i + 1 }
+set_alpha( img, alpha )
+
+timeout = 4 //seconds
+passes = 4
+
+frames = 0
+p = 0 while( p < passes )
+{
+    clear()
+    ts = ""
+    sprintf( ts, "Pass %u / %u", p, passes )
+    print( ts )
+    frame()
+    start_timer( 0 )
+    while( get_timer( 0 ) < timeout * 1000 )
+    {
+	pixi( img )
+	frames + 1
+    }
+    p + 1
+}
+frames / passes
+frames / timeout
+
+ts = ""
+sprintf( ts, "%u frames\nwith alpha blending\nper second\n", frames )
+logf( ts )
+
+while( 1 )
+{
+    clear()
+    print( ts )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

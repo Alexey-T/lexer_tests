@@ -1,0 +1,38 @@
+set_pixel_size( WINDOW_XSIZE / 256 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    generator( OP_RAND, $channels[ 0 ], 0, 32767 / 8 )
+    generator( OP_RAND, $channels[ 1 ], 0, 32767 / 8 )
+    copy( buf, $channels[ 1 ] )
+    ret( 1 )
+}
+
+buf = new( 256, 1, INT16 )
+clean( buf )
+
+set_audio_callback( audio_callback, 0, 22050, INT16, 2 )
+
+while( 1 )
+{
+    clear()
+    
+    x = 0 while( x < 256 )
+    {
+	dot( x - 128, buf[ x ] / 128, GREEN )
+	x + 1
+    }
+    
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    
+    frame()
+}
+

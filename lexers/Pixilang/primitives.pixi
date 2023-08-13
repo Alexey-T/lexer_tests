@@ -1,0 +1,42 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+include "../../lib/gl_primitives.pixi"
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) / 1000
+
+    t_reset()
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    gl_gradient( -WINDOW_XSIZE / 2, -WINDOW_YSIZE / 2, 0, WINDOW_XSIZE, WINDOW_YSIZE, RED, 255, GREEN, 255, BLUE, 255, YELLOW, 255 )
+    gl_fstar( 0, 0, 0, sin( t ) * WINDOW_XSIZE / 1, cos( t ) * WINDOW_XSIZE / 1, 16, #FF8020, 255, #FF8020, 0 )
+    gl_circle( 0, 0, 0, WINDOW_XSIZE / 4, ( sin( t * 3 ) + 1 ) * 64, WHITE )
+    transp( 128 )
+    gl_fcircle( 0, 0, 0, WINDOW_XSIZE / 8, ( sin( t * 3 ) + 1 ) * 64, YELLOW )
+    transp( 256 )
+    gl_fcircle( 0, 0, 0, WINDOW_XSIZE / 3, ( sin( t * 3 ) + 1 ) * 64, #FF8040, 255, #FF8040, 0 )
+    gl_star( 0, 0, 0, sin( t ) * WINDOW_XSIZE / 6, cos( t ) * WINDOW_XSIZE / 6, 16, WHITE )
+    transp( 128 )
+    gl_fstar( 0, 0, 0, sin( t ) * WINDOW_XSIZE / 5, cos( t ) * WINDOW_XSIZE / 5, 16, #FF8040 )
+    transp( 256 )
+    
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+start_timer( 0 )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

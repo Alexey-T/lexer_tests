@@ -1,0 +1,48 @@
+include "show_log.pixi"
+
+logf( "\n0...1:\n" )
+i = 0
+while i < 4
+{
+    logf( "%d\n", i )
+    if i == 1 { break }
+    i + 1
+}
+
+logf( "\n0...3:\n" )
+i = 0
+while i < 4
+{
+    logf( "%d\n", i )
+    i + 1
+    continue
+    logf( "%d!\n", i )
+    i + 1
+}
+
+logf( "\nwhile(0):\n" );
+while 0
+{
+    logf( "You must not see this text!\n" )
+}
+
+logf( "\n0...5:\n" )
+i = 0
+while 1
+{
+    logf( "%d\n", i )
+    if i > 4 { break }
+    i + 1
+}
+
+logf( "\n1...5:\n" )
+i = 0
+while 1
+{
+    i + 1
+    logf( "%d\n", i )
+    if i > 4 { break }
+    continue
+}
+
+show_log()

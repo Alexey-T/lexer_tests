@@ -1,0 +1,7 @@
+wav = new( 100000, 1, INT8 )
+generator( OP_SIN, wav, 0, 127 / 2, 0.1, 0 )
+wav.sample_rate = 44100
+wav.channels = 1
+
+save( wav, "sine.wav", FORMAT_WAVE )
+fputs( "sine.wav created\n" )

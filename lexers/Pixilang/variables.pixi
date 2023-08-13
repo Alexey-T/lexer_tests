@@ -1,0 +1,195 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+fn show_log()
+{
+    $l = get_log()
+    clear()
+    print( $l, -hxsize, -hysize, WHITE, TOP | LEFT )
+    frame()
+    remove( $l )
+}
+
+logf( "1 cycle = 5 operations + while() loop code with conditional operations.\n" )
+logf( "Cycles per second:\n" )
+show_log()
+
+a = 0
+b = 1
+c = 2
+d = 3
+e = 4
+f = 5
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    a + b
+    a + c
+    a + d
+    a + e
+    a + f
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * global vars: %f;\n", c )
+show_log()
+
+$a = 0
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    a + 1
+    a + 2
+    a + 3
+    a + 4
+    a + 5
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * global var + const: %f;\n", c )
+show_log()
+
+$a = 0
+$b = 1
+$c = 2
+$d = 3
+$e = 4
+$f = 5
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    $a + $b
+    $a + $c
+    $a + $d
+    $a + $e
+    $a + $f
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * local vars: %f;\n", c )
+show_log()
+
+$a = 0
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    $a + 1
+    $a + 2
+    $a + 3
+    $a + 4
+    $a + 5
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * local vars + const: %f;\n", c )
+show_log()
+
+test_props:
+
+a = new( 1, 1 )
+a.a = 0
+a.b = 1
+a.c = 2
+a.d = 3
+a.e = 4
+a.f = 5
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    a.a + a.b
+    a.a + a.c
+    a.a + a.d
+    a.a + a.e
+    a.a + a.f
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * properties (1 char): %f;\n", c )
+show_log()
+
+a.aa = 0
+a.bb = 1
+a.cc = 2
+a.dd = 3
+a.ee = 4
+a.ff = 5
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    a.aa + a.bb
+    a.aa + a.cc
+    a.aa + a.dd
+    a.aa + a.ee
+    a.aa + a.ff
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * properties (2 chars): %f;\n", c )
+show_log()
+
+a.aa12 = 0
+a.bb12 = 1
+a.cc12 = 2
+a.dd12 = 3
+a.ee12 = 4
+a.ffff = 5
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    a.aa12 + a.bb12
+    a.aa12 + a.cc12
+    a.aa12 + a.dd12
+    a.aa12 + a.ee12
+    a.aa12 + a.ff12
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * properties (4 chars): %f;\n", c )
+show_log()
+
+a.aa123456 = 0
+a.bb123456 = 1
+a.cc123456 = 2
+a.dd123456 = 3
+a.ee123456 = 4
+a.ff123456 = 5
+t1 = get_ticks()
+i = 0 while i < 10000000
+{
+    a.aa123456 + a.bb123456
+    a.aa123456 + a.cc123456
+    a.aa123456 + a.dd123456
+    a.aa123456 + a.ee123456
+    a.aa123456 + a.ff123456
+
+    i + 1
+}
+t2 = get_ticks()
+c = 10000000 / ( ( ( t2 - t1 ) & 0xFFFFFFFF ) / get_tps() )
+logf( " * properties (8 chars): %f;\n", c )
+show_log()
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

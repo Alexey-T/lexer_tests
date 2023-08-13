@@ -1,0 +1,26 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+img2 = clone( img )
+
+start_timer( 0 )
+
+transp( 64 )
+
+while 1
+{
+    t = get_timer( 0 ) / 1000
+
+    copy( img2, img )
+    op_cn( OP_AND, img2, BLUE )
+    off = 320 * ( ( 120 + 80 * sin( t ) ) div 1 )
+    copy( img2, img, off, off, 320 * 32 )
+
+    pixi( img2, 0, 0 );
+
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    
+    frame()
+}
+

@@ -1,0 +1,96 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+fn draw_antialiased_dot( $x, $y, $color )
+{
+    $t = get_transp()
+    $xx = ( $x + 1024 ) * 256
+    $xc = $xx & 255
+    $yy = ( $y + 1024 ) * 256
+    $yc = $yy & 255
+    $ycc = 255 - $yc
+    $tx1 = 255 - $xc
+    $tx2 = $xc
+    $x = ( $xx >> 8 ) - 1024
+    $y = ( $yy >> 8 ) - 1024
+    transp( ( ( ( $tx1 * $ycc ) >> 8 ) * $t ) >> 8 )
+    dot( $x, $y, $color )
+    transp( ( ( ( $tx2 * $ycc ) >> 8 ) * $t ) >> 8 )
+    dot( $x + 1, $y, $color )
+    transp( ( ( ( $tx1 * $yc ) >> 8 ) * $t ) >> 8 )
+    dot( $x, $y + 1, $color )
+    transp( ( ( ( $tx2 * $yc ) >> 8 ) * $t ) >> 8 )
+    dot( $x + 1, $y + 1, $color )
+    transp( $t )
+}
+
+clear()
+
+c = WHITE
+line( -hxsize, 0, hxsize, 0, c )
+line( 0, -hysize, 0, hysize, c )
+c = #404040
+line( -hxsize, -hysize / 2, hxsize, -hysize / 2, c )
+line( -hxsize, hysize / 2, hxsize, hysize / 2, c )
+line( -hxsize / 2, -hysize, -hxsize / 2, hysize, c )
+line( hxsize / 2, -hysize, hxsize / 2, hysize, c )
+print( "0", 2, 2, WHITE, LEFT | TOP )
+print( "1", hxsize / 2 + 2, 2, WHITE, LEFT | TOP )
+print( "-1", -hxsize / 2 + 2, 2, WHITE, LEFT | TOP )
+print( "1", 2, -hysize / 2 + 2, WHITE, LEFT | TOP )
+print( "-1", 2, hysize / 2 + 2, WHITE, LEFT | TOP )
+
+$xstep = 1 / 2000
+$xmin = -2
+$xmax = 2
+$xlen = $xmax - $xmin
+$ymin = -2
+$ymax = 2
+$ylen = $ymax - $ymin
+$x = $xmin while $x < $xmax
+{
+    $xx = ( $x / $xlen ) * xsize
+
+    $y = $x    
+    draw_antialiased_dot( $xx, ( -$y / $ylen ) * ysize, RED )
+
+    $y = sin( $x )
+    draw_antialiased_dot( $xx, ( -$y / $ylen ) * ysize, GREEN )
+
+    $y = sqrt( $x )
+    draw_antialiased_dot( $xx, ( -$y / $ylen ) * ysize, YELLOW )
+
+    $y = $x * $x
+    draw_antialiased_dot( $xx, ( -$y / $ylen ) * ysize, BLUE )
+
+    $y = $x * $x * $x
+    draw_antialiased_dot( $xx, ( -$y / $ylen ) * ysize, #FF00FF )
+
+    $y = exp( $x )
+    draw_antialiased_dot( $xx, ( -$y / $ylen ) * ysize, #00FFFF )
+
+    $y = log2( $x )
+    draw_antialiased_dot( $xx, ( -$y / $ylen ) * ysize, #4080FF )
+
+    $x + $xstep
+}
+
+print( "y = x", -hxsize, -hysize, RED, LEFT | TOP )
+print( "y = sin( x )", -hxsize, -hysize + 8, GREEN, LEFT | TOP )
+print( "y = sqrt( x )", -hxsize, -hysize + 8 * 2, YELLOW, LEFT | TOP )
+print( "y = x * x", -hxsize, -hysize + 8 * 3, BLUE, LEFT | TOP )
+print( "y = x * x * x", -hxsize, -hysize + 8 * 4, #FF00FF, LEFT | TOP )
+print( "y = exp( x )", -hxsize, -hysize + 8 * 5, #00FFFF, LEFT | TOP )
+print( "y = log2( x )", -hxsize, -hysize + 8 * 6, #4080FF, LEFT | TOP )
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

@@ -1,0 +1,615 @@
+add_section( "Containers (memory management)" )
+
+add_fn( "new", "FN_NEW_PIXI", "fn_new_pixi" )
+add_fn( "remove", "FN_REMOVE_PIXI", "fn_remove_pixi" )
+add_fn( "remove_with_alpha", "FN_REMOVE_PIXI_WITH_ALPHA", "fn_remove_pixi_with_alpha" )
+add_fn( "resize", "FN_RESIZE_PIXI", "fn_resize_pixi" )
+add_fn( "rotate", "FN_ROTATE_PIXI", "fn_rotate_pixi" )
+add_fn( "clean", "FN_CLEAN_PIXI", "fn_clean_pixi" )
+add_fn( "clone", "FN_CLONE_PIXI", "fn_clone_pixi" )
+add_fn( "copy", "FN_COPY_PIXI", "fn_copy_pixi" )
+add_fn( "get_size", "FN_GET_PIXI_SIZE", "fn_get_pixi_info" )
+add_fn( "get_xsize", "FN_GET_PIXI_XSIZE", "fn_get_pixi_info" )
+add_fn( "get_ysize", "FN_GET_PIXI_YSIZE", "fn_get_pixi_info" )
+add_fn( "get_esize", "FN_GET_PIXI_ESIZE", "fn_get_pixi_info" )
+add_fn( "get_type", "FN_GET_PIXI_TYPE", "fn_get_pixi_info" )
+add_fn( "get_flags", "FN_GET_PIXI_FLAGS", "fn_get_pixi_flags" )
+add_fn( "set_flags", "FN_SET_PIXI_FLAGS", "fn_set_pixi_flags" )
+add_fn( "reset_flags", "FN_RESET_PIXI_FLAGS", "fn_reset_pixi_flags" )
+add_fn( "get_prop", "FN_GET_PIXI_PROP", "fn_get_pixi_prop_OR_set_pixi_prop" )
+add_fn( "set_prop", "FN_SET_PIXI_PROP", "fn_get_pixi_prop_OR_set_pixi_prop" )
+add_fn( "remove_prop", "FN_REMOVE_PIXI_PROP", "fn_remove_pixi_prop" )
+add_fn( "remove_props", "FN_REMOVE_PIXI_PROPS", "fn_remove_pixi_props" )
+add_fn( "get_proplist", "FN_GET_PIXI_PROPLIST", "fn_get_pixi_proplist" )
+add_fn( "remove_proplist", "FN_REMOVE_PIXI_PROPLIST", "fn_remove_pixi_proplist" )
+add_fn( "convert_type", "FN_CONVERT_PIXI_TYPE", "fn_convert_pixi_type" )
+add_fn( "show_memory_debug_messages", "FN_SHOW_SMEM_DEBUG_MESSAGES", "fn_show_smem_debug_messages" )
+add_fn( "zlib_pack", "FN_ZLIB_PACK", "fn_zlib_pack" )
+add_fn( "zlib_unpack", "FN_ZLIB_UNPACK", "fn_zlib_unpack" )
+
+add_section( "Working with strings" )
+
+add_fn( "num_to_str", "FN_NUM_TO_STRING", "fn_num_to_string" )
+add_fn( "str_to_num", "FN_STRING_TO_NUM", "fn_string_to_num" )
+
+add_section( "Working with strings (posix)" )
+
+add_fn( "strcat", "FN_STRCAT", "fn_strcat" )
+add_fn( "strcmp", "FN_STRCMP", "fn_strcmp_OR_strstr" )
+add_fn( "strlen", "FN_STRLEN", "fn_strlen" )
+add_fn( "strstr", "FN_STRSTR", "fn_strcmp_OR_strstr" )
+add_fn( "sprintf", "FN_SPRINTF", "fn_sprintf" )
+add_fn( "sprintf2", "FN_SPRINTF2", "fn_sprintf" )
+add_fn( "printf", "FN_PRINTF", "fn_sprintf" )
+add_fn( "fprintf", "FN_FPRINTF", "fn_sprintf" )
+
+add_section( "Log management" )
+
+add_fn( "logf", "FN_LOGF", "fn_sprintf" )
+add_fn( "get_log", "FN_GET_LOG", "fn_get_log" )
+add_fn( "get_system_log", "FN_GET_SYSTEM_LOG", "fn_get_system_log" )
+
+add_section( "Files" )
+
+add_fn( "load", "FN_LOAD", "fn_load" )
+add_fn( "fload", "FN_FLOAD", "fn_fload" )
+add_fn( "save", "FN_SAVE", "fn_save" )
+add_fn( "fsave", "FN_FSAVE", "fn_fsave" )
+add_fn( "get_real_path", "FN_GET_REAL_PATH", "fn_get_real_path" )
+add_fn( "new_flist", "FN_NEW_FLIST", "fn_new_flist" )
+add_fn( "remove_flist", "FN_REMOVE_FLIST", "fn_remove_flist" )
+add_fn( "get_flist_name", "FN_GET_FLIST_NAME", "fn_get_flist_name" )
+add_fn( "get_flist_type", "FN_GET_FLIST_TYPE", "fn_get_flist_type" )
+add_fn( "flist_next", "FN_FLIST_NEXT", "fn_flist_next" )
+add_fn( "get_file_size", "FN_GET_FILE_SIZE", "fn_get_file_size" )
+add_fn( "get_file_format", "FN_GET_FILE_FORMAT", "fn_get_file_format" )
+add_fn( "get_fformat_mime", "FN_GET_FFORMAT_MIME", "fn_get_fformat_mime_OR_ext" )
+add_fn( "get_fformat_ext", "FN_GET_FFORMAT_EXT", "fn_get_fformat_mime_OR_ext" )
+add_fn( "remove_file", "FN_REMOVE_FILE", "fn_remove_file" )
+add_fn( "rename_file", "FN_RENAME_FILE", "fn_rename_file" )
+add_fn( "copy_file", "FN_COPY_FILE", "fn_copy_file" )
+add_fn( "create_directory", "FN_CREATE_DIRECTORY", "fn_create_directory" )
+add_fn( "set_disk0", "FN_SET_DISK0", "fn_set_disk0" )
+add_fn( "get_disk0", "FN_GET_DISK0", "fn_get_disk0" )
+
+add_section( "Files (posix)" )
+
+add_fn( "fopen", "FN_FOPEN", "fn_fopen" )
+add_fn( "fopen_mem", "FN_FOPEN_MEM", "fn_fopen_mem" )
+add_fn( "fclose", "FN_FCLOSE", "fn_fclose" )
+add_fn( "fputc", "FN_FPUTC", "fn_fputc" )
+add_fn( "fputs", "FN_FPUTS", "fn_fputs" )
+add_fn( "fwrite", "FN_FWRITE", "fn_fgets_OR_fwrite_OR_fread" )
+add_fn( "fgetc", "FN_FGETC", "fn_fgetc" )
+add_fn( "fgets", "FN_FGETS", "fn_fgets_OR_fwrite_OR_fread" )
+add_fn( "fread", "FN_FREAD", "fn_fgets_OR_fwrite_OR_fread" )
+add_fn( "feof", "FN_FEOF", "fn_feof_OF_fflush_OR_ftell" )
+add_fn( "fflush", "FN_FFLUSH", "fn_feof_OF_fflush_OR_ftell" )
+add_fn( "fseek", "FN_FSEEK", "fn_fseek" )
+add_fn( "ftell", "FN_FTELL", "fn_feof_OF_fflush_OR_ftell" )
+add_fn( "setxattr", "FN_SETXATTR", "fn_setxattr" )
+
+add_section( "Graphics" )
+
+add_fn( "frame", "FN_FRAME", "fn_frame" )
+add_fn( "vsync", "FN_VSYNC", "fn_vsync" )
+add_fn( "set_pixel_size", "FN_SET_PIXEL_SIZE", "fn_set_pixel_size" )
+add_fn( "get_pixel_size", "FN_GET_PIXEL_SIZE", "fn_get_pixel_size" )
+add_fn( "set_screen", "FN_SET_SCREEN", "fn_set_screen" )
+add_fn( "get_screen", "FN_GET_SCREEN", "fn_get_screen" )
+add_fn( "set_zbuf", "FN_SET_ZBUF", "fn_set_zbuf" )
+add_fn( "get_zbuf", "FN_GET_ZBUF", "fn_get_zbuf" )
+add_fn( "clear_zbuf", "FN_CLEAR_ZBUF", "fn_clear_zbuf" )
+add_fn( "get_color", "FN_GET_COLOR", "fn_get_color" )
+add_fn( "get_red", "FN_GET_RED", "fn_get_red" )
+add_fn( "get_green", "FN_GET_GREEN", "fn_get_green" )
+add_fn( "get_blue", "FN_GET_BLUE", "fn_get_blue" )
+add_fn( "get_blend", "FN_GET_BLEND", "fn_get_blend" )
+add_fn( "transp", "FN_TRANSP", "fn_transp" )
+add_fn( "get_transp", "FN_GET_TRANSP", "fn_get_transp" )
+add_fn( "clear", "FN_CLEAR", "fn_clear" )
+add_fn( "dot", "FN_DOT", "fn_dot" )
+add_fn( "dot3d", "FN_DOT3D", "fn_dot" )
+add_fn( "get_dot", "FN_GET_DOT", "fn_get_dot" )
+add_fn( "get_dot3d", "FN_GET_DOT3D", "fn_get_dot" )
+add_fn( "line", "FN_LINE", "fn_line" )
+add_fn( "line3d", "FN_LINE3D", "fn_line" )
+add_fn( "box", "FN_BOX", "fn_box" )
+add_fn( "fbox", "FN_FBOX", "fn_box" )
+add_fn( "pixi", "FN_PIXI", "fn_pixi" )
+add_fn( "triangles3d", "FN_TRIANGLES", "fn_triangles3d" )
+add_fn( "sort_triangles3d", "FN_SORT_TRIANGLES", "fn_sort_triangles3d" )
+add_fn( "set_key_color", "FN_SET_KEY_COLOR", "fn_set_key_color" )
+add_fn( "get_key_color", "FN_GET_KEY_COLOR", "fn_get_key_color" )
+add_fn( "set_alpha", "FN_SET_ALPHA", "fn_set_alpha" )
+add_fn( "get_alpha", "FN_GET_ALPHA", "fn_get_alpha" )
+add_fn( "print", "FN_PRINT", "fn_print" )
+add_fn( "get_text_xsize", "FN_GET_TEXT_XSIZE", "fn_get_text_xysize" )
+add_fn( "get_text_ysize", "FN_GET_TEXT_YSIZE", "fn_get_text_xysize" )
+add_fn( "get_text_xysize", "FN_GET_TEXT_XYSIZE", "fn_get_text_xysize" )
+add_fn( "set_font", "FN_SET_FONT", "fn_set_font" )
+add_fn( "get_font", "FN_GET_FONT", "fn_get_font" )
+add_fn( "effector", "FN_EFFECTOR", "fn_effector" )
+add_fn( "color_gradient", "FN_COLOR_GRADIENT", "fn_color_gradient" )
+add_fn( "split_rgb", "FN_SPLIT_RGB", "fn_split_rgb" )
+add_fn( "split_ycbcr", "FN_SPLIT_YCBCR", "fn_split_rgb" )
+
+add_section( "OpenGL" )
+
+add_fn( "set_gl_callback", "FN_SET_GL_CALLBACK", "fn_set_gl_callback" )
+add_fn( "remove_gl_data", "FN_REMOVE_GL_DATA", "fn_remove_gl_data" )
+add_fn( "update_gl_data", "FN_UPDATE_GL_DATA", "fn_update_gl_data" )
+add_fn( "gl_draw_arrays", "FN_GL_DRAW_ARRAYS", "fn_gl_draw_arrays" )
+add_fn( "gl_blend_func", "FN_GL_BLEND_FUNC", "fn_gl_blend_func" )
+add_fn( "gl_bind_framebuffer", "FN_GL_BIND_FRAMEBUFFER", "fn_gl_bind_framebuffer" )
+add_fn( "gl_bind_texture", "FN_GL_BIND_TEXTURE", "fn_gl_bind_texture" )
+add_fn( "gl_get_int", "FN_GL_GET_INT", "fn_gl_get_int" )
+add_fn( "gl_get_float", "FN_GL_GET_FLOAT", "fn_gl_get_float" )
+add_fn( "gl_new_prog", "FN_GL_NEW_PROG", "fn_gl_new_prog" )
+add_fn( "gl_use_prog", "FN_GL_USE_PROG", "fn_gl_use_prog" )
+add_fn( "gl_uniform", "FN_GL_UNIFORM", "fn_gl_uniform" )
+add_fn( "gl_uniform_matrix", "FN_GL_UNIFORM_MATRIX", "fn_gl_uniform_matrix" )
+
+add_section( "Animation" )
+
+add_fn( "unpack_frame", "FN_PIXI_UNPACK_FRAME", "fn_pixi_unpack_frame" )
+add_fn( "pack_frame", "FN_PIXI_PACK_FRAME", "fn_pixi_pack_frame" )
+add_fn( "create_anim", "FN_PIXI_CREATE_ANIM", "fn_pixi_create_anim" )
+add_fn( "remove_anim", "FN_PIXI_REMOVE_ANIM", "fn_pixi_remove_anim" )
+add_fn( "clone_frame", "FN_PIXI_CLONE_FRAME", "fn_pixi_clone_frame" )
+add_fn( "remove_frame", "FN_PIXI_REMOVE_FRAME", "fn_pixi_remove_frame" )
+add_fn( "play", "FN_PIXI_PLAY", "fn_pixi_play" )
+add_fn( "stop", "FN_PIXI_STOP", "fn_pixi_stop" )
+
+add_section( "Video (not finished)" )
+
+add_fn( "video_open", "FN_VIDEO_OPEN", "fn_video_open" )
+add_fn( "video_close", "FN_VIDEO_CLOSE", "fn_video_close" )
+add_fn( "video_start", "FN_VIDEO_START", "fn_video_start" )
+add_fn( "video_stop", "FN_VIDEO_STOP", "fn_video_stop" )
+add_fn( "video_set_props", "FN_VIDEO_SET_PROPS", "fn_video_props" )
+add_fn( "video_get_props", "FN_VIDEO_GET_PROPS", "fn_video_props" )
+add_fn( "video_capture_frame", "FN_VIDEO_CAPTURE_FRAME", "fn_video_capture_frame" )
+
+add_section( "Transformation" )
+
+add_fn( "t_reset", "FN_T_RESET", "fn_t_reset" )
+add_fn( "t_rotate", "FN_T_ROTATE", "fn_t_rotate" )
+add_fn( "t_translate", "FN_T_TRANSLATE", "fn_t_translate" )
+add_fn( "t_scale", "FN_T_SCALE", "fn_t_scale" )
+add_fn( "t_push_matrix", "FN_T_PUSH_MATRIX", "fn_t_push_matrix" )
+add_fn( "t_pop_matrix", "FN_T_POP_MATRIX", "fn_t_pop_matrix" )
+add_fn( "t_get_matrix", "FN_T_GET_MATRIX", "fn_t_get_matrix" )
+add_fn( "t_set_matrix", "FN_T_SET_MATRIX", "fn_t_set_matrix" )
+add_fn( "t_mul_matrix", "FN_T_MUL_MATRIX", "fn_t_mul_matrix" )
+add_fn( "t_point", "FN_T_POINT", "fn_t_point" )
+
+add_section( "Audio" )
+
+add_fn( "set_audio_callback", "FN_SET_AUDIO_CALLBACK", "fn_set_audio_callback" )
+add_fn( "enable_audio_input", "FN_ENABLE_AUDIO_INPUT", "fn_enable_audio_input" )
+add_fn( "get_audio_sample_rate", "FN_GET_AUDIO_SAMPLE_RATE", "fn_get_audio_sample_rate" )
+add_fn( "get_note_freq", "FN_GET_NOTE_FREQ", "fn_get_note_freq" )
+
+add_section( "MIDI" )
+
+add_fn( "midi_open_client", "FN_MIDI_OPEN_CLIENT", "fn_midi_open_client" )
+add_fn( "midi_close_client", "FN_MIDI_CLOSE_CLIENT", "fn_midi_close_client" )
+add_fn( "midi_get_device", "FN_MIDI_GET_DEVICE", "fn_midi_get_device" )
+add_fn( "midi_open_port", "FN_MIDI_OPEN_PORT", "fn_midi_open_port" )
+add_fn( "midi_reopen_port", "FN_MIDI_REOPEN_PORT", "fn_midi_reopen_port" )
+add_fn( "midi_close_port", "FN_MIDI_CLOSE_PORT", "fn_midi_close_port" )
+add_fn( "midi_get_event", "FN_MIDI_GET_EVENT", "fn_midi_get_event" )
+add_fn( "midi_get_event_time", "FN_MIDI_GET_EVENT_TIME", "fn_midi_get_event_time" )
+add_fn( "midi_next_event", "FN_MIDI_NEXT_EVENT", "fn_midi_next_event" )
+add_fn( "midi_send_event", "FN_MIDI_SEND_EVENT", "fn_midi_send_event" )
+
+add_section( "SunVox" )
+
+add_fn( "sv_new", "FN_SV_NEW", "fn_sv_new" )
+add_fn( "sv_remove", "FN_SV_REMOVE", "fn_sv_remove" )
+add_fn( "sv_get_sample_rate", "FN_SV_GET_SAMPLE_RATE", "fn_sv_get_sample_rate" )
+add_fn( "sv_render", "FN_SV_RENDER", "fn_sv_render" )
+add_fn( "sv_lock", "FN_SV_LOCK", "fn_sv_lock_unlock" )
+add_fn( "sv_unlock", "FN_SV_UNLOCK", "fn_sv_lock_unlock" )
+//
+add_fn( "sv_load", "FN_SV_LOAD", "fn_sv_load_fload" )
+add_fn( "sv_fload", "FN_SV_FLOAD", "fn_sv_load_fload" )
+add_fn( "sv_save", "FN_SV_SAVE", "fn_sv_save_fsave" )
+add_fn( "sv_fsave", "FN_SV_FSAVE", "fn_sv_save_fsave" )
+//
+add_fn( "sv_play", "FN_SV_PLAY", "fn_sv_play" )
+add_fn( "sv_stop", "FN_SV_STOP", "fn_sv_stop" )
+add_fn( "sv_pause", "FN_SV_PAUSE", "fn_sv_pause" )
+add_fn( "sv_resume", "FN_SV_RESUME", "fn_sv_resume" )
+add_fn( "sv_sync_resume", "FN_SV_SYNC_RESUME", "fn_sv_sync_resume" )
+add_fn( "sv_set_autostop", "FN_SV_SET_AUTOSTOP", "fn_sv_set_autostop" )
+add_fn( "sv_get_autostop", "FN_SV_GET_AUTOSTOP", "fn_sv_get_autostop" )
+add_fn( "sv_get_status", "FN_SV_GET_STATUS", "fn_sv_get_status" )
+add_fn( "sv_rewind", "FN_SV_REWIND", "fn_sv_rewind" )
+add_fn( "sv_volume", "FN_SV_VOLUME", "fn_sv_volume" )
+//
+add_fn( "sv_set_event_t", "FN_SV_SET_EVENT_T", "fn_sv_set_event_t" )
+add_fn( "sv_send_event", "FN_SV_SEND_EVENT", "fn_sv_send_event" )
+//
+add_fn( "sv_get_current_line", "FN_SV_GET_CURRENT_LINE", "fn_sv_get_current_line" )
+add_fn( "sv_get_current_line2", "FN_SV_GET_CURRENT_LINE2", "fn_sv_get_current_line" )
+add_fn( "sv_get_current_signal_level", "FN_SV_GET_CURRENT_SIGLEVEL", "fn_sv_get_current_signal_level" )
+//
+add_fn( "sv_get_name", "FN_SV_GET_NAME", "fn_sv_get_name" )
+add_fn( "sv_set_name", "FN_SV_SET_NAME", "fn_sv_set_name" )
+add_fn( "sv_get_bpm", "FN_SV_GET_BPM", "fn_sv_get_bpm" )
+add_fn( "sv_get_tpl", "FN_SV_GET_TPL", "fn_sv_get_bpm" )
+add_fn( "sv_get_length_frames", "FN_SV_GET_LEN_FRAMES", "fn_sv_get_len" )
+add_fn( "sv_get_length_lines", "FN_SV_GET_LEN_LINES", "fn_sv_get_len" )
+add_fn( "sv_get_time_map", "FN_SV_GET_TIME_MAP", "fn_sv_get_time_map" )
+//
+add_fn( "sv_new_module", "FN_SV_NEW_MODULE", "fn_sv_new_module" )
+add_fn( "sv_remove_module", "FN_SV_REMOVE_MODULE", "fn_sv_remove_module" )
+add_fn( "sv_connect_module", "FN_SV_CONNECT_MODULE", "fn_sv_connect_disconnect_module" )
+add_fn( "sv_disconnect_module", "FN_SV_DISCONNECT_MODULE", "fn_sv_connect_disconnect_module" )
+add_fn( "sv_load_module", "FN_SV_LOAD_MODULE", "fn_sv_fload_module" )
+add_fn( "sv_fload_module", "FN_SV_FLOAD_MODULE", "fn_sv_fload_module" )
+add_fn( "sv_sampler_load", "FN_SV_SAMPLER_LOAD", "fn_sv_mod_fload" )
+add_fn( "sv_sampler_fload", "FN_SV_SAMPLER_FLOAD", "fn_sv_mod_fload" )
+add_fn( "sv_metamodule_load", "FN_SV_METAMODULE_LOAD", "fn_sv_mod_fload" )
+add_fn( "sv_metamodule_fload", "FN_SV_METAMODULE_FLOAD", "fn_sv_mod_fload" )
+add_fn( "sv_vplayer_load", "FN_SV_VPLAYER_LOAD", "fn_sv_mod_fload" )
+add_fn( "sv_vplayer_fload", "FN_SV_VPLAYER_FLOAD", "fn_sv_mod_fload" )
+//
+add_fn( "sv_get_number_of_modules", "FN_SV_GET_NUMBER_OF_MODULES", "fn_sv_get_number_of_modules" )
+add_fn( "sv_find_module", "FN_SV_FIND_MODULE", "fn_sv_find_module" )
+add_fn( "sv_selected_module", "FN_SV_SELECTED_MODULE", "fn_sv_selected_module" ) //not yet documented
+add_fn( "sv_get_module_flags", "FN_SV_GET_MODULE_FLAGS", "fn_sv_get_module_flags" )
+add_fn( "sv_get_module_inputs", "FN_SV_GET_MODULE_INPUTS", "fn_sv_get_module_inputs" )
+add_fn( "sv_get_module_outputs", "FN_SV_GET_MODULE_OUTPUTS", "fn_sv_get_module_inputs" )
+add_fn( "sv_get_module_type", "FN_SV_GET_MODULE_TYPE", "fn_sv_get_module_type" )
+add_fn( "sv_get_module_name", "FN_SV_GET_MODULE_NAME", "fn_sv_get_module_name" )
+add_fn( "sv_set_module_name", "FN_SV_SET_MODULE_NAME", "fn_sv_set_module_name" )
+add_fn( "sv_get_module_xy", "FN_SV_GET_MODULE_XY", "fn_sv_get_module_xy" )
+add_fn( "sv_set_module_xy", "FN_SV_SET_MODULE_XY", "fn_sv_set_module_xy" )
+add_fn( "sv_get_module_color", "FN_SV_GET_MODULE_COLOR", "fn_sv_get_module_color" )
+add_fn( "sv_set_module_color", "FN_SV_SET_MODULE_COLOR", "fn_sv_set_module_color" )
+add_fn( "sv_get_module_finetune", "FN_SV_GET_MODULE_FINETUNE", "fn_sv_get_module_finetune" )
+add_fn( "sv_set_module_finetune", "FN_SV_SET_MODULE_FINETUNE", "fn_sv_set_module_finetune" )
+add_fn( "sv_set_module_relnote", "FN_SV_SET_MODULE_RELNOTE", "fn_sv_set_module_relnote" )
+add_fn( "sv_get_module_scope", "FN_SV_GET_MODULE_SCOPE", "fn_sv_get_module_scope" )
+add_fn( "sv_module_curve", "FN_SV_MODULE_CURVE", "fn_sv_module_curve" )
+add_fn( "sv_get_number_of_module_ctls", "FN_SV_GET_MODULE_CTL_CNT", "fn_sv_get_module_ctl_cnt" )
+add_fn( "sv_get_module_ctl_name", "FN_SV_GET_MODULE_CTL_NAME", "fn_sv_get_module_ctl_name" )
+add_fn( "sv_get_module_ctl_value", "FN_SV_GET_MODULE_CTL_VALUE", "fn_sv_get_module_ctl_value" )
+add_fn( "sv_set_module_ctl_value", "FN_SV_SET_MODULE_CTL_VALUE", "fn_sv_set_module_ctl_value" )
+add_fn( "sv_get_module_ctl_min", "FN_SV_GET_MODULE_CTL_MIN", "fn_sv_get_module_ctl_par" )
+add_fn( "sv_get_module_ctl_max", "FN_SV_GET_MODULE_CTL_MAX", "fn_sv_get_module_ctl_par" )
+add_fn( "sv_get_module_ctl_offset", "FN_SV_GET_MODULE_CTL_OFFSET", "fn_sv_get_module_ctl_par" )
+add_fn( "sv_get_module_ctl_type", "FN_SV_GET_MODULE_CTL_TYPE", "fn_sv_get_module_ctl_par" )
+add_fn( "sv_get_module_ctl_group", "FN_SV_GET_MODULE_CTL_GROUP", "fn_sv_get_module_ctl_par" )
+//
+add_fn( "sv_new_pattern", "FN_SV_NEW_PAT", "fn_sv_new_pat" )
+add_fn( "sv_remove_pattern", "FN_SV_REMOVE_PAT", "fn_sv_remove_pat" )
+add_fn( "sv_get_number_of_patterns", "FN_SV_GET_NUMBER_OF_PATS", "fn_sv_get_number_of_pats" )
+add_fn( "sv_find_pattern", "FN_SV_FIND_PATTERN", "fn_sv_find_pattern" )
+add_fn( "sv_get_pattern_x", "FN_SV_GET_PAT_X", "fn_sv_get_pat" )
+add_fn( "sv_get_pattern_y", "FN_SV_GET_PAT_Y", "fn_sv_get_pat" )
+add_fn( "sv_set_pattern_xy", "FN_SV_SET_PAT_XY", "fn_sv_set_pat_xy" )
+add_fn( "sv_get_pattern_tracks", "FN_SV_GET_PAT_TRACKS", "fn_sv_get_pat" )
+add_fn( "sv_get_pattern_lines", "FN_SV_GET_PAT_LINES", "fn_sv_get_pat" )
+add_fn( "sv_set_pattern_size", "FN_SV_SET_PAT_SIZE", "fn_sv_set_pat_size" )
+add_fn( "sv_get_pattern_name", "FN_SV_GET_PAT_NAME", "fn_sv_get_pat" )
+add_fn( "sv_set_pattern_name", "FN_SV_SET_PAT_NAME", "fn_sv_set_pat_name" )
+add_fn( "sv_get_pattern_data", "FN_SV_GET_PAT_DATA", "fn_sv_get_pat" )
+add_fn( "sv_set_pattern_event", "FN_SV_SET_PAT_EVENT", "fn_sv_set_pat_event" )
+add_fn( "sv_get_pattern_event", "FN_SV_GET_PAT_EVENT", "fn_sv_get_pat_event" )
+add_fn( "sv_pattern_mute", "FN_SV_PAT_MUTE", "fn_sv_pat_mute" )
+
+add_section( "Time" )
+
+add_fn( "start_timer", "FN_START_TIMER", "fn_start_timer" )
+add_fn( "get_timer", "FN_GET_TIMER", "fn_get_timer" )
+add_fn( "get_year", "FN_GET_YEAR", "fn_get_year" )
+add_fn( "get_month", "FN_GET_MONTH", "fn_get_month" )
+add_fn( "get_day", "FN_GET_DAY", "fn_get_day" )
+add_fn( "get_hours", "FN_GET_HOURS", "fn_get_hours" )
+add_fn( "get_minutes", "FN_GET_MINUTES", "fn_get_minutes" )
+add_fn( "get_seconds", "FN_GET_SECONDS", "fn_get_seconds" )
+add_fn( "get_ticks", "FN_GET_TICKS", "fn_get_ticks" )
+add_fn( "get_tps", "FN_GET_TPS", "fn_get_tps" )
+add_fn( "sleep", "FN_SLEEP", "fn_sleep" )
+
+add_section( "Events" )
+
+add_fn( "get_event", "FN_GET_EVENT", "fn_get_event" )
+add_fn( "set_quit_action", "FN_SET_QUIT_ACTION", "fn_set_quit_action" )
+
+add_section( "Threads" )
+
+add_fn( "thread_create", "FN_THREAD_CREATE", "fn_thread_create" )
+add_fn( "thread_destroy", "FN_THREAD_DESTROY", "fn_thread_destroy" )
+add_fn( "mutex_create", "FN_MUTEX_CREATE", "fn_mutex_create" )
+add_fn( "mutex_destroy", "FN_MUTEX_DESTROY", "fn_mutex_destroy" )
+add_fn( "mutex_lock", "FN_MUTEX_LOCK", "fn_mutex_lock" )
+add_fn( "mutex_trylock", "FN_MUTEX_TRYLOCK", "fn_mutex_trylock" )
+add_fn( "mutex_unlock", "FN_MUTEX_UNLOCK", "fn_mutex_unlock" )
+
+add_section( "Mathematical functions" )
+
+add_fn( "acos", "FN_ACOS", "fn_acos" )
+add_fn( "acosh", "FN_ACOSH", "fn_acosh" )
+add_fn( "asin", "FN_ASIN", "fn_asin" )
+add_fn( "asinh", "FN_ASINH", "fn_asinh" )
+add_fn( "atan", "FN_ATAN", "fn_atan" )
+add_fn( "atanh", "FN_ATANH", "fn_atanh" )
+add_fn( "atan2", "FN_ATAN2", "fn_atan2" )
+add_fn( "ceil", "FN_CEIL", "fn_ceil" )
+add_fn( "cos", "FN_COS", "fn_cos" )
+add_fn( "cosh", "FN_COSH", "fn_cosh" )
+add_fn( "exp", "FN_EXP", "fn_exp" )
+add_fn( "exp2", "FN_EXP2", "fn_exp2" )
+add_fn( "expm1", "FN_EXPM1", "fn_expm1" )
+add_fn( "abs", "FN_ABS", "fn_abs" )
+add_fn( "floor", "FN_FLOOR", "fn_floor" )
+add_fn( "mod", "FN_MOD", "fn_mod" )
+add_fn( "log", "FN_LOG", "fn_log" )
+add_fn( "log2", "FN_LOG2", "fn_log2" )
+add_fn( "log10", "FN_LOG10", "fn_log10" )
+add_fn( "pow", "FN_POW", "fn_pow" )
+add_fn( "sin", "FN_SIN", "fn_sin" )
+add_fn( "sinh", "FN_SINH", "fn_sinh" )
+add_fn( "sqrt", "FN_SQRT", "fn_sqrt" )
+add_fn( "tan", "FN_TAN", "fn_tan" )
+add_fn( "tanh", "FN_TANH", "fn_tanh" )
+add_fn( "rand", "FN_RAND", "fn_rand" )
+add_fn( "rand_seed", "FN_RAND_SEED", "fn_rand_seed" )
+
+add_section( "Type punning" )
+
+add_fn( "reinterpret_type", "FN_REINTERPRET_TYPE", "fn_reinterpret_type" )
+
+add_section( "Data processing" )
+
+add_fn( "op_cn", "FN_OP_CN", "fn_op_cn" )
+add_fn( "op_cc", "FN_OP_CC", "fn_op_cc" )
+add_fn( "op_ccn", "FN_OP_CCN", "fn_op_ccn" )
+add_fn( "generator", "FN_GENERATOR", "fn_generator" )
+add_fn( "wavetable_generator", "FN_WAVETABLE_GENERATOR", "fn_wavetable_generator" )
+add_fn( "sampler", "FN_SAMPLER", "fn_sampler" )
+add_fn( "envelope2p", "FN_ENVELOPE2P", "fn_envelope2p" )
+add_fn( "gradient", "FN_GRADIENT", "fn_gradient" )
+add_fn( "fft", "FN_FFT", "fn_fft" )
+add_fn( "new_filter", "FN_NEW_FILTER", "fn_new_filter" )
+add_fn( "remove_filter", "FN_REMOVE_FILTER", "fn_remove_filter" )
+add_fn( "init_filter", "FN_INIT_FILTER", "fn_init_filter" )
+add_fn( "reset_filter", "FN_RESET_FILTER", "fn_reset_filter" )
+add_fn( "apply_filter", "FN_APPLY_FILTER", "fn_apply_filter" )
+add_fn( "replace_values", "FN_REPLACE_VALUES", "fn_replace_values" )
+add_fn( "copy_and_resize", "FN_COPY_AND_RESIZE", "fn_copy_and_resize" )
+add_fn( "conv_filter", "FN_CONV_FILTER", "fn_conv_filter" )
+
+add_section( "Dialogs" )
+
+add_fn( "file_dialog", "FN_FILE_DIALOG", "fn_file_dialog" )
+add_fn( "prefs_dialog", "FN_PREFS_DIALOG", "fn_prefs_dialog" )
+add_fn( "textinput_dialog", "FN_TEXTINPUT_DIALOG", "fn_textinput_dialog" )
+
+add_section( "Network" )
+
+add_fn( "open_url", "FN_OPEN_URL", "fn_system_copy_OR_open_url" )
+
+add_section( "Native code" )
+
+add_fn( "dlopen", "FN_DLOPEN", "fn_dlopen" )
+add_fn( "dlclose", "FN_DLCLOSE", "fn_dlclose" )
+add_fn( "dlsym", "FN_DLSYM", "fn_dlsym" )
+add_fn( "dlcall", "FN_DLCALL", "fn_dlcall" )
+
+add_section( "Posix compatibility" )
+
+add_fn( "system", "FN_SYSTEM", "fn_system" )
+add_fn( "argc", "FN_ARGC", "fn_argc" )
+add_fn( "argv", "FN_ARGV", "fn_argv" )
+add_fn( "exit", "FN_EXIT", "fn_exit" )
+
+add_section( "Experimental API" )
+
+add_fn( "webserver_dialog", "FN_WEBSERVER_DIALOG", "fn_webserver_dialog" )
+add_fn( "midiopt_dialog", "FN_MIDIOPT_DIALOG", "fn_midiopt_dialog" )
+add_fn( "system_copy", "FN_SYSTEM_COPY", "fn_system_copy_OR_open_url" )
+add_fn( "system_paste", "FN_SYSTEM_PASTE", "fn_system_paste" )
+add_fn( "send_file_to_gallery", "FN_SEND_FILE_TO_GALLERY", "fn_send_file_to" ) //can be merged with export_import?
+add_fn( "export_import_file", "FN_EXPORT_IMPORT_FILE", "fn_export_import_file" )
+add_fn( "set_audio_play_status", "FN_SET_AUDIO_PLAY_STATUS", "fn_set_audio_play_status" ) //audiobus only?
+add_fn( "get_audio_event", "FN_GET_AUDIO_EVENT", "fn_get_audio_event" ) //audiobus only?
+add_fn( "open_app_state", "FN_OPEN_APP_STATE", "fn_openclose_app_state" )
+add_fn( "close_app_state", "FN_CLOSE_APP_STATE", "fn_openclose_app_state" )
+add_fn( "wm_video_capture_start", "FN_WM_VIDEO_CAPTURE_START", "fn_wm_video_capture_start_OR_stop" )
+add_fn( "wm_video_capture_stop", "FN_WM_VIDEO_CAPTURE_STOP", "fn_wm_video_capture_start_OR_stop" )
+add_fn( "wm_video_capture_get_ext", "FN_WM_VIDEO_CAPTURE_GET_EXT", "fn_wm_video_capture_get_ext" )
+add_fn( "wm_video_capture_encode", "FN_WM_VIDEO_CAPTURE_ENCODE", "fn_wm_video_capture_encode" )
+
+//
+//
+//
+
+printf( "Number of functions: %d\n", fn_cnt )
+fn_bits = 1
+while 1
+{
+    if fn_cnt <= ( 1 << fn_bits ) { break }
+    fn_bits + 1
+}
+printf( "FN field bits: %d\n", fn_bits )
+
+fname = "pixilang.h"
+printf( " >> %s\n", fname )
+data = load( fname )
+if data < 0 { printf( "Can't load %s!\n", fname ) halt }
+size = get_size( data )
+p0 = strstr( data, "PIX_FN_BITS" )
+if p0 < 0
+{
+    printf( "PIX_FN_BITS not found!\n" )
+    halt
+}
+while 1 { c = data[ p0 ] if c >= '0' && c <= '9' { break } p0 + 1 }
+p0_ = p0 ; while 1 { c = data[ p0_ ] if c < '0' || c > '9' { break } p0_ + 1 }
+p1 = strstr( data, p0, "{ //FN IDs", 0 )
+if p1 < 0
+{
+    printf( "BEGIN marker not found!\n" )
+    halt
+}
+while data[ p1 ] != 0xA { p1 + 1 } p1 + 1
+p2 = strstr( data, p1, "}; //FN IDs", 0 )
+if p2 < 0
+{
+    printf( "END marker not found!\n" )
+    halt
+}
+f = fopen( fname, "wb" )
+if( f )
+{
+    fwrite( data, p0, f )
+    fprintf( f, "%d", fn_bits )
+    fwrite( data, p1 - p0_, f, p0_ )
+    $i = 0 while $i < fn_cnt
+    {
+	section = fn_name[ $i ].section
+	if section
+	{
+	    fprintf( f, "\n    //%s:\n\n", section )
+	}
+	fprintf( f, "    %s,\n", fn_id[ $i ] )
+	$i + 1
+    }
+    fprintf( f, "\n    FN_NUM\n" )
+    fwrite( data, size - p2, f, p2 )
+    fclose( f )
+}
+
+fname = "pixilang_vm_builtin_fns.h"
+printf( " >> %s\n", fname )
+data = load( fname )
+if data < 0 { printf( "Can't load %s!\n", fname ) halt }
+size = get_size( data )
+p1 = strstr( data, "//FNs" )
+if p1 < 0
+{
+    printf( "BEGIN marker not found!\n" )
+    halt
+}
+while data[ p1 ] != 0xA { p1 + 1 } p1 + 1
+f = fopen( fname, "wb" )
+if( f )
+{
+    fwrite( data, p1, f )
+    $i = 0 while $i < fn_cnt
+    {
+	section = fn_name[ $i ].section
+	if section
+	{
+	    fprintf( f, "\n//%s:\n\n", section )
+	}
+	name = fn_fn[ $i ]
+	if get_prop( fn_opt, name, 0 ) == 0
+	{
+	    fprintf( f, "void %s( PIX_BUILTIN_FN_PARAMETERS );\n", name )
+	    set_prop( fn_opt, name, 1 )
+	}
+	$i + 1
+    }
+    fclose( f )
+}
+
+fname = "pixilang_vm_builtin_fns.cpp"
+printf( " >> %s\n", fname )
+data = load( fname )
+if data < 0 { printf( "Can't load %s!\n", fname ) halt }
+size = get_size( data )
+p1 = strstr( data, "{ //FN names" )
+if p1 < 0
+{
+    printf( "BEGIN marker not found!\n" )
+    halt
+}
+while data[ p1 ] != 0xA { p1 + 1 } p1 + 1
+p2 = strstr( data, p1, "}; //FN names", 0 )
+if p2 < 0
+{
+    printf( "END marker not found!\n" )
+    halt
+}
+p3 = strstr( data, p2, "{ //FNs", 0 )
+if p3 < 0
+{
+    printf( "BEGIN2 marker not found!\n" )
+    halt
+}
+while data[ p3 ] != 0xA { p3 + 1 } p3 + 1
+p4 = strstr( data, p3, "}; //FNs", 0 )
+if p4 < 0
+{
+    printf( "END2 marker not found!\n" )
+    halt
+}
+f = fopen( fname, "wb" )
+if( f )
+{
+    fwrite( data, p1, f )
+    $i = 0 while $i < fn_cnt
+    {
+	section = fn_name[ $i ].section
+	if section
+	{
+	    fprintf( f, "\n    //%s:\n\n", section )
+	}
+	fprintf( f, "    \"%s\",\n", fn_name[ $i ] )
+	$i + 1
+    }
+    fwrite( data, p3 - p2, f, p2 )
+    $i = 0 while $i < fn_cnt
+    {
+	section = fn_name[ $i ].section
+	if section
+	{
+	    fprintf( f, "\n    //%s:\n\n", section )
+	}
+	fprintf( f, "    %s,\n", fn_fn[ $i ] )
+	$i + 1
+    }
+    fwrite( data, size - p4, f, p4 )
+    fclose( f )
+}
+
+printf( "File generation finished\n" )
+
+//
+//
+//
+
+fn add_fn( $name, $id, $fn )
+{
+    if fn_cnt == 0
+    {
+	max_fns = 8192
+	fn_name = new( max_fns, 1, INT ) clean( fn_name )
+	fn_id = new( max_fns, 1, INT ) clean( fn_id )
+	fn_fn = new( max_fns, 1, INT ) clean( fn_fn )
+	fn_opt = new( 1, 1, INT ) clean( fn_opt )
+	fn_cnt = 0
+    }
+    if section_name
+    {
+	$name.section = section_name
+	section_name = 0
+    }
+    fn_name[ fn_cnt ] = $name
+    fn_id[ fn_cnt ] = $id
+    fn_fn[ fn_cnt ] = $fn
+    fn_cnt + 1
+}
+
+fn add_section( $section )
+{
+    section_name = $section
+}
+

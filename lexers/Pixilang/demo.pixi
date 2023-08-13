@@ -1,0 +1,1037 @@
+/*
+
+  Pixilang Demoscene Engine
+  for creating, playing and saving audio-visual presentations.
+  See more: https://en.wikipedia.org/wiki/Demoscene
+
+  Control keys:
+    ESC - exit;
+    S - save screenshot;
+
+  Functions:
+    demo_init();
+    demo_deinit();
+    demo_get_screen(); //get the working container with current demo image (but not Pixilang screen!)
+    demo_play();
+    demo_stop();
+    demo_add_scene( $layer_num, $time_fn_num, $t, $scene_handler );
+      //scene_handler( $global_t, $local_scene_t, $length, $frame_cnt )
+      //$frame_cnt is always 0 at the beginning of the scene;
+    demo_get_time( $time_fn_num );
+    demo_set_time( $time_fn_num, $t );
+    //use the following functions before demo_init():
+    demo_load_sunvox( $fname );
+    demo_load_wav( $fname );
+
+  Predefined scenes:
+    DEMO_STOP();
+    DEMO_EMPTY();
+
+  Time functions:
+    0 - main, in milliseconds;
+    1 - set automatically, depending on the sound (pcm, sunvox, etc.);
+        in frames (pcm), lines (sunvox), or other sound units;
+
+  Changelog:
+  v1.0.1 (3 nov 2020):
+  * bug fixes.
+  v1.0 (2020):
+  * the first release.
+
+*/
+
+/*
+
+  This code is distributed under the MIT license:
+
+  Copyright (c) 2019 - 2022, Alexander Zolotov <nightradio@gmail.com>
+  WarmPlace.ru
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+
+*/
+
+//
+// Config
+// (change these variables in the code of your demo BEFORE demo_init())
+//
+
+demo_opengl = 0		//OpenGL: 0 - disabled; 1 - enabled;
+demo_xsize = 0		//frame width: 0 - auto;
+demo_ysize = 0		//frame height: 0 - auto;
+demo_pixel_size = 0	//pixel size: 0 - auto; 1 - native; 2 - x2 zoom; ...
+                        //if OpenGL && frame size == auto: pixel size will affect the scale;
+                        //if OpenGL && frame size != auto: pixel size will not affect anything;
+demo_fps = 0		//max FPS (Frames Per Second); 0 - not limited
+demo_show_fps = 0	//1 - show FPS
+demo_max_time_fns = 2 	//max number of time functions
+demo_max_layers = 16 	//max number of layers
+demo_t_fn1 = 0		//time function for the sound (pcm, sunvox, etc.); can be set automatically
+demo_t_fn2 = 0
+demo_t_fn3 = 0
+demo_t_fn4 = 0
+demo_sound_rate = 44100	//sampling rate
+demo_sound_type = INT16	//sample type
+demo_sound_channels = 2	//number of channels
+demo_sound_fn = 0	//audio callback for set_audio_callback()
+demo_sound_fn_data = -1 //$userdata for audio callback
+demo_video_export = -1		//-1 or video file name; examples: video.avi, video.mkv, video.gif
+demo_video_export_fps = 0	//video FPS; 0 - auto
+demo_video_export_q = 80	//video quality: 0(worst)...100(best)
+demo_video_export_fp = 1	//frame export period: 1 - export all frames; 2 - skip every second frame; 3 - skip frames 2 and 3; ...
+demo_video_export_zoom = 0
+
+//
+// Predefined scenes
+//
+
+fn DEMO_STOP() { demo_stop() }
+fn DEMO_EMPTY() { }
+
+//
+// Internal engine variables
+//
+
+demo_mode = 0 		//0 - real time; 1 - offline (video export)
+demo_status = 0		//0 - stop; 1 - play
+demo_ptimer_num = 0 	//main Pixilang timer number (only for realtime mode)
+demo_ptimer_offset = 0 	//t = get_timer( demo_ptimer_num ) + demo_ptimer_offset
+demo_screenshot_request = 0
+demo_screenshot_counter = 0
+demo_export_slow_mode = 0
+demo_snd = -1
+demo_ts = ""
+
+//
+// Engine code
+//
+
+include "ffmpeg_video_export.pixi"
+include "mjpeg.pixi"
+
+fn demo_init()
+{
+    //Screen:
+    demo_pixel_size_INITIAL = demo_pixel_size
+    if demo_pixel_size == 0
+    {
+	if demo_xsize && demo_ysize
+	{
+	    $s1 = WINDOW_XSIZE / demo_xsize
+	    $s2 = WINDOW_YSIZE / demo_ysize
+	    if $s1 < $s2 { demo_pixel_size = $s1 } else { demo_pixel_size = $s2 }
+	    demo_pixel_size |0
+	}
+	if demo_pixel_size < 1 { demo_pixel_size = 1 }
+    }
+    set_pixel_size( demo_pixel_size )
+    demo_size_static = 1 ; if demo_opengl && demo_xsize == 0 && demo_ysize == 0 { demo_size_static = 0 }
+    if demo_xsize == 0 { demo_xsize = WINDOW_XSIZE }
+    if demo_ysize == 0 { demo_ysize = WINDOW_YSIZE }
+    demo_scr = new( demo_xsize, demo_ysize )
+    demo_scr2 = -1 //temp screen (zoom)
+    set_flags( demo_scr, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NO_XREPEAT | GL_NO_YREPEAT | GL_NO_ALPHA )
+    clean( demo_scr )
+
+    //FPS:
+    demo_frame_duration = 0 //in ms
+    if demo_fps > 0
+    {
+	demo_frame_duration = 1000 div demo_fps
+    }
+    if demo_video_export_fps == 0
+    {
+	demo_video_export_fps = 30
+	if demo_fps > 0
+	{
+	    demo_video_export_fps = demo_fps
+	}
+    }
+
+    //Time functions:
+    demo_t_fns = new( demo_max_time_fns, 1, INT )
+    clean( demo_t_fns, -1 )
+    demo_t_fns[ 0 ] = {
+	//$1 - time function number;
+	//$2 - 0=get; 1=set; 2 = convert ms->time ; 3 = convert time->ms;
+	//$3 - new time value (set/convert);
+	if $2 >= 2
+	{
+	    //Convert milliseconds <-> local time units:
+	    ret( $3 )
+	}
+	if $2 == 0
+	{
+	    //Get:
+	    $t = demo_ptimer_offset
+	    if demo_mode == 0 { $t + get_timer( demo_ptimer_num ) } //real time
+	    ret( $t )
+	}
+	//Set:
+	if demo_mode == 0 { start_timer( demo_ptimer_num ) } //real time
+	demo_ptimer_offset = $3
+    }
+    demo_t_fns[ 1 ] = demo_t_fn1
+    demo_t_fns[ 2 ] = demo_t_fn2
+    demo_t_fns[ 3 ] = demo_t_fn3
+    demo_t_fns[ 4 ] = demo_t_fn4
+
+    //Layers:
+    demo_layers = new( demo_max_layers, 1, INT )
+    clean( demo_layers, -1 )
+    //demo_layers [ demo_max_layers ]:
+    //  layer 0 (will be drawn first);
+    //  layer 1;
+    //  ...
+    //  layer X = array of sublayers [ demo_max_time_fns ]:
+    //    sublayer for time function 0 (main, in milliseconds);
+    //    sublayer for time function 1 (sound (pcm, sunvox, etc.), in frames, lines, or other sound units);
+    //    ...
+    //    sublayer for time function X = array of scene changes []:
+    //      tdelta, scene handler, //sublayer state will be changed to HANDLER after TDELTA
+    //      ...
+    //      tdelta, scene handler.
+    //      sublayer properties:
+    //      .size = 2, 4, 6, 8, ... //dynamic size of the sublayer
+    //      .last_t = 0... //t of the latest scene
+    //      .cur_t = 0...
+    //      .cur_p = 0, 2, 4, 6, 8, ... //position in array
+    //      .cur_f = 0... //current frame (always 0 at the beginning of the scene)
+
+    //OpenGL:
+    if demo_opengl
+    {
+	demo_gl_mutex = mutex_create()
+	set_gl_callback( demo_draw_frame_gl, 0 )
+    }
+
+    //Video export:
+    if demo_video_export > 0
+    {
+	demo_mode = 1
+	demo_video_export_frame_cnt = 0
+	remove_file( demo_video_export )
+	$export_fps = ( demo_video_export_fps / demo_video_export_fp ) |0
+	if $export_fps < 1 { $export_fps = 1 }
+
+    	$export_xsize = get_xsize( demo_scr )
+    	$export_ysize = get_ysize( demo_scr )
+    	if demo_video_export_zoom >= 2
+    	{
+    	    $export_xsize * demo_video_export_zoom
+    	    $export_ysize * demo_video_export_zoom
+    	}
+
+	if strstr( demo_video_export, ".gif" ) > 0
+	{
+	    //gif:
+	    g_export_type = 3
+	    logf( "Video encoder: GIF (Pixilang-based)\n" )
+	    g_gif_export = new( $export_xsize, $export_ysize )
+	    clean( g_gif_export )
+	    create_anim( g_gif_export )
+	    g_gif_export.frame = 0
+	    g_gif_export.fps = $export_fps
+	}
+	else
+	{
+	    $kbit = demo_video_export_q * 100
+	    if $kbit < 1000 { $kbit = 1000 }
+	    g_ffmpeg_export_vfname = clone( CURRENT_PATH ) ; strcat( g_ffmpeg_export_vfname, "temp_video.mp4" )
+	    g_ffmpeg_export_afname = clone( CURRENT_PATH ) ; strcat( g_ffmpeg_export_afname, "temp_audio.raw" )
+	    if demo_video_export[ 0 ] == '/' || demo_video_export[ 1 ] == ':'
+	    {
+		g_ffmpeg_export_ffname = get_real_path( demo_video_export ) //final file name
+	    }
+	    else
+	    {
+		g_ffmpeg_export_ffname = clone( CURRENT_PATH ) ; strcat( g_ffmpeg_export_ffname, demo_video_export )
+	    }
+	    g_ffmpeg_export = ffmpeg_video_export_open( g_ffmpeg_export_vfname, $export_xsize, $export_ysize, $export_fps, $kbit, 0, 0 )
+	    if g_ffmpeg_export > 0
+	    {
+		//ffmpeg:
+		g_export_type = 1
+		logf( "Video encoder: FFMPEG or AVCONV\n" )
+		g_audio_export = fopen( g_ffmpeg_export_afname, "wb" )
+	    }
+	    else
+	    {
+		//mjpeg:
+		g_export_type = 2
+		logf( "Video encoder: MJPEG (Pixilang-based)\n" )
+		if strstr( demo_video_export, ".avi" ) < 0
+		{
+		    strcat( demo_video_export, ".avi" )
+		}
+		g_mjpeg_export_file = fopen( demo_video_export, "wb" )
+		if g_mjpeg_export_file > 0
+		{
+		    $flags = MJPEG_ENCODER_FLAG_USEINDEX
+		    if demo_sound_fn { $flags | MJPEG_ENCODER_FLAG_HASSOUND }
+		    g_mjpeg_export = mjpeg_encoder_open(
+			$export_fps,
+			$export_xsize, $export_ysize,
+			demo_video_export_q, //quality
+			demo_sound_channels,
+			demo_sound_rate,
+			demo_sound_type,
+	    		$flags,
+	    		g_mjpeg_export_file )
+		}
+		else
+		{
+		    logf( "Can't open file %s\n", demo_video_export )
+		}
+	    }
+	}
+
+	if demo_sound_fn
+	{
+	    $buf_size = 8192
+	    $bb = 1
+	    if g_export_type == 2 && demo_video_export_fp > 1
+	    {
+		//mjpeg + frame export period:
+		$bb = demo_video_export_fp
+	    }
+	    g_audio_export_buf = new( $buf_size * demo_sound_channels * $bb, 1, demo_sound_type ) clean( g_audio_export_buf )
+	    g_audio_export_buf_offset = 0
+	    g_audio_export_ch = new( demo_sound_channels, 1, INT )
+	    $i = 0 while $i < demo_sound_channels
+	    {
+		g_audio_export_ch[ $i ] = new( $buf_size, 1, demo_sound_type )
+		clean( g_audio_export_ch[ $i ] )
+		$i + 1
+	    }
+	}
+
+	logf( "Exporting to %s ...\n", demo_video_export )
+	logf( "%d x %d; ", $export_xsize, $export_ysize )
+	logf( "final video FPS = %d; ", $export_fps )
+	if $export_fps != demo_video_export_fps
+	{
+	    logf( "internal FPS = %d; ", demo_video_export_fps )
+	}
+	if demo_sound_fn
+	{
+	    logf( "sound = %dHz x %d; ", demo_sound_rate, demo_sound_channels )
+	}
+	logf( "\n" )
+    }
+    else
+    {
+	demo_mode = 0
+	vsync( 1 )
+    }
+}
+
+fn demo_deinit()
+{
+    if demo_video_export > 0
+    {
+	if g_export_type == 1
+	{
+	    //ffmpeg:
+	    ffmpeg_video_export_close( g_ffmpeg_export )
+    	    fclose( g_audio_export )
+    	    sleep( 500 )
+
+	    if get_file_size( g_ffmpeg_export_afname ) > 0
+	    {
+		logf( "Merging audio and video...\n" )
+		$audio_type = "s16le"
+		if demo_sound_type == INT8 { $audio_type = "s8" }
+		if demo_sound_type == FLOAT32 { $audio_type = "f32le" }
+		sprintf(
+    		    demo_ts,
+    		    "%s -f %s -ar %d -ac %d -i \"%s\" -i \"%s\" -vcodec copy -acodec pcm_%s \"%s\"",
+    		    g_avconv,
+    		    $audio_type,
+    		    demo_sound_rate,
+    		    demo_sound_channels,
+    		    g_ffmpeg_export_afname,
+    		    g_ffmpeg_export_vfname,
+    		    $audio_type,
+    		    g_ffmpeg_export_ffname )
+    	    }
+    	    else
+    	    {
+    		//no audio:
+		sprintf( demo_ts, "%s -i \"%s\" -vcodec copy \"%s\"", g_avconv, g_ffmpeg_export_vfname, g_ffmpeg_export_ffname )
+    	    }
+	    system( demo_ts )
+	    sleep( 100 )
+	    if get_file_size( g_ffmpeg_export_ffname ) > 0
+	    {
+    		remove_file( g_ffmpeg_export_vfname )
+    		remove_file( g_ffmpeg_export_afname )
+    	    }
+    	}
+	if g_export_type == 2
+    	{
+    	    //mjpeg:
+    	    mjpeg_encoder_close( g_mjpeg_export )
+	    fclose( g_mjpeg_export_file )
+	}
+	if g_export_type == 3
+    	{
+    	    //gif:
+    	    $flags = 0
+    	    if demo_video_export_q >= 100 { $flags | GIF_DITHER }
+    	    save( g_gif_export, demo_video_export, FORMAT_GIF, $flags )
+    	    remove( g_gif_export )
+    	    g_gif_export = -1
+    	}
+    	if g_ffmpeg_export_vfname
+    	{
+    	    remove( g_ffmpeg_export_vfname )
+    	    remove( g_ffmpeg_export_afname )
+    	    remove( g_ffmpeg_export_ffname )
+    	    g_ffmpeg_export_vfname = -1
+    	    g_ffmpeg_export_afname = -1
+    	    g_ffmpeg_export_ffname = -1
+    	}
+
+	if demo_sound_fn
+	{
+	    $i = 0 while $i < demo_sound_channels
+	    {
+		remove( g_audio_export_ch[ $i ] )
+		$i + 1
+	    }
+	    remove( g_audio_export_ch )
+	    remove( g_audio_export_buf )
+	    g_audio_export_ch = -1
+	    g_audio_export_buf = -1
+	}
+    }
+
+    //Screen:
+    remove( demo_scr )
+    remove( demo_scr2 )
+
+    //Time functions:
+    remove( demo_t_fns )
+
+    //Layers:
+    $i = 0 while $i < demo_max_layers
+    {
+	$l = demo_layers[ $i ] //layer with sublayers for different time functions
+	if $l > 0
+	{
+	    $t = 0 while $t < demo_max_time_fns
+	    {
+		$ll = $l[ $t ] //sublayer
+		if $ll > 0
+		{
+		    remove( $ll )
+		}
+		$t + 1
+	    }
+	    remove( $l )
+	}
+	$i + 1
+    }
+    remove( demo_layers )
+
+    //OpenGL:
+    if demo_opengl
+    {
+	set_gl_callback( -1 )
+	mutex_destroy( demo_gl_mutex )
+    }
+
+    //Sound:
+    if demo_sound_pcm_stream > 0
+    {
+	remove( demo_sound_pcm_stream ) ; demo_sound_pcm_stream = -1
+	remove( demo_sound_pcm_stream_ptrs ) ; demo_sound_pcm_stream_ptrs = -1
+    }
+    if demo_sound_sv >= 0
+    {
+	sv_remove( demo_sound_sv ) ; demo_sound_sv = -1 ; sv = -1
+	remove( demo_sound_sv_buf ) ; demo_sound_sv_buf = -1
+	remove( demo_sound_time_map ) ; demo_sound_time_map = -1
+    }
+}
+
+fn demo_get_screen()
+{
+    ret( demo_scr )
+}
+
+fn demo_draw_frame_gl( $userdata )
+{
+    mutex_lock( demo_gl_mutex )
+
+    if demo_status
+    {
+	$prev_scr = get_screen()
+	set_screen( GL_SCREEN )
+
+	if demo_size_static
+	{
+	    //Static OpenGL screen size:
+	    gl_bind_framebuffer( demo_scr )
+	}
+	else
+	{
+	    //Dynamic OpenGL screen size:
+	    demo_xsize = WINDOW_XSIZE
+	    demo_ysize = WINDOW_YSIZE
+	}
+
+	demo_draw_frame()
+
+	if demo_size_static
+	{
+	    gl_bind_framebuffer()
+	    transp( 255 )
+	    clear( BLACK )
+	    $s1 = WINDOW_XSIZE / demo_xsize
+	    $s2 = WINDOW_YSIZE / demo_ysize
+	    if $s2 < $s1 { $s1 = $s2 }
+	    pixi( demo_scr, 0, 0, WHITE, $s1, -$s1 ) //-$s1: OpenGL framebuffer (when we access it as a texture) is flipped vertically
+	}
+
+	set_screen( $prev_scr )
+    }
+
+    mutex_unlock( demo_gl_mutex )
+}
+
+fn demo_draw_frame()
+{
+    $audio_bytes = 0
+    if demo_video_export > 0 && demo_sound_fn
+    {
+        $frames = demo_sound_rate div demo_video_export_fps
+	$r = demo_sound_fn( -1, demo_sound_fn_data, g_audio_export_ch, $frames, get_ticks(), -1, 0 )
+	if $r == 0
+	{
+	    //Silence:
+	    $i = 0 while $i < demo_sound_channels
+	    {
+		clean( g_audio_export_ch[ $i ], 0, 0, $frames )
+		$i + 1
+	    }
+	}
+	$i = 0 while $i < demo_sound_channels
+	{
+	    copy( g_audio_export_buf, g_audio_export_ch[ $i ], g_audio_export_buf_offset + $i, 0, $frames, demo_sound_channels, 1 )
+	    $i + 1
+	}
+	$audio_bytes = $frames * demo_sound_channels * get_esize( g_audio_export_buf )
+	if g_export_type == 1
+        {
+    	    //ffmpeg:
+	    fwrite( g_audio_export_buf, $audio_bytes, g_audio_export )
+	}
+	if g_export_type == 2 && demo_video_export_fp > 1
+	{
+	    //mjpeg + frame export period:
+	    g_audio_export_buf_offset + $frames * demo_sound_channels
+	}
+    }
+    $lnum = 0 while $lnum < demo_max_layers
+    {
+        $l = demo_layers[ $lnum ]
+        if $l > 0
+        {
+    	    $tnum = 0 while $tnum < demo_max_time_fns
+	    {
+	        $ll = $l[ $tnum ]
+	        if $ll > 0
+	        {
+	    	    //Sublayer for time fn $tnum:
+		    $cur_t = demo_get_time( $tnum )
+		    if $cur_t < $ll.cur_t
+		    {
+			//Rewind request - reset sublayer time and position:
+			$ll.cur_t = 0
+			$ll.cur_p = 0
+			$ll.cur_f = 0
+		    }
+		    $lsize = $ll.size
+		    $ltime = $ll.cur_t
+		    $lpos = $ll.cur_p
+		    $lframe = $ll.cur_f
+		    while $lpos <= $lsize
+		    {
+		        $td = $ll[ $lpos ] //time delta
+		        if $cur_t < $ltime + $td || $lpos >= $lsize
+		        {
+		    	    if $lpos >= 2
+			    {
+			        //show previous scene:
+				$ll[ $lpos - 2 + 1 ]( $cur_t, $cur_t - $ltime, $td, $lframe )
+				$lframe + 1
+			    }
+			    break
+			}
+			//next scene:
+			$ltime + $td
+			$lpos + 2
+			$lframe = 0
+		    }
+		    $ll.cur_t = $ltime
+		    $ll.cur_p = $lpos
+		    $ll.cur_f = $lframe
+		}
+		$tnum + 1
+	    }
+	}
+	$lnum + 1
+    }
+    if demo_screenshot_request || demo_video_export > 0
+    {
+	$scr = demo_scr
+    	if demo_opengl
+    	{
+    	    if !demo_size_static
+    	    {
+    	        resize( demo_scr, WINDOW_XSIZE * demo_pixel_size, WINDOW_YSIZE * demo_pixel_size )
+    	    }
+    	    copy( demo_scr, get_screen() )
+    	}
+    	if demo_video_export_zoom >= 2
+    	{
+    	    $xsize2 = demo_xsize * demo_video_export_zoom
+    	    $ysize2 = demo_ysize * demo_video_export_zoom
+    	    if demo_scr2 <= 0 { demo_scr2 = new( $xsize2, $ysize2 ) }
+    	    copy_and_resize( demo_scr2, demo_scr, 0,
+    		0, //dest_x
+    		0, //dest_y
+    		$xsize2, //dest_xsize
+    		$ysize2, //dest_ysize
+    		0, //src_x
+    		0, //src_y
+    		demo_xsize, //src_xsize
+    		demo_ysize ) //src_ysize
+    	    $scr = demo_scr2
+    	}
+    	if demo_video_export > 0 && demo_status
+    	{
+    	    if demo_video_export_frame_cnt % demo_video_export_fp == 0
+    	    {
+		if g_export_type == 1
+		{
+		    //ffmpeg:
+    		    ffmpeg_video_export_write( g_ffmpeg_export, $scr )
+    		}
+		if g_export_type == 2
+    		{
+    		    //mjpeg:
+    		    mjpeg_encoder_write_image( g_mjpeg_export, $scr )
+    		    if $audio_bytes { mjpeg_encoder_write_audio( g_mjpeg_export, g_audio_export_buf, 0, $audio_bytes * demo_video_export_fp ) }
+    		    mjpeg_encoder_next_frame( g_mjpeg_export )
+    		    g_audio_export_buf_offset = 0
+		}
+		if g_export_type == 3
+		{
+		    //gif:
+		    if g_gif_export.frame > 0
+		    {
+            		g_gif_export.frame - 1
+			clone_frame( g_gif_export )
+            		g_gif_export.frame + 1
+		    }
+		    copy( g_gif_export, $scr )
+		    pack_frame( g_gif_export )
+            	    g_gif_export.frame + 1
+		}
+	    }
+	    demo_video_export_frame_cnt + 1
+    	    demo_ptimer_offset + 1000 div demo_video_export_fps
+	}
+	if demo_screenshot_request
+	{
+	    demo_screenshot_request = 0
+    	    while 1
+    	    {
+    	        sprintf( demo_ts, "screen%04d.png", demo_screenshot_counter )
+        	demo_screenshot_counter + 1
+    		if get_file_size( demo_ts ) <= 0 { break }
+    	    }
+    	    logf( "Saving %s...\n", demo_ts )
+    	    save( $scr, demo_ts, FORMAT_PNG )
+    	}
+    }
+    if demo_show_fps
+    {
+	sprintf( demo_ts, "FPS:%u", FPS )
+	print( demo_ts, -demo_xsize div 2 + 1, -demo_ysize div 2 + 2, BLACK, TOP | LEFT )
+	print( demo_ts, -demo_xsize div 2 + 1, -demo_ysize div 2 + 1, WHITE, TOP | LEFT )
+    }
+}
+
+fn demo_play()
+{
+    if demo_video_export <= 0
+    {
+	if demo_sound_fn
+	{
+	    set_audio_callback( demo_sound_fn, demo_sound_fn_data, demo_sound_rate, demo_sound_type, demo_sound_channels, AUDIO_FLAG_INTERP2 )
+	}
+	start_timer( demo_ptimer_num )
+    }
+    if demo_sound_sv >= 0
+    {
+	sv_play( demo_sound_sv )
+    }
+    if demo_opengl
+    {
+	mutex_lock( demo_gl_mutex )
+	demo_status = 1
+	mutex_unlock( demo_gl_mutex )
+    }
+    else
+    {
+	demo_status = 1
+    }
+    while demo_status
+    {
+	if !demo_opengl
+	{
+	    if demo_pixel_size_INITIAL == 0
+	    {
+		$xsize = WINDOW_XSIZE * get_pixel_size()
+		$ysize = WINDOW_YSIZE * get_pixel_size()
+		$s1 = $xsize / demo_xsize
+		$s2 = $ysize / demo_ysize
+		if $s1 < $s2 { $s = $s1 } else { $s = $s2 }
+		$s div 1
+		if $s < 1 { $s = 1 }
+		if $s != demo_pixel_size
+		{
+		    demo_pixel_size = $s
+		    set_pixel_size( demo_pixel_size )
+		}
+	    }
+	    set_screen( demo_scr )
+	    demo_draw_frame()
+	}
+	while get_event()
+	{
+    	    if EVT[ EVT_TYPE ] == EVT_BUTTONDOWN
+    	    {
+        	key = EVT[ EVT_KEY ]
+        	if key == 's' { demo_screenshot_request = 1 }
+        	if key == '`' { demo_export_slow_mode ^ 1 }
+    	    }
+    	    if EVT[ EVT_TYPE ] == EVT_QUIT { breakall }
+	}
+	$d = demo_frame_duration
+	if demo_video_export > 0
+	{
+	    $d = demo_export_slow_mode * 500
+	    $skip = 0
+	    if !demo_opengl && ( demo_video_export_frame_cnt & 3 ) > 0 { $skip = 1 }
+	    if !$skip
+	    {
+		frame( $d )
+	    }
+	}
+	else
+	{
+	    frame( $d )
+	}
+    }
+    if demo_opengl
+    {
+	mutex_lock( demo_gl_mutex )
+	demo_status = 0
+	mutex_unlock( demo_gl_mutex )
+    }
+    else
+    {
+	demo_status = 0
+    }
+    if demo_video_export <= 0
+    {
+        if demo_sound_fn
+	{
+	    set_audio_callback( -1 )
+	}
+    }
+}
+
+fn demo_stop()
+{
+    if demo_opengl
+    {
+	mutex_lock( demo_gl_mutex )
+	demo_status = 0
+	mutex_unlock( demo_gl_mutex )
+    }
+    else
+    {
+	demo_status = 0
+    }
+}
+
+fn demo_add_scene( $layer_num, $time_fn_num, $t, $handler )
+{
+    $l = demo_get_layer( $layer_num, $time_fn_num )
+    $td = $t - $l.last_t
+    if $td < 0
+    {
+	logf( "demo_add_scene(): wrong t %d - it must be greater than the time of the last added scene.\n", $t )
+	ret
+    }
+    $size = $l.size
+    $prev_size = get_size( $l )
+    if $size >= $prev_size
+    {
+	resize( $l, $prev_size + 32, -1 )
+	clean( $l, 0, $prev_size, 32 )
+    }
+    $l[ $size ] = $td
+    $l[ $size + 1 ] = $handler
+    $size + 2
+    $l.size = $size
+    $l.last_t = $t
+}
+
+fn demo_get_layer( $layer_num, $time_fn_num )
+{
+    $l = demo_layers[ $layer_num ] //layer
+    if $l <= 0
+    {
+	$l = new( demo_max_time_fns, 1, INT )
+	demo_layers[ $layer_num ] = $l
+	clean( $l, -1 )
+    }
+    $ll = $l[ $time_fn_num ] //sublayer
+    if $ll <= 0
+    {
+	$ll = new( 2, 1, INT )
+	clean( $ll )
+	$l[ $time_fn_num ] = $ll
+    }
+    ret( $ll )
+}
+
+fn demo_get_time( $time_fn_num )
+{
+    ret( demo_t_fns[ $time_fn_num ]( $time_fn_num, 0 ) )
+}
+
+fn demo_convert_time( $t, $from, $to ) //convert between different time functions
+{
+    $t = demo_t_fns[ $from ]( $from, 3, $t ) // from -> ms
+    $t = demo_t_fns[ $to ]( $to, 2, $t ) // ms -> to
+    ret( $t )
+}
+
+//use it for rewind only;
+//then all the timers should work independently, starting from the new specified position;
+//it's recommended to use a time function with a lower resolution to avoid highres->lowres time converting errors;
+fn demo_set_time( $time_fn_num, $t )
+{
+    $tf = demo_t_fns[ $time_fn_num ]
+    if !$tf { ret }
+    $tf( $time_fn_num, 1, $t ) //set
+    $t_ms = $tf( $time_fn_num, 3, $t ) //convert to ms
+    $tnum = 0 while $tnum < demo_max_time_fns
+    {
+	$f = demo_t_fns[ $tnum ]
+	if $f
+	{
+	    if $f != $tf
+	    {
+		//Convert time from $time_fn_num to $tnum:
+		$t2 = $f( $tnum, 2, $t_ms ) //convert from ms
+		$f( $tnum, 1, $t2 ) //set
+	    }
+	}
+	$tnum + 1
+    }
+}
+
+fn demo_load_wav( $fname )
+{
+    demo_sound_pcm_stream = load( $fname )
+    if demo_sound_pcm_stream < 0
+    {
+	logf( "demo_load_wav(): can't load %s\n", $fname )
+	ret( -1 )
+    }
+    demo_sound_rate = demo_sound_pcm_stream.sample_rate
+    demo_sound_type = get_type( demo_sound_pcm_stream )
+    demo_sound_channels = demo_sound_pcm_stream.channels
+    if demo_sound_rate <= 0 || demo_sound_channels <= 0
+    {
+	logf( "demo_load_wav(): loading error\n" )
+	remove( demo_sound_pcm_stream )
+	ret( -1 )
+    }
+    demo_sound_len = get_size( demo_sound_pcm_stream ) div demo_sound_channels //number of frames
+    demo_sound_pcm_stream_ptr = 0 //frame ptr
+    demo_sound_pcm_stream_ptrs = new( 8, 2, INT ) ; clean( demo_sound_pcm_stream_ptrs )
+    demo_sound_pcm_stream_ptrs_i = 0
+    demo_sound_fn = demo_sound_fn_pcmplayer
+    demo_t_fn1 = { //time function 1; unit = 1 frame
+	//$1 - time function number;
+	//$2 - 0=get; 1=set; 2 = convert ms->frame ; 3 = convert frame->ms;
+	//$3 - new time value (set/convert);
+	if $2 >= 2
+	{
+	    //Convert milliseconds <-> frames:
+	    if $2 == 2
+	    {
+		//ms -> frame:
+		ret( ( $3 / 1000 * demo_sound_rate ) |0 )
+	    }
+	    //frame -> ms:
+	    ret( $3 / demo_sound_rate * 1000 )
+	}
+	if $2 == 0
+	{
+	    //Get:
+	    $t = demo_sound_pcm_stream_ptr
+	    if demo_mode == 0
+	    {
+		$cur_t = get_ticks()
+		$prev_d = 99999999
+		$prev_i = -1
+		$i = 0 while $i < 8
+		{
+		    $tt = demo_sound_pcm_stream_ptrs[ $i, 1 ]
+		    if $tt
+		    {
+			$d = $cur_t - $tt
+			if $d >= 0
+			{
+			    if $d < $prev_d
+			    {
+				$prev_d = $d
+				$prev_i = $i
+			    }
+			}
+		    }
+		    $i + 1
+		}
+		if $prev_i >= 0
+		{
+		    $t = demo_sound_pcm_stream_ptrs[ $prev_i, 0 ] + ( $prev_d * demo_sound_rate / get_tps() )
+		}
+	    }
+	    ret( $t )
+	}
+	//Set:
+	demo_sound_pcm_stream_ptr = $3
+    }
+    ret( 0 )
+}
+
+fn demo_load_sunvox( $fname )
+{
+    if get_file_size( $fname ) <= 0
+    {
+	logf( "demo_load_sunvox(): file not found %s\n", $fname )
+	ret( -1 )
+    }
+    demo_sound_sv = sv_new( demo_sound_rate, SV_INIT_FLAG_OFFLINE )
+    sv = demo_sound_sv
+    demo_sound_sv_buf = new( 8192, 1, demo_sound_type ) ; clean( demo_sound_sv_buf )
+    sv_load( sv, $fname )
+    sv_rewind( sv, 0 )
+    demo_sound_len = sv_get_length_lines( sv )
+    demo_sound_time_map = new( demo_sound_len, 1, INT32 ) ; sv_get_time_map( sv, 0, demo_sound_len, demo_sound_time_map, SV_TIME_MAP_FRAMECNT )
+    demo_sound_fn = demo_sound_fn_sunvoxplayer
+    demo_sound_fn_data = sv
+    demo_t_fn1 = { //time function 1; unit = 1 line
+	//$1 - time function number;
+	//$2 - 0=get; 1=set; 2 = convert ms->line ; 3 = convert line->ms;
+	//$3 - new time value (set/convert);
+	if $2 >= 2
+	{
+	    //Convert milliseconds <-> lines:
+	    if $2 == 2
+	    {
+		//ms -> line:
+		$t = $3
+		$frame_cnt = $t / 1000 * demo_sound_rate
+		$t = 0
+		$i = 0 while $i < demo_sound_len
+		{
+		    if $frame_cnt <= demo_sound_time_map[ $i ]
+		    {
+			$t = $i
+			break
+		    }
+		    $i + 1
+		}
+		ret( $t )
+	    }
+	    //line -> ms:
+	    ret( demo_sound_time_map[ $3 ] / demo_sound_rate * 1000 )
+	}
+	if $2 == 0
+	{
+	    //Get:
+	    ret( sv_get_current_line2( demo_sound_sv ) / 32 )
+	}
+	//Set:
+	sv_rewind( demo_sound_sv, $3 )
+    }
+    ret( 0 )
+}
+
+fn demo_sound_fn_pcmplayer( $stream, $userdata, $channels, $frames, $output_time_in_system_ticks, $in_channels, $latency_in_frames )
+{
+    if demo_sound_pcm_stream_ptr < 0 || demo_sound_pcm_stream_ptr >= demo_sound_len
+    {
+	$c = 0 while $c < demo_sound_channels
+	{
+	    clean( $channels[ $c ] )
+    	    $c + 1
+	}
+    }
+
+    $i = demo_sound_pcm_stream_ptrs_i
+    demo_sound_pcm_stream_ptrs[ $i, 0 ] = demo_sound_pcm_stream_ptr
+    demo_sound_pcm_stream_ptrs[ $i, 1 ] = $output_time_in_system_ticks
+    $i = ( $i + 1 ) & 7
+    demo_sound_pcm_stream_ptrs_i = $i
+
+    $c = 0 while $c < demo_sound_channels
+    {
+        copy( $channels[ $c ], demo_sound_pcm_stream, 0, demo_sound_pcm_stream_ptr * demo_sound_channels + $c, $frames, 1, demo_sound_channels )
+        $c + 1
+    }
+    demo_sound_pcm_stream_ptr + $frames
+
+    ret( 1 )
+}
+
+fn demo_sound_fn_sunvoxplayer( $stream, $userdata, $channels, $frames, $output_time_in_system_ticks, $in_channels, $latency_in_frames )
+{
+    $sv = $userdata
+    if $sv < 0 { ret( 0 ) }
+    $rv = sv_render( $sv, demo_sound_sv_buf, $frames, $latency_in_frames, $output_time_in_system_ticks )
+    $c = 0 while $c < demo_sound_channels
+    {
+	copy( $channels[ $c ], demo_sound_sv_buf, 0, $c, $frames, 1, demo_sound_channels )
+        $c + 1
+    }
+    ret( $rv )
+}

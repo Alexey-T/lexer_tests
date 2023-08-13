@@ -1,0 +1,53 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+start_timer( 0 )
+
+start:
+    t = get_timer( 0 ) / 2000
+    a = sin( t ) * 128 |0
+    b = cos( t ) * 128 |0
+    magn = 120 //128 + t * 8 |0
+
+    draw_fract()
+
+    ts = ""
+    sprintf( ts, "FPS:%d", FPS )
+    tx = -get_xsize( scr ) / 2 + 8
+    ty = -get_ysize( scr ) / 2 + 8
+    print( ts, tx, ty, WHITE, TOP | LEFT )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+go start
+
+fn draw_fract()
+{
+    y = -hysize while( y < hysize )
+    {
+	x = -hxsize while( x < hxsize )
+	{
+	    xx = ( x * magn ) >> 7
+	    yy = ( y * magn ) >> 7
+	    col = 0 while( col < 256 )
+	    {
+		xxx = ( xx * xx ) >> 7
+		yyy = ( yy * yy ) >> 7
+		if xxx + yyy > 4 * 128 { break }
+		yy = ( ( xx * yy ) >> 6 ) + b
+		xx = xxx - yyy + a
+		col + 8
+	    }
+	    dot( x, y, get_color( col, col, col << 2 ) )
+	    x + 1
+	}
+	y + 1
+    }
+}

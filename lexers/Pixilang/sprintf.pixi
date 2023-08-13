@@ -1,0 +1,11 @@
+include "../show_log.pixi"
+
+//Write formatted data to string
+
+s = "" //some temporary string (not necessarily empty)
+sprintf( s, "SPRINTF TEST: %% [ %s ] [ %c ] [ %d ] [ %04u ] [ %f ] [ %05.2f ]\n", "argument1", '?', -100, 123, 2.2, 4.45 )
+logf( "%s", s )
+sprintf( s, "23.3 * 44.1 = %f\n", 23.3 * 44.1 )
+logf( s )
+
+show_log()

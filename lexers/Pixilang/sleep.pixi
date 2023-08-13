@@ -1,0 +1,5 @@
+fputs( "1 sec\n" )
+sleep( 1000 )
+fputs( "2 sec\n" )
+sleep( 1000 )
+fputs( "3 sec\n" )

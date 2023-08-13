@@ -1,0 +1,14 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+scr = get_screen()
+resize( scr, WINDOW_XSIZE, WINDOW_YSIZE )
+
+file = file_dialog( "Select some file", "", "fff" )
+printf( "file_dialog finished: %s\n", file )
+if file < 0 { halt }
+
+while 1
+{
+    print( file, 0, 0, YELLOW, 0, get_xsize( scr ) )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

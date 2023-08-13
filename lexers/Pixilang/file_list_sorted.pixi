@@ -1,0 +1,94 @@
+include "../show_log.pixi"
+
+l = get_sorted_file_list( CURRENT_PATH, -1 )
+size = get_ysize( l )
+logf( "%s ==> %d files\n", CURRENT_PATH, size )
+i = 0 while( i < size )
+{
+    $file_name = l[ 0, i ]
+    $file_type = l[ 1, i ]
+    if $file_type == 0
+    {
+	logf( "FILE %s\n", $file_name )
+    }
+    else
+    {
+	logf( "DIR  %s\n", $file_name )
+    }
+    i + 1
+}
+remove_file_list( l )
+
+show_log()
+
+//
+//
+//
+
+fn get_sorted_file_list( $path, $mask )
+{
+    $list = -1
+    $n = 0
+    $fl = new_flist( $path, $mask )
+    if $fl >= 0
+    {
+	while( 1 )
+	{
+	    $n + 1
+	    $file_name = get_flist_name( $fl )
+	    $file_type = get_flist_type( $fl ) //0 - file; 1 - directory;
+	    if $list == -1 
+	    {
+		$list = new( 2, 1, INT ) 
+	    }
+	    else
+	    {
+		resize( $list, 2, $n, INT )
+	    }
+	    $list[ 0, $n - 1 ] = new( strlen( $file_name ), 1, INT8 )
+	    copy( $list[ 0, $n - 1 ], $file_name )
+	    $list[ 1, $n - 1 ] = $file_type
+	    if flist_next( $fl ) == 0 //Go to the next file
+	    {
+		//No more files
+		break
+	    }
+	}
+	remove_flist( $fl )
+    }
+    //Sort:
+    $changed = 1
+    while( $changed )
+    {
+	$changed = 0
+	$i = 0 while( $i < $n )
+	{
+	    $file_name = $list[ 0, $i ]
+	    if $i < $n - 1
+	    {
+		$file_name2 = $list[ 0, $i + 1 ]
+		if strcmp( $file_name, $file_name2 ) > 0
+		{
+		    $list[ 0, $i ] = $file_name2
+		    $list[ 0, $i + 1 ] = $file_name
+		    $type = $list[ 1, $i ]
+                    $list[ 1, $i ] = $list[ 1, $i + 1 ]
+                    $list[ 1, $i + 1 ] = $type
+		    $changed = 1
+		}
+	    }
+    	    $i + 1
+	}
+    }
+    ret( $list )
+}
+
+fn remove_file_list( $list )
+{
+    $size = get_ysize( $list )
+    $i = 0 while( $i < $size )
+    {
+	remove( $list[ 0, $i ] )
+	$i + 1
+    }
+}

@@ -1,0 +1,636 @@
+/*
+    Au Demo
+
+    MIT license:
+
+    Copyright (c) 2019 - 2020, Alexander Zolotov <nightradio@gmail.com>
+    WarmPlace.ru
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to
+    deal in the Software without restriction, including without limitation the
+    rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+    sell copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+    IN THE SOFTWARE.
+*/
+
+include "../../../../lib/demo.pixi"
+
+//
+//
+//
+
+//demo_show_fps = 1
+demo_xsize = 1280 div 4
+demo_ysize = 720 div 4
+demo_video_export_zoom = 8
+demo_video_export_fps = 60
+demo_video_export_q = 100
+//demo_video_export = "au.mkv"
+
+demo_load_sunvox( "data/music.sunvox" )
+
+demo_init()
+my_demo_init()
+demo_play()
+demo_deinit()
+
+//
+//
+//
+
+fn my_demo_init()
+{
+    hxsize = demo_xsize div 2
+    hysize = demo_ysize div 2
+    $scr = demo_get_screen()
+
+    my_scr1 = clone( $scr ) //edges filter, glow
+    my_scr2 = clone( $scr ) //whirls
+    my_scr3 = clone( $scr ) //plasma
+    my_scr8b1 = new( demo_xsize, demo_ysize, INT8 ) //8bit screen
+    my_scr8b2 = new( demo_xsize, demo_ysize, INT8 )
+    my_scr_r = new( demo_xsize, demo_ysize, INT16 )
+    my_scr_g = new( demo_xsize, demo_ysize, INT16 )
+    my_scr_b = new( demo_xsize, demo_ysize, INT16 )
+
+    kernel1 = new( 3, 3, INT ) //EDGE DETECTION
+    clean( kernel1, -1 )
+    kernel1[ 1, 1 ] = 8
+
+    whirl_size = 100
+    whirl_img = new( whirl_size, whirl_size, PIXEL )
+    set_flags( whirl_img, CFLAG_INTERP )
+    whirl_alpha = new( whirl_size, whirl_size, INT8 )
+    set_alpha( whirl_img, whirl_alpha )
+    clean( whirl_img, WHITE )
+    $p = 0
+    $y = 0 while $y < whirl_size
+    {
+	$v = sin( $y / whirl_size * M_PI )
+	$x = 0 while $x < whirl_size
+	{
+	    $vv = sin( $x / whirl_size * M_PI ) * $v
+	    $vv * $vv
+	    whirl_alpha[ $p ] = $vv * 255
+	    $p + 1
+	    $x + 1
+	}
+	$y + 1
+    }
+
+    img_halo01 = load( "data/halo01.png" )
+    img_halo02 = load( "data/halo02.png" )
+    img_halo01_size = get_xsize( img_halo01 )
+    img_01 = load( "data/01.png" )
+    img_02 = load( "data/02.jpg" )
+    img_02x = load( "data/02x.jpg" )
+    //img_03 = load( "data/03.png" )
+    img_03 = clone( img_01 ) ; clean( img_03 )
+    img_04 = load( "data/04.png" )
+    set_flags( img_01, CFLAG_INTERP )
+    set_flags( img_02, CFLAG_INTERP )
+    set_flags( img_02x, CFLAG_INTERP )
+    set_flags( img_03, CFLAG_INTERP )
+    set_flags( img_04, CFLAG_INTERP )
+
+    plasma_pal = new( 256 )
+    $i = 0 while $i < 128
+    {
+	$v = $i
+	$v * 4
+	plasma_pal[ $i ] = get_color( $v, $v/2, $v/3 )
+	$i + 1
+    }
+    $i = 128 while $i < 256
+    {
+	$v = 256 - $i
+	$v * 4
+	plasma_pal[ $i ] = get_color( $v/3, $v/2, $v )
+	$i + 1
+    }
+
+    byte_items_count = 32
+    byte_items = new( byte_items_count, 1, INT )
+    rand_seed( 0 )
+    $i = 0 while $i < byte_items_count
+    {
+        $xsize = 9
+        $ysize = 9
+        $item = new( $xsize, $ysize )
+        set_key_color( $item, BLACK )
+        $xsize div 2
+        $ysize div 2
+        byte_items[ $i ] = $item
+        set_screen( $item )
+        clear()
+        $i2 = 0 while $i2 < 9
+        {
+            $x = ( ( rand() & 255 ) * $xsize ) div 256
+            $y = ( ( rand() & 255 ) * $xsize ) div 256
+            dot( $x, $y, WHITE )
+            dot( -$x, $y, WHITE )
+            dot( -$x, -$y, WHITE )
+            dot( $x, -$y, WHITE )
+            $i2 + 1
+        }
+        $i + 1
+    }
+    set_screen( $scr )
+
+    //Load font:
+    font = load( "data/font.png" )
+    set_font( 32, font, 16, 6 )
+    set_key_color( font, BLACK )
+
+    $pat_xsize = 2
+    $pat_ysize = 2
+    $pat_xmask = $pat_xsize - 1
+    $pat_ymask = $pat_ysize - 1
+    $pat = new( $pat_xsize, $pat_ysize )
+    clean( $pat )
+    $c1 = #101010
+    $c2 = #080808
+    $pat[ 0, 0 ] = $c1
+    $pat[ 1, 0 ] = $c2
+    $pat[ 1, 1 ] = $c1
+    color_filter = clone( $scr )
+    clean( color_filter )
+    $i = 0
+    $y = 0 while $y < demo_ysize
+    {
+        $x = 0 while $x < demo_xsize
+        {
+            color_filter[ $i ] = $pat[ $x & $pat_xmask, $y & $pat_ymask ]
+            $x + 1
+            $i + 1
+        }
+        $y + 1
+    }
+    remove( $pat )
+
+    //
+    // Timeline:
+    //
+
+    demo_add_scene( 8, 0, 0, scene_filter )
+
+    $t = 0
+
+    demo_add_scene( 0, 1, $t, scene_black )
+    demo_add_scene( 1, 1, $t, scene_byte )
+    demo_add_scene( 2, 1, $t, scene_leaf )
+    demo_add_scene( 4, 1, $t, scene_filter_glow )
+    demo_add_scene( 5, 1, $t, scene_filter_vlines )
+
+    $t + 128*4
+
+    demo_add_scene( 5, 1, $t, scene_filter_vlines2 )
+
+    $t + 128*4
+
+    //demo_add_scene( 3, 1, $t, scene_filter_acid )
+    demo_add_scene( 3, 1, $t, scene_filter_shift )
+
+    $t + 128*4
+
+    demo_add_scene( 0, 1, $t, DEMO_EMPTY )
+    demo_add_scene( 1, 1, $t, DEMO_EMPTY )
+    demo_add_scene( 2, 1, $t, DEMO_EMPTY )
+    demo_add_scene( 3, 1, $t, DEMO_EMPTY )
+    demo_add_scene( 4, 1, $t, DEMO_EMPTY )
+    demo_add_scene( 5, 1, $t, DEMO_EMPTY )
+    demo_add_scene( 6, 1, $t, DEMO_EMPTY )
+
+    demo_add_scene( 1, 1, $t, scene_whirlwinds )
+    demo_add_scene( 2, 1, $t, scene_leaf2 )
+    demo_add_scene( 3, 1, $t, scene_filter_glow )
+
+    $t + 128*4
+
+    demo_add_scene( 0, 1, $t, scene_noise )
+    demo_add_scene( 2, 1, $t, scene_text )
+
+    $t + 128*4
+
+    demo_add_scene( 0, 1, $t, DEMO_STOP )
+
+    //demo_set_time( 1, 128*4*4 )
+}
+
+//
+// Scenes
+//
+
+fn get_t( $t, $period ) //period in lines
+{
+    ret( ( ( $t * 32 ) & ( $period * 32 - 1 ) ) / ( $period * 32 ) )
+}
+
+fn superline( $x1, $y1, $x2, $y2, $c, $t, $t2 ) //$t: 0...1 (pixel offset); $t2: 0...1 (wave offset)
+{
+    $t2 = $t2 * M_PI * 2
+    $steps = 32
+    $dx = ( $x2 - $x1 ) / $steps
+    $dy = ( $y2 - $y1 ) / $steps
+    $x = $x1 + $t * $dx
+    $y = $y1 + $t * $dy
+    $i = $t while $i < $steps
+    {
+	$ii = $i / $steps
+	$add1 = sin( $ii * 16 - $t2 ) * $ii * 16
+	$add2 = cos( $ii * 16 - $t2 ) * $ii * 16
+	//$xx = $x + $dy*$add
+	//$yy = $y + $dx*$add
+	$xx = $x + $add1
+	$yy = $y + $add2
+	dot( $xx, $yy, $c )
+	$x + $dx
+	$y + $dy
+	$i + 1
+    }
+}
+
+fn scene_filter()
+{
+    $scr = demo_get_screen()
+    op_cc( OP_COLOR_SUB, $scr, color_filter )
+    op_cn( OP_AND, $scr, 0b110000001100000011000000 )
+    split_rgb( 0, $scr, my_scr_r, my_scr_g, my_scr_b )
+    $l = 250 / 0b11000000 * 32768
+    op_cn( OP_MUL_RSHIFT15, my_scr_r, $l )
+    op_cn( OP_MUL_RSHIFT15, my_scr_g, $l )
+    op_cn( OP_MUL_RSHIFT15, my_scr_b, $l )
+    split_rgb( 1, $scr, my_scr_r, my_scr_g, my_scr_b )
+}
+
+fn scene_filter_vlines()
+{
+    $scr = demo_get_screen()
+    pixi( $scr, 0, 0, WHITE, demo_xsize*4, 1, hxsize, 0, 1, demo_ysize )
+}
+
+fn scene_filter_vlines2( $t, $t2, $len )
+{
+    $scr = demo_get_screen()
+
+    $stage_len = 128
+    $p = get_t( $t2, $stage_len )
+    $p = 1 - $p
+    //$p * $p
+
+    transp(140*$p)
+    pixi( $scr, 0, 0, WHITE, demo_xsize*4, 1, hxsize, 0, 1, demo_ysize )
+    transp(255)
+}
+
+fn scene_filter_acid( $t, $t2, $len )
+{
+    $scr = demo_get_screen()
+    $p = $t2
+    $c = get_color( ($p*1) & 255, ($p*1) & 255, ($p*1) & 255 )
+    op_cn( OP_ADD, $scr, $c )
+}
+
+fn scene_filter_shift( $t, $t2, $len )
+{
+    $t_sec = demo_get_time( 0 ) / 1000
+
+    $stage_len = 128
+    $off = get_t( $t2, $stage_len ) 
+    $off * $off
+    $off * hxsize/2
+
+    $scr = demo_get_screen()
+    copy( my_scr1, $scr )
+
+    pixi( my_scr1, 0, 0, WHITE, $off*2+2, 1, hxsize, 0, 1, demo_ysize )
+
+    rand_seed( 12 )
+    $i = 0 while $i < 8
+    {
+	$rnd1 = rand() / 32768
+	$rnd2 = rand() / 32768
+	$rnd3 = rand() / 32768
+	$y = -hysize + demo_ysize * $rnd1
+	$op = sin( $t_sec*2 + $rnd3*M_PI*4 )
+	$op * $op
+	$op * $op
+	$op * $op
+	$op * $op
+	$op * $op
+	$op * $op
+	transp( $op * 255 )
+	pixi( img_halo01, 0, $y, $rnd2*WHITE, 16, $rnd2 )
+	$i + 1
+    }
+    transp( 255 )
+
+    pixi( my_scr1, hxsize / 2 + $off, 0, WHITE, 1, 1, hxsize, 0, hxsize, demo_ysize )
+    pixi( my_scr1, -hxsize / 2 - $off, 0, WHITE, 1, 1, 0, 0, hxsize, demo_ysize )
+}
+
+fn scene_filter_edges()
+{
+    $scr = demo_get_screen()
+    copy( my_scr1, $scr )
+    conv_filter(
+	my_scr1,  //destination
+	$scr,  //source
+	kernel1,  //kernel
+	1,  //divisor (dividing the result)
+	0,  //offset (addition after division)
+	CONV_FILTER_COLOR,  //flags (options)
+	1, 1  //kernel center XY (relative to the upper left corner)
+    )
+    set_screen( my_scr1 )
+    //effector( EFF_HBLUR, 2 )
+    //effector( EFF_VBLUR, 2 )
+    op_cc( OP_COLOR_ADD, my_scr1, my_scr1 )
+    op_cc( OP_COLOR_ADD, my_scr1, my_scr1 )
+    set_screen( $scr )
+    copy( $scr, my_scr1 )
+    //op_cc( OP_COLOR_SUB, $scr, my_scr1 )
+}
+
+fn scene_filter_glow( $t, $t2, $len )
+{
+    $t = ( demo_get_time( 0 ) & (1024*32-1) ) / (1024*32)
+    $tsin = $t * M_PI * 2
+    $scr = demo_get_screen()
+    set_screen( my_scr1 )
+    clear()
+    $s = demo_xsize / img_halo01_size / 32
+    $steps = 64
+    $p = 0
+    $pd = 1 / $steps * M_PI * 2
+    $i = 0 while $i < $steps
+    {
+	$x = ( sin( $p ) * cos( $p * 4 + $tsin ) * hxsize/2 ) |0
+	$y = ( cos( $p ) * sin( $p * 2 - $tsin ) * hysize ) |0
+	$pp = ($y+hysize) * demo_xsize + $x+hxsize
+	$v = ( get_green( $scr[ $pp ] ) + get_green( $scr[ $pp + 1 ] ) ) >> 1
+	$v = ( $v * $v ) >> 8
+	$scale = $s * $v / 64
+	transp( $v>>1 )
+	pixi( img_halo01, $x, $y, WHITE, $scale, $scale )
+	transp( $v>>2 )
+	pixi( img_halo02, $x, $y, WHITE, $scale*8, $scale*8 )
+	transp( $v>>4 )
+	//pixi( img_halo02, $x, $y, WHITE, $scale*12, $scale*12 )
+	$p + $pd
+	$i + 1
+    }
+    transp( 255 )
+    set_screen( $scr )
+    op_cc( OP_COLOR_ADD, $scr, my_scr1 )
+    //copy( $scr, my_scr1 )
+}
+
+fn scene_black( $t, $t2, $len )
+{
+    clear( BLACK )
+}
+
+fn scene_leaf_( $t, $t2, $len, $dest_mode )
+{
+    $t_sec = demo_get_time( 0 ) / 1000
+
+    $scr = demo_get_screen()
+    $dest_scr = $scr
+    if $dest_mode == 1
+    {
+	$dest_scr = my_scr2
+	set_screen( my_scr2 )
+    }
+
+    $stage_len = 128
+    $stage_len2 = $stage_len div 16
+    $stage = $t2 div $stage_len
+    $p = get_t( $t2, $stage_len )
+    $p2 = get_t( $t2, $stage_len2 )
+    $sin = 1 - ( sin( $p * M_PI * 2 + M_PI/2 ) + 1 ) / 2
+    $sin2 = sin( $p2 * M_PI * 2 ) / 8
+    $opacity = $sin * 256 * 1.1
+    if $opacity > 256 { $opacity = 256 }
+    $opacity + $sin2 * 256
+    if $dest_mode == 1
+    {
+	$opacity = sin( $p * M_PI )
+	//$opacity * $opacity
+	$opacity * $opacity
+	$opacity * $opacity
+	$opacity * 255
+    }
+    $img = img_01
+    $s = 1
+    if ($stage&3) == 1 { $img = img_02 }
+    if ($stage&3) == 2
+    {
+	$img = img_03
+
+	set_screen( img_03 )
+	$xsize = get_xsize( img_03 )
+	$ysize = get_ysize( img_03 )
+	$lsize = 8
+	$amp = sin( $t * M_PI * 2 / 128 )
+	$y = 0 while $y < $ysize
+	{
+	    $v = sin( $t2 * M_PI * 2 / 16 + $y/64 ) * 190
+	    //$v - cos( $t * M_PI * 2 / 4 ) * 64 * $amp
+	    $c = get_color( $v*2, $v*1.5, $v )
+	    fbox( -$xsize, $y-$ysize/2, $xsize*2, $lsize, $c )
+	    //fbox( $x-$xsize/2, -$ysize, $lsize, $ysize*2, $c )
+	    $y + $lsize
+	}
+	set_screen( $dest_scr )
+
+	/*set_screen( $img )
+	effector( EFF_SPREAD_LEFT, 2 )
+	effector( EFF_SPREAD_RIGHT, 2 )
+        effector( EFF_SPREAD_UP, 2 )
+	effector( EFF_SPREAD_DOWN, 2 )
+	set_screen( $dest_scr )*/
+    }
+    if ($stage&3) == 3
+    {
+	generator( OP_SIN8, my_scr8b1, $t_sec, 128, cos( $t_sec / 2 ) / 30, sin( $t_sec / 2 ) / 40 )
+	generator( OP_SIN8, my_scr8b2, $t_sec / 2, 128, sin( $t_sec / 2 ) / 35, cos( $t_sec / 2 ) / 44 )
+	op_ccn( OP_MUL_DIV, my_scr8b1, my_scr8b2, 128 )
+	generator( OP_SIN8, my_scr8b2, $t_sec / 2, 128, cos( $t_sec / 3 ) / 55, cos( $t_sec / 3 ) / 66 )
+	op_cc( OP_ADD, my_scr8b1, my_scr8b2 )
+	replace_values( my_scr3, my_scr8b1, plasma_pal )
+	transp( $opacity )
+	pixi( my_scr3, 0, 0, WHITE )
+	$img = img_03
+	generator( OP_RAND, $img, 0, WHITE )
+	$s2 = demo_ysize / get_ysize( $img )
+	transp( $opacity )
+	pixi( $img, 0, 0, WHITE, $s2, $s2 )
+	$img = -1
+    }
+    if (($stage>>2)&1) == 0
+    {
+	$s = 2
+	if $img == img_02 && $dest_mode == 0 { $img = img_02x }
+    }
+    if $dest_mode == 1
+    {
+	$s = 1
+    }
+    transp( $opacity )
+    $s = $s * demo_ysize / get_ysize( $img ) + $p/8
+    pixi( $img, 0, 0, WHITE, $s, $s )
+    if $dest_mode == 0
+    {
+	transp( $opacity/5 )
+	pixi( $img, 0, 0, WHITE, $s*2, $s*2 )
+	transp( 180 )
+	effector( EFF_HBLUR, ( 1 - $sin * 2 ) * 64 )
+	effector( EFF_VBLUR, ( 1 - $sin * 2 ) * 64 )
+    }
+    transp( 255 )
+
+    if $dest_mode == 1
+    {
+	copy( $scr, $dest_scr )
+    }
+    set_screen( $scr )
+}
+
+fn scene_leaf( $t, $t2, $len )
+{
+    scene_leaf_( $t, $t2, $len, 0 )
+}
+
+fn scene_leaf2( $t, $t2, $len )
+{
+    scene_leaf_( $t, $t2, $len, 1 )
+}
+
+fn scene_byte( $t, $t2, $len )
+{
+    $f = ( ($t2*4) div 32 ) % byte_items_count
+    $s = 6
+    $c = #406080
+    transp( 128 )
+    pixi( byte_items[ $f ], 0, 0, $c, $s, $s )
+    $s * 2
+    pixi( byte_items[ $f ], 0, 0, $c, $s, $s )
+    $s * 2
+    transp( 255 )
+    pixi( byte_items[ $f ], 0, 0, $c, $s, $s )
+    transp( 255 )
+}
+
+fn scene_whirlwinds( $t, $t2, $len, $frame_cnt )
+{
+    $scr = demo_get_screen()
+    if $frame_cnt == 0 { copy( my_scr2, $scr ) }
+    set_screen( my_scr2 )
+
+    $tt = $t2 / 32
+
+    transp(255)
+    rand_seed( 12 )
+    $i = 0 while $i < 24
+    {
+	$rnd1 = rand() / 32768
+	$rnd2 = rand() / 32768
+	$x = cos( $rnd1*M_PI*4 + $tt )*$rnd1*2 * hxsize
+	$y = sin( $rnd2*M_PI*4 - $tt )*$rnd2*2 * hysize
+	clean( whirl_img )
+	op_cc( OP_COPY, whirl_img, my_scr2, 0, 0, $x + hxsize - whirl_size/2, $y + hysize - whirl_size/2, whirl_size, whirl_size )
+	t_reset()
+	t_translate( $x, $y, 0 )
+	$angle = 5
+	if $i & 1 { $angle = -$angle }
+	t_rotate( $angle, 0, 0, 1 )
+	//t_scale( 0.95, 0.95, 0.95 )
+	//transp( $rnd2 * 255 )
+	pixi( whirl_img )
+	$i + 1
+    }
+    t_reset()
+    //transp(128) pixi(my_scr2,0,-1,WHITE)
+    transp(255)
+
+    set_screen( $scr )
+    copy( $scr, my_scr2 )
+}
+
+fn scene_noise( $t, $t2, $len )
+{
+    $scr = demo_get_screen()
+    set_screen( my_scr2 )
+
+    $tr = $t2/8
+    if $tr > 64 { $tr = 64 }
+
+    $tr2 = $t2/8
+    if $tr2 > 255 { $tr2 = 255 }
+
+    transp( $tr )
+    clear( BLACK )
+    transp( $tr2 )
+    effector( EFF_SPREAD_LEFT, 2, WHITE )
+    effector( EFF_SPREAD_RIGHT, 2, WHITE )
+    effector( EFF_SPREAD_UP, 2, WHITE )
+    effector( EFF_SPREAD_DOWN, 2, WHITE )
+    transp( 255 )
+
+    set_screen( $scr )
+    copy( $scr, my_scr2 )
+}
+
+fn scene_text( $t, $t2, $len )
+{
+    $scr = demo_get_screen()
+    set_screen( my_scr2 )
+
+    $stage_len = 128
+    $stage = $t2 div $stage_len
+
+    $tr = $t2*3
+    if $tr > 255 { $tr = 255 }
+
+    $ts = ""
+    if $stage == 0
+    {
+        $ts = "Au"
+    }
+    if $stage == 1
+    {
+        $ts = "by NightRadio"
+    }
+    if $stage == 2
+    {
+        $ts = "engines
+SunVox | Pixilang"
+    }
+    if $stage == 3
+    {
+        $ts = "warmplace.ru"
+    }
+    transp( $tr )
+    print( $ts, 0, 0, WHITE )
+    t_scale(4,4,4)
+    transp( $tr / 10 )
+    print( $ts, 0, 0, WHITE )
+    t_reset()
+    transp( 255 )
+
+    copy( $scr, my_scr2 )
+    set_screen( $scr )
+}

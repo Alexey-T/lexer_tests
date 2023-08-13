@@ -1,0 +1,44 @@
+scr = get_screen()
+xsize = 320
+ysize = 240
+hxsize = xsize div 2
+hysize = ysize div 2
+resize( scr, xsize, ysize )
+
+include "../../../lib/ffmpeg_video_export.pixi"
+
+video_export = ffmpeg_video_export_open(
+    "/tmp/destruction.avi",
+    xsize, ysize,
+    30,
+    5000,
+    2 * 60 * 30 )
+
+img = load( "../images/test.png" )
+clear( BLACK )
+pixi( img )
+
+while( 1 )
+{
+    transp( rand() )
+    effector( EFF_SPREAD_LEFT, 2 )
+    effector( EFF_SPREAD_RIGHT, 2 )
+    effector( EFF_SPREAD_UP, 2 )
+    effector( EFF_SPREAD_DOWN, 2 )
+    
+    while( get_event() )
+    {
+	if EVT[ EVT_TYPE ] == EVT_QUIT
+        {
+    	    breakall
+	}
+    }
+
+    if ffmpeg_video_export_write( video_export, get_screen() )
+    {
+	breakall
+    }
+    frame()
+}
+
+ffmpeg_video_export_close( video_export )

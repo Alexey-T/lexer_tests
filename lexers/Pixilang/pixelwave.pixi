@@ -1,0 +1,247 @@
+set_pixel_size( WINDOW_XSIZE / 256 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+tick_size = 512
+tick_cnt = 0
+tick_num = 0
+
+scope = new( 256, 1, INT16 )
+clean( scope )
+
+echo_size = 10000
+echo = new( echo_size, 1, INT16 )
+clean( echo )
+echo_ptr = 0
+
+sample_data = new( 128, 1, INT16 )
+generator( OP_SIN, sample_data, 0, 30000, 0.025, 0 )
+sample_info = new( SMP_INFO_SIZE, 1, INT32 )
+clean( sample_info )
+sample_info[ SMP_SRC ] = sample_data
+sample_info[ SMP_SRC_OFF_H ] = 0
+sample_info[ SMP_SRC_OFF_L ] = 0
+sample_info[ SMP_LOOP ] = 0
+sample_info[ SMP_LOOP_LEN ] = get_size( sample_data )
+sample_info[ SMP_VOL1 ] = 0
+sample_info[ SMP_VOL2 ] = 0
+sample_info[ SMP_DELTA ] = ( 1 << 16 )
+sample_info[ SMP_FLAGS ] = SMP_FLAG_INTERP2
+
+set_audio_callback( audio_callback, 0, 44100, INT16, 1, AUDIO_FLAG_INTERP2 )
+
+xsize = get_xsize( get_screen() )
+ysize = get_ysize( get_screen() )
+hxsize = xsize div 2
+hysize = ysize div 2
+wborder = 20
+wxsize = xsize - wborder * 2
+
+g_state = new( 16, 1, INT32 )
+g_ui_part = new( 16, 1, INT32 )
+g_start_p = new( 16, 1, INT32 )
+g_start_v = new( 16, 1, INT32 )
+g_chan_delta = new( 16, 1, INT32 )
+g_chan_cur_delta = new( 16, 1, INT32 )
+g_chan_vol = new( 16, 1, INT32 )
+g_chan_cur_vol = new( 16, 1, INT32 )
+clean( g_state )
+clean( g_ui_part )
+clean( g_start_p )
+clean( g_start_v )
+clean( g_chan_delta )
+clean( g_chan_cur_delta )
+clean( g_chan_vol )
+clean( g_chan_cur_vol )
+
+start_timer( 0 )
+
+while( 1 )
+{
+    t = get_timer( 0 ) / 1000
+    
+    transp( 64 )
+    clear()
+    transp( 256 )
+    draw_wave()
+    fbox( -hxsize, 0, xsize, 1, BLACK )
+    transp( 256 + sin(t)*256 )
+    print( "TONE", -hxsize + 1, 3, BLACK, LEFT | TOP )
+    print( "TONE", -hxsize + 1, 2, GREEN, LEFT | TOP )
+    print( "WAVEFORM", hxsize, -hysize + 3, BLACK, RIGHT | TOP )
+    print( "WAVEFORM", hxsize, -hysize + 2, BLUE, RIGHT | TOP )
+    transp( 180 )
+    draw_scope()
+    frame()
+
+    while( get_event() )
+    {
+	if EVT[ EVT_TYPE ] == EVT_QUIT { halt }
+	if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONDOWN { touch( 0, 1 ) }
+	if EVT[ EVT_TYPE ] == EVT_MOUSEMOVE { touch( 0, 2 ) }
+	if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONUP { touch( 0, 3 ) }
+	if EVT[ EVT_TYPE ] == EVT_TOUCHBEGIN { touch( EVT[ EVT_SCANCODE ], 1 ) }
+	if EVT[ EVT_TYPE ] == EVT_TOUCHMOVE { touch( EVT[ EVT_SCANCODE ], 2 ) }
+	if EVT[ EVT_TYPE ] == EVT_TOUCHEND { touch( EVT[ EVT_SCANCODE ], 3 ) }
+    }
+}
+
+//state: 1 - down; 2 - move; 3 - up.
+fn touch( $tnum, $state )
+{
+    g_state[ $tnum ] = $state
+
+    if ( EVT[ EVT_KEY ] & 1 ) == 0 { ret }
+    
+    $x = EVT[ EVT_X ]
+    $y = EVT[ EVT_Y ]
+
+    if $state == 1
+    {
+	if $y < 0
+	{
+	    g_ui_part[ $tnum ] = 0
+	}
+	else
+	{
+	    g_ui_part[ $tnum ] = 1
+	}
+    }
+
+    if g_ui_part[ $tnum ] == 0
+    {
+	$p = ( ( $x + hxsize - wborder ) / wxsize ) * get_size( sample_data )
+	$v = ( ( $y + hysize / 2 ) / ( hysize / 2 ) ) * 32768
+	if $p < 0 { $p = 0 }
+	if $p >= get_size( sample_data ) { $p = get_size( sample_data ) - 1 }
+	if $v < -32767 { $v = -32767 }
+	if $v > 32767 { $v = 32767 }
+	sample_data[ $p ] = $v
+	if $state == 2 
+	{
+	    $end_p = $p $end_v = $v
+	    $start_p = g_start_p[ $tnum ]
+	    $start_v = g_start_v[ $tnum ]
+	    if $start_p > $end_p { $t = $start_p $start_p = $end_p $end_p = $t $t = $start_v $start_v = $end_v $end_v = $t }
+	    $vv = $start_v
+	    $vv_delta = ( $end_v - $start_v ) / ( $end_p - $start_p )
+	    $pp = $start_p while( $pp < $end_p )
+	    {
+		sample_data[ $pp ] = $vv
+		$pp + 1
+		$vv + $vv_delta
+	    }
+	}
+	g_start_p[ $tnum ] = $p g_start_v[ $tnum ] = $v
+    }
+    else
+    {
+	//Play the note:
+	$n = ( $x + hxsize ) / xsize
+	$vol = ( hysize - $y ) / hysize
+	if $vol < 0 { $vol = 0 }
+	if $vol > 1 { $vol = 1 }
+	$freq = pow( 2, 16 + $n * 2 )
+	$delta = $freq / 44100
+	if $state < 3 
+	{
+	    g_chan_delta[ $tnum ] = $delta * 32768
+	    g_chan_vol[ $tnum ] = $vol * 32768
+	    fbox( -hxsize, $y, xsize, 1, #FFFF00 )
+	    fbox( -hxsize, $y + 1, xsize, 1, #FF0000 )
+	}
+	else
+	{
+	    g_chan_vol[ $tnum ] = 0
+	}
+    }
+}
+
+fn draw_wave()
+{
+    fbox( -1000, -hysize / 2, 2000, 1, RED )
+    $size = get_size( sample_data )
+    $p = 0 while( $p < $size )
+    {
+	$v = sample_data[ $p ]
+	$c = get_blend( WHITE, YELLOW, ( $v + 32768 ) >> 8 )
+	$x = ( $p / $size ) * wxsize - hxsize + wborder
+	$y = -hysize / 2 + ( $v * (hysize/2) ) / 32768
+	if $p == 0 { $px = -hxsize $py = $y }
+	line( $px, $py, $x, $y, $c )
+	$px = $x
+	$py = $y
+	$p + 1
+    }
+    line( $px, $py, $px + 32, $py, $c )
+}
+
+fn draw_scope()
+{
+    $size = get_size( scope )
+    $p = 0 while( $p < $size )
+    {
+	$x = ( $p * 2 - hxsize )
+	if $x > hxsize { $p = 999999 }
+	$v = scope[ $p ]
+	if $v < 0 { $v = -$v }
+	$y = ( -$v >> 10 ) + hysize
+	dot( $x, $y, YELLOW )
+	$p + 1
+    }
+}
+
+fn audio_callback( $stream, $userdata, $channels, $frames, $time )
+{
+    $p = 0
+    while( $p < $frames )
+    {
+	$size = $frames - $p;
+	if $size > tick_size - tick_cnt { $size = tick_size - tick_cnt }
+
+	sample_info[ SMP_DEST ] = $channels[ 0 ];
+        sample_info[ SMP_DEST_OFF ] = $p;
+	sample_info[ SMP_DEST_LEN ] = $size;
+        sampler( sample_info )
+        
+        $p + $size
+        tick_cnt + $size
+        if tick_cnt >= tick_size
+        {
+	    $ch = 0 while( $ch < 8 )
+	    {
+		g_chan_cur_delta[ $ch ] = ( g_chan_cur_delta[ $ch ] + g_chan_delta[ $ch ] ) div 2
+		g_chan_cur_vol[ $ch ] = ( g_chan_cur_vol[ $ch ] + g_chan_vol[ $ch ] ) div 2
+		$ch + 1
+	    }
+	    $ch = tick_num & 3
+	    if( g_chan_cur_vol[ $ch ] == 0 )
+	    {
+		$ch = 0
+	    }
+	    sample_info[ SMP_VOL1 ] = g_chan_cur_vol[ $ch ]
+	    sample_info[ SMP_VOL2 ] = g_chan_cur_vol[ $ch ]
+	    sample_info[ SMP_DELTA ] = g_chan_cur_delta[ $ch ]
+    	    tick_num + 1
+    	    tick_cnt = 0
+        }
+    }
+
+    //Echo:
+    $p = 0
+    while( $p < $frames )
+    {	
+	$size = $frames - $p;
+	if $size > echo_size - echo_ptr { $size = echo_size - echo_ptr }
+
+	op_cn( OP_RSHIFT, echo, 1, echo_ptr, $size )
+	op_cc( OP_SADD, echo, $channels[ 0 ], echo_ptr, $p, $size )
+	copy( $channels[ 0 ], echo, $p, echo_ptr, $size )
+
+	$p + $size
+	echo_ptr + $size
+	if echo_ptr >= echo_size { echo_ptr = 0 }
+    }
+
+    copy( scope, $channels[ 0 ] )
+    ret( 1 )
+}

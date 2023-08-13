@@ -1,0 +1,28 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+Y = clone( img ) convert_type( Y, INT8 )
+Cb = clone( img ) convert_type( Cb, INT8 )
+Cr = clone( img ) convert_type( Cr, INT8 )
+
+// Convert from image to YCbCr channels:
+split_ycbcr( 0, img, Y, Cb, Cr )
+
+// Make some modifications in the YCbCr channels:
+clean( Cb, 128, get_xsize( img ) * 80, get_xsize( img ) * 500 )
+clean( Cr, 128, get_xsize( img ) * 160, get_xsize( img ) * 500 )
+
+// Convert back from YCbCr to image:
+split_ycbcr( 1, img, Y, Cb, Cr )
+
+while( 1 )
+{
+    clear()
+
+    pixi( img )
+    
+    frame()
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}

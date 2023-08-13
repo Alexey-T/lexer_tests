@@ -1,0 +1,95 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+SAVE_TO_GIF = 0
+GIF_FILE_NAME = "pixi_anim1.gif"
+
+//
+// Main configuration
+// 
+
+xsize = 128
+ysize = 128
+scr = get_screen()
+sxsize = get_xsize( scr )
+sysize = get_ysize( scr )
+s1 = sxsize div xsize
+s2 = sysize div ysize
+if s1 < s2 { scale = s1 } else { scale = s2 }
+
+//
+// Create small screen for animation
+//
+
+anim = new( xsize, ysize )
+clean( anim )
+create_anim( anim )
+anim.fps = 30
+total_frames = anim.fps * 2
+
+//
+// Load font
+//
+
+font = load( "images/font10x10.png" )
+set_key_color( font, BLACK )
+set_font( 32, font, 16, 6 )
+
+//
+// Create additional tables
+//
+
+sine = new( 256, 1, INT8 )
+generator( OP_SIN, sine, 0, 127, 2 * M_PI / 256, 0 )
+
+//
+// Main loop
+//
+
+play_again:
+f = 0 while( f < total_frames )
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    
+    t = ( f * 1024 ) div total_frames
+
+    set_screen( anim )
+    clear()
+    p = 0
+    tt = t / 4
+    y = 0 while( y < ysize )
+    {
+	ttt = tt + ( sine[ ( tt + y + sine[ y ] div 2 ) & 255 ] >> 1 )
+	x = 0 while( x < xsize )
+	{
+	    v = sine[ ( ttt + ( x + y ) ) & 255 ] + ( sine[ ttt & 255 ] >> 1 )
+	    anim[ p ] = get_color( v + 128, v + 64, v )
+	    p + 1
+	    x + 1
+	}
+	y + 1
+    }
+    print( "PIXILANG", 0, 0, #FFEEDD )
+
+    set_screen( scr )
+    pixi( anim, 0, 0, WHITE, scale, scale )
+    if SAVE_TO_GIF { frame() } else { frame( 1000 / anim.fps ) }
+    
+    if SAVE_TO_GIF
+    {
+	pack_frame( anim )
+	if f < total_frames - 1
+        {
+	    clone_frame( anim )
+	    anim.frame + 1
+	}
+    }
+
+    f + 1
+}
+if SAVE_TO_GIF == 0 { go play_again }
+
+if SAVE_TO_GIF
+{
+    save( anim, GIF_FILE_NAME, FORMAT_GIF )
+}

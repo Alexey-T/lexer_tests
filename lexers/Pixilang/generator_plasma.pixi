@@ -1,0 +1,93 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+xsize = 130
+ysize = 130
+scr = get_screen()
+resize( scr, xsize, ysize )
+set_flags( scr, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NO_XREPEAT | GL_NO_YREPEAT )
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    mutex_lock( g_graphics_sync )
+    
+    $t = get_timer( 0 ) / 32
+    
+    set_screen( GL_SCREEN )
+    
+    clear()
+    
+    t_set_matrix( matrix )
+    t_rotate( $t, 1, 2, 3 )
+    $s = WINDOW_XSIZE / 256
+    t_scale( $s, $s, $s )
+    update_gl_data( scr )
+    pixi( scr )
+    
+    set_screen( scr )
+    
+    t_reset()
+    
+    mutex_unlock( g_graphics_sync )
+}
+
+//Create perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.002
+
+start_timer( 0 )
+
+palette = new( 256 )
+i = 0 while( i < 128 )
+{
+    v = i
+    v * 2
+    palette[ i ] = get_color( v / 8, v, v / 2 )
+    i + 1
+}
+
+i = 128 while( i < 256 )
+{
+    v = 256 - i
+    v * 2
+    palette[ i ] = get_color( v / 2, v, v / 16 )
+    i + 1
+}
+
+img1 = new( get_xsize( scr ), get_ysize( scr ), INT8 )
+img2 = clone( img1 )
+
+g_graphics_sync = mutex_create()
+
+set_gl_callback(
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+while( 1 )
+{
+    t = get_timer( 0 ) / 1000
+
+    mutex_lock( g_graphics_sync )
+
+    generator( OP_SIN8, img1, t, 128, cos( t / 2 ) / 53, cos( t / 4 ) / 44 )
+    generator( OP_SIN8, img2, t / 2, 128, sin( t / 3 ) / 50, sin( t / 3 ) / 48 )
+    op_ccn( OP_MUL_DIV, img1, img2, 128 )
+    generator( OP_SIN8, img2, t / 3, 128, cos( t / 4 ) / 23, sin( t / 5 ) / 88 )
+    op_ccn( OP_MUL_DIV, img1, img2, 128 / 2 )
+    replace_values( scr, img1, palette )
+
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -get_xsize( scr ) / 2 + 8, -get_ysize( scr ) / 2 + 8, WHITE, TOP | LEFT )
+    
+    mutex_unlock( g_graphics_sync )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    
+    frame()
+}
+
+mutex_destroy( g_graphics_sync )

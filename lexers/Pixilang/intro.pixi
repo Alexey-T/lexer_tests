@@ -1,0 +1,47 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) / 1000
+
+    t_reset()
+    t_scale( 2 + sin(t), 2 + sin(t), 1 )
+    t_rotate( t * 4, 0, 0, 1 )
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    transp( 255 )
+    clear( get_color( sin(t+0.5) * 128, cos(t+1) * 128, sin(t+2) * 128 ) )
+    dot( 0, 0 )
+    dot3d( -2, 0, 50, YELLOW )
+    dot3d( 2, 0, -50, YELLOW )
+    line( 0, 8, 20, 100, GREEN )
+    line( 0, 8, -20, 100, GREEN )
+    line3d( 0, -8, 100, 20, -100, 0, GREEN )
+    line3d( 0, -8, 100, -20, -100, 0, GREEN )
+    transp( 255 )
+    box( 32, -16, 32, 32, YELLOW )
+    transp( 128 )
+    box( 32 - 8, -16 - 8, 32 + 16, 32 + 16, YELLOW )
+    transp( 255 )
+    fbox( -64, -16, 32, 32, BLUE )
+    transp( 128 )
+    fbox( -64 - 8, -16 - 8, 32 + 16, 32 + 16, BLUE )
+    transp( 255 )
+    print( "Pixilang OpenGL", 0, 32, WHITE )
+    print( "Pixilang OpenGL", 0, -32, #FF8040 )
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+start_timer( 0 )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

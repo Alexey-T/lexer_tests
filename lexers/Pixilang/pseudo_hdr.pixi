@@ -1,0 +1,48 @@
+//$src - source image (container of PIXEL type)
+//$filter_radius (in percent)
+fn apply_hdr_effect( $src, $filter_radius, $intensity )
+{
+    $src_xsize = get_xsize( $src )
+    $src_ysize = get_ysize( $src )
+
+    //Make grayscale copy:
+    $img2 = clone( $src )
+    $c = new( $src_xsize, $src_ysize, FLOAT32 )
+    split_rgb( 0, $src, -1, $c ) //Get green channel
+    split_rgb( 1, $img2, $c, $c, $c )
+
+    //Blur grayscale image:
+    $scr = get_screen()
+    set_screen( $img2 )
+    $size = ( $src_xsize * $filter_radius ) / 100
+    effector( EFF_HBLUR, $size )
+    effector( EFF_VBLUR, $size )
+    set_screen( $scr )
+
+    //Invert it:
+    op_cn( OP_XOR, $img2, WHITE )
+
+    //Do normalization:
+    split_rgb( 0, $img2, $c )
+    op_cc( OP_MUL, $c, $c ) //Add contrast
+    op_cc( OP_MUL, $c, $c ) //Add contrast
+    if $intensity != 1
+    {
+	op_cn( OP_MUL, $c, $intensity )
+    }
+    op_cn( OP_ADD, $c, 1 ) //Add base level
+    $r = clone( $c ) 
+    $g = clone( $c ) 
+    $b = clone( $c )
+    split_rgb( 0, $src, $r, $g, $b )
+    op_cc( OP_MUL, $r, $c )
+    op_cc( OP_MUL, $g, $c )
+    op_cc( OP_MUL, $b, $c )
+    split_rgb( 1, $src, $r, $g, $b )
+    remove( $r )
+    remove( $g )
+    remove( $b )
+    
+    remove( $c )
+    remove( $img2 )
+}

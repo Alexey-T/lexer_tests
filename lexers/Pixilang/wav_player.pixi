@@ -1,0 +1,239 @@
+//
+// WAV file player
+// How to use: change the SETUP part and run this program to play the specified file
+//
+
+// ########################################
+// ## SETUP ###############################
+// ########################################
+
+//Input WAV file:
+filename = "sound_files/drums.wav"
+//filename = "audio.wav"
+
+//Output MJPEG AVI video file:
+//avi_filename = "wav_player.avi"
+
+//Graphics options:
+//xsize = 1280 div 2
+//ysize = 720 div 2
+//fps = 25
+//text = new( 2, 1, INT ) text[ 0 ] = "Some text 1" text[ 1 ] = "Some text 2"
+//text = new( 2, 1, INT ) text[ 0 ] = "Piano in SunVox 1.9.2" text[ 1 ] = "Piano in SunVox 1.9.3"
+text_scale = 2
+
+//Sound options:
+sample_rate_scale = 1
+//sample_loop = 1
+
+// ########################################
+// ## SETUP COMPLETE ######################
+// ########################################
+
+if xsize == 0 { ss = 480 } else { ss = xsize }
+set_pixel_size( WINDOW_XSIZE / ss )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+if xsize != 0 && ysize != 0 { resize( scr, xsize, ysize ) }
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize / 2
+hysize = ysize / 2
+
+if fps == 0 { fps = 30 }
+
+wav = load( filename )
+logf( "WAV INFO:\n" )
+logf( "  Sample Rate: %d\n", wav.sample_rate )
+logf( "  Channels: %d\n", wav.channels )
+logf( "  Loop Start (sample number): %d\n", wav.loop_start )
+logf( "  Loop Length (number of samples): %d\n", wav.loop_len )
+logf( "  Loop Type (0-none; 1-normal; 2-bidirectional): %d\n", wav.loop_type )
+wav_ptr = 0
+wav_size = get_size( wav ) //number of frames
+wav_channels = wav.channels
+wav_amp_max = 256
+type = get_type( wav )
+if type == INT16 { wav_amp_max = 1 << 15 }
+if type == INT32 { wav_amp_max = 1 << 30 }
+if type == FLOAT32 { wav_amp_max = 1 }
+
+include "../../lib/mjpeg.pixi"
+
+if avi_filename != 0
+{
+    vo = 1
+    vo_f = fopen( avi_filename, "wb" )
+    if vo_f <= 0 { logf( "Can't open video file for writing\n" ) halt }
+    vo_encoder = mjpeg_encoder_open(
+	fps,
+	xsize,
+	ysize,
+	90, //Quality
+	wav_channels, //Audio channels
+	wav.sample_rate * sample_rate_scale, //Audio frames per second
+	get_type( wav ), //Audio sample type
+	MJPEG_ENCODER_FLAG_USEINDEX | MJPEG_ENCODER_FLAG_HASSOUND, //Flags
+	vo_f )
+    vo_audio_buf_size = mjpeg_encoder_get_audio_size( vo_encoder ) //Number of frames per audio chunk
+    vo_audio_buf = new( vo_audio_buf_size * wav_channels, 1, get_type( wav ) )
+    vo_audio_ch_bufs = new( wav_channels, 1, INT )
+    i = 0 while i < wav_channels { vo_audio_ch_bufs[ i ] = new( vo_audio_buf_size, 1, get_type( wav ) ) i + 1 }
+    logf( "Audio buffer size: %d frames\n", vo_audio_buf_size )
+}
+else
+{
+    set_audio_callback( audio_callback, 0, wav.sample_rate * sample_rate_scale, get_type( wav ), wav_channels, AUDIO_FLAG_INTERP2 )
+
+    rate1 = get_audio_sample_rate( 0 )
+    rate2 = get_audio_sample_rate( 1 )
+    logf( "Local (defined by the set_audio_callback()) sample rate: %d Hz\n", rate1 )
+    logf( "Global (defined in the global Pixilang preferences) sample rate: %d Hz\n", rate2 )
+    if rate1 != rate2
+    {
+	logf( "%d != %d, so resampling will be enabled\n", rate1, rate2 )
+    }
+}
+
+gfx_init()
+while 1
+{
+    gfx_frame()
+    if vo 
+    {
+	//Video export:
+	audio_callback( 0, 0, vo_audio_ch_bufs, vo_audio_buf_size, 0, -1, 0 )
+	i = 0 while i < wav_channels 
+	{
+	    copy( vo_audio_buf, vo_audio_ch_bufs[ i ], i, 0, vo_audio_buf_size, wav_channels, 1 )
+	    i + 1 
+	}
+	mjpeg_encoder_write_image( vo_encoder, scr )
+        mjpeg_encoder_write_audio( vo_encoder, vo_audio_buf, 0, 0 )
+	mjpeg_encoder_next_frame( vo_encoder )
+	frame()
+    }
+    else
+    {
+	frame( 1000 / fps )
+    }
+    if !sample_loop && wav_ptr >= wav_size { breakall }
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+}
+gfx_deinit()
+if vo
+{
+    //Close Video Export:
+    mjpeg_encoder_close( vo_encoder )
+    fclose( vo_f )
+    i = 0 while i < wav_channels { remove( vo_audio_ch_bufs[ i ] ) i + 1 }
+    remove( vo_audio_ch_bufs )
+    remove( vo_audio_buf )
+}
+
+fn gfx_init()
+{
+    vals = new( xsize, 1, FLOAT )
+    clean( vals )
+}
+
+fn gfx_deinit()
+{
+    remove( vals )
+}
+
+fn gfx_frame()
+{
+    transp( 100 )
+    clear()
+
+    $p = wav_ptr
+    $t = $p / wav_size
+
+    transp( 32 )
+    $c = get_color( sin( $t * 3 ) * 256, cos( $t ) * 256, sin( $t * 2 ) * 256 )
+    fbox( -hxsize, -hysize - 1, $t * xsize, ysize + 2, $c )
+
+    transp( 255 )
+
+    $x = -hxsize while $x < hxsize
+    {
+	$v = wav[ $p + $x * wav_channels ] / wav_amp_max
+	$xx = $x + hxsize
+	vals[ $xx ] = ( vals[ $xx ] + $v ) / 2
+	$x + 1
+    }
+
+    $prev_v = 0
+    $x = -hxsize while $x < hxsize
+    {
+	//$v = wav[ $p + $x * wav_channels ] / wav_amp_max
+	$v = vals[ $x + hxsize ]
+	$vv = $v if $vv < 0 { $vv = -$vv }
+	$opacity = $vv * 1024
+	transp( $opacity )
+	$v * hysize
+	line( $x, 0, $x, $v, WHITE )
+	transp( $opacity / 4 )
+	line( $x, 0, $x, $v * 2, WHITE )
+	//transp( $vv * 256 )
+	//line( $x * 4 - 4, $prev_v * 3, $x * 4, $v * 3, WHITE )
+	$prev_v = $v
+	$x + 1
+    }
+
+    transp( 255 )
+    if text > 0
+    {
+	$xx = get_xsize( text )
+	$tn = $xx * $t
+	if $tn > $xx { $tn = $xx }
+	$text = text[ $tn ]
+	t_scale( text_scale, text_scale, text_scale )
+	$x = 0
+	$y = hysize - 4
+	print( $text, $x / text_scale, $y / text_scale, WHITE, BOTTOM )
+	t_reset()
+    }
+}
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    if wav_ptr >= wav_size
+    {
+	if !sample_loop
+	{
+	    ret( 0 )
+	}
+    }
+    $c = 0 while( $c < wav_channels )
+    {
+	copy( $channels[ $c ], wav, 0, wav_ptr + $c, $frames, 1, wav_channels )
+	$c + 1
+    }
+    wav_ptr + $frames * wav_channels
+    if sample_loop
+    {
+	if wav_ptr >= wav_size
+	{
+	    $ff = ( wav_ptr - wav_size ) / wav_channels
+	    $p = $frames - $ff
+	    wav_ptr = 0
+	    $c = 0 while( $c < wav_channels )
+	    {
+		copy( $channels[ $c ], wav, $p, wav_ptr + $c, $ff, 1, wav_channels )
+    		$c + 1
+	    }
+	    wav_ptr + $ff * wav_channels
+	}
+    }
+    ret( 1 )
+}

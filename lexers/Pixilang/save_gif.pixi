@@ -1,0 +1,21 @@
+include "save_image.pixi"
+
+save_image_xsize = 480
+save_image_ysize = 320
+save_image_format = FORMAT_GIF
+
+save_image_generator = 0 while save_image_generator < 3
+{
+    logf( "Generator type: %d\n", save_image_generator )
+    
+    save_image_quality = 0
+    save_image_test()
+
+    save_image_quality = GIF_DITHER
+    save_image_test()
+
+    save_image_quality = GIF_GRAYSCALE
+    save_image_test()
+    
+    save_image_generator + 1
+}

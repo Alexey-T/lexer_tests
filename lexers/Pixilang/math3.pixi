@@ -1,0 +1,46 @@
+set_pixel_size( WINDOW_XSIZE / 240 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+start_timer( 0 )
+
+start:
+
+t = get_timer( 0 )
+t / 2000
+
+clear()
+
+p = 0
+y = 0
+while( y < ysize )
+{
+    x = 0
+    while( x < xsize )
+    {
+    	xx = ( x - hxsize ) / hxsize
+    	yy = ( y - hysize ) / hysize 
+    	v = sin( yy ) * cos( xx )
+    	v = sin( v * 8 + t ) * 256
+    	scr[ p ] = get_color( v, x div 2, v div 3 )
+    	p + 1
+    	x + 1
+    }
+    y + 1
+}
+
+ts = ""
+sprintf( ts, "FPS:%u", FPS )
+print( ts, -hxsize + 8, -hysize + 8, WHITE, TOP | LEFT )
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+frame()
+
+go start
+

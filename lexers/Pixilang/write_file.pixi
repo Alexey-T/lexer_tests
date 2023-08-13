@@ -1,0 +1,22 @@
+$f = fopen( "FILE.TXT", "wb" ) //open FILE.TXT for writing
+
+//Now we can write some bytes or ASCII chars:
+
+$char = 'A'
+fputc( $char, $f )
+
+$char = 0x20 //ASCII code 0x20 = SPACE
+fputc( $char, $f )
+
+$char = 'B'
+fputc( $char, $f )
+
+$char = 0xA //ASCII code 0x0A = NEWLINE
+fputc( $char, $f )
+
+//We can also write entire lines:
+
+fprintf( $f, "Hello\n" )
+fprintf( $f, "Pixi\n" )
+
+fclose( $f )

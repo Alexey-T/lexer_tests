@@ -1,0 +1,79 @@
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) 
+    m = 1024 * 32
+    t = ( t & ( m - 1 ) ) / m
+    t2 = t * M_PI * 2
+
+    t_reset()
+    $s = 1 + ( sin( t2 * 4 ) + 1 ) / 2
+    t_scale( $s, $s, 1 )
+    t_rotate( t * 360, 0, 0, 1 )
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    transp( 255 )
+    clear()
+
+    gl_use_prog( gl_prog ) //Use user-defined GLSL program (vertex shader + fragment shader)
+    gl_uniform( gl_prog.g_c, 0.1, 0.7 )
+
+    $s = WINDOW_XSIZE / get_xsize( img )
+    //pixi( img, WINDOW_XSIZE * 0.0987, WINDOW_XSIZE * 0.099, WHITE, $s, $s )
+    pixi( img, 0, 0, WHITE, $s, $s )
+
+    gl_use_prog() //Back to default GLSL program
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+start_timer( 0 )
+
+gl_vshader = GL_SHADER_TEX_RGB_SOLID //Vertex shader = default shader for solid primitives drawing
+gl_fshader = //Fragment shader
+"PRECISION( HIGHP, float )
+uniform sampler2D g_texture;
+uniform vec2 g_c;
+uniform vec4 g_color;
+const int iter = 16;
+IN vec2 tex_coord_var;
+void main()
+{
+    vec2 pos = tex_coord_var;
+
+    vec2 z;
+    z.x = 3.0 * ( pos.x - 0.5 );
+    z.y = 3.0 * ( pos.y - 0.5 );
+
+    int i = iter;
+    for( int i2 = 0; i2 < iter; i2++ )
+    {
+        float x = ( z.x * z.x - z.y * z.y ) + g_c.x;
+        float y = ( z.y * z.x + z.x * z.y ) + g_c.y;
+
+        if( ( x * x + y * y ) > 4.0 ) { i = i2; break; }
+        z.x = x;
+        z.y = y;
+    }
+    
+    float c = float( i ) / float( iter );
+    gl_FragColor = vec4( c * 0.2, c * 0.5, c, 1 ) * g_color;
+}
+"
+gl_prog = gl_new_prog( gl_vshader, gl_fshader )
+
+img = new( 16, 16 )
+clean( img, RED )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+while 1 
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}
+
+remove( gl_prog )

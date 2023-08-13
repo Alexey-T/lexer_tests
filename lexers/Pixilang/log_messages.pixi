@@ -1,0 +1,15 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+logf( "Hello Pixi\n" )
+logf( "Log message %d\n", 1 )
+logf( "Log message %d\n", 2 )
+
+log_buffer = get_log()
+
+while 1
+{
+    print( log_buffer )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}

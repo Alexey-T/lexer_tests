@@ -1,0 +1,33 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+fn circle( $x, $y, $radius, $color )
+{
+    $steps = 128
+    $i = 0 while $i <= $steps
+    {
+	$r = M_PI * 2 * ( $i / $steps )
+	$xx = $x + cos( $r ) * $radius
+	$yy = $y + sin( $r ) * $radius
+	if $i > 0
+	{
+	    line( $prev_x, $prev_y, $xx, $yy, $color )
+	}
+	$prev_x = $xx
+	$prev_y = $yy
+	$i + 1
+    }
+}
+
+start_timer( 0 )
+
+while 1
+{
+    t = get_timer( 0 ) / 1000
+    transp( 32 )
+    clear( BLACK )
+    transp( 255 )
+    circle( 0, 0, sin( t ) * 100, WHITE )
+    frame()
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}

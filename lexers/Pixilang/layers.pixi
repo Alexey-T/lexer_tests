@@ -1,0 +1,49 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+scr = get_screen()
+scr2 = clone( scr )
+scr3 = clone( scr )
+
+clear();
+pixi( img, 0, 0 )
+
+start_timer( 0 )
+
+while 1 
+{
+    t = get_timer( 0 ) / 256
+    
+    set_screen( scr )
+
+    effector( EFF_SPREAD_LEFT, 2, WHITE )
+    effector( EFF_SPREAD_RIGHT, 2, WHITE )
+    effector( EFF_SPREAD_UP, 2, WHITE )
+    effector( EFF_SPREAD_DOWN, 2, WHITE )
+
+    set_screen( scr2 )
+    clear()
+    t_scale( 4, 4, 4 )
+    print( "Layer #2", 0, 0, WHITE, BOTTOM )
+    t_reset()
+    effector( EFF_HBLUR, ( sin( t ) + 1 ) * 16 )
+    effector( EFF_VBLUR, ( sin( t ) + 1 ) * 16 )
+
+    set_screen( scr3 )
+    pixi( scr )
+    op_cc( OP_COLOR_ADD, scr3, scr2 )
+    transp( ( sin( t ) + 1 ) * 255 )
+    t_scale( 4, 4, 4 )
+    txt = "Layer #3"
+    print( txt, 0, 0, BLACK, TOP )
+    print( txt, 0, 1, WHITE, TOP )
+    t_reset()
+    transp( 255 )
+
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+}
+

@@ -1,0 +1,87 @@
+set_pixel_size( WINDOW_XSIZE / 180 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+size = get_size( scr )
+
+clear()
+
+scene = 0
+
+start:
+
+if scene == 0
+{
+    y = -ysize / 2 + t
+    fbox( -2000, y, 4000, 1, WHITE )
+    t + 2
+    if t > ysize { t = 0 scene + 1 }
+}
+
+if scene == 1
+{
+    y = -ysize / 2 + t
+    fbox( -2000, y, 4000, 1, BLACK )
+    t + 2
+    if t > ysize { t = 0 scene + 1 }
+}
+
+if scene == 2
+{
+    y = -ysize / 2 + t
+    fbox( -64, y, 128, 4, BLACK )
+    t + 2
+    if t > ysize { t = 0 scene + 1 }
+}
+
+if scene == 3
+{
+    x = -xsize / 2 + t
+    fbox( x, -2000, 1, 4000, BLACK )
+    t + 2
+    if t > xsize { t = 0 scene + 1 }
+}
+
+if scene == 4
+{
+    x = xsize / 2 - t
+    fbox( x, -2000, 2, 4000, BLACK )
+    t + 2
+    if t > xsize { t = 0 scene + 1 }
+}
+
+if scene == 5
+{
+    x = -xsize / 2 + t
+    fbox( x, -2000, 2, 4000, BLACK )
+    t + 2
+    if t > xsize { t = 0 scene + 1 }
+}
+
+i = 0 while( i < size )
+{
+    p = scr[ i ]
+    pp = 0
+    pp + scr[ i - 1 ] != BLACK
+    pp + scr[ i + 1 ] != BLACK
+    pp + scr[ i - xsize - 1 ] != BLACK
+    pp + scr[ i - xsize - 0 ] != BLACK
+    pp + scr[ i - xsize + 1 ] != BLACK
+    pp + scr[ i + xsize - 1 ] != BLACK
+    pp + scr[ i + xsize - 0 ] != BLACK
+    pp + scr[ i + xsize + 1 ] != BLACK
+    if p == BLACK && pp == 3 { scr[ i ] = WHITE }
+    if p == WHITE && ( pp < 2 || pp > 3 ) { scr[ i ] = BLACK }
+    i + 1
+}
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+fbox( -44, -8, 88, 16, BLACK )
+print( "PIXILANG 3", 0, 0, WHITE )
+
+frame()
+
+go start

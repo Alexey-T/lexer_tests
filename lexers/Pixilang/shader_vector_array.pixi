@@ -1,0 +1,106 @@
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t1 = get_timer2( 2 )
+    t2 = get_timer2( 4 )
+    
+    t_reset()
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    transp( 255 )
+    clear()
+
+    //Change the buffer:
+    i = 0 while i < buf_size
+    {
+	buf[ 0, i ] = sin( ( i / buf_size + t1 ) * M_PI * 2 ) / 3
+	buf[ 1, i ] = cos( ( i / buf_size + t2 ) * M_PI * 2 ) / 4
+	i + 1
+    }
+
+    gl_use_prog( gl_prog ) //Use user-defined GLSL program (vertex shader + fragment shader)
+    gl_uniform( //Send content of the buffer to the uniform g_buf (array of vectors)
+	gl_prog.g_buf, 	//uniform id
+	buf, 		//source (container with some data)
+	2, 		//number of elements per vector
+	0, 		//first vector in the source
+	buf_size 	//number of vectors
+    )
+
+    $s = WINDOW_XSIZE / get_xsize( img )
+    if $s * get_ysize( img ) > WINDOW_YSIZE
+    {
+	$s = WINDOW_YSIZE / get_ysize( img )
+    }
+    pixi( img, 0, 0, WHITE, $s, $s )
+
+    gl_use_prog() //Back to default GLSL program
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+//
+// Init
+//
+
+gl_vshader = GL_SHADER_TEX_RGB_SOLID //Vertex shader = default shader for solid primitives drawing
+gl_fshader = //Fragment shader
+"PRECISION( HIGHP, float )
+uniform sampler2D g_texture;
+uniform vec4 g_color;
+uniform vec2 g_buf[ 64 ];
+IN vec2 tex_coord_var;
+void main()
+{
+    vec2 tc1 = tex_coord_var;
+    vec2 tc2 = tex_coord_var;
+    tc1.y += g_buf[ int( tc1.x * 64.0 ) ].y;
+    tc2.y += g_buf[ int( tc1.x * 64.0 ) ].x;
+    gl_FragColor = texture2D( g_texture, tc1 ) * vec4( 1, 0, 0, 1 ) + texture2D( g_texture, tc2 ) * vec4( 0, 1, 0, 1 );
+}
+"
+gl_prog = gl_new_prog( gl_vshader, gl_fshader )
+
+img = new( 128, 128 )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+set_screen( img )
+clear( BLACK )
+fbox( -64, 0, 128, 4, WHITE )
+effector( EFF_VBLUR, 3 )
+transp( 128 )
+effector( EFF_VBLUR, 8 )
+effector( EFF_VBLUR, 16 )
+transp( 255 )
+fbox( -64, 1, 128, 2, WHITE )
+set_screen( 0 )
+
+buf_size = 64
+buf = new( 2, buf_size, FLOAT32 ) //32 vectors of size 2 (2D vectors)
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+//
+// Main loop
+//
+
+start_timer( 0 )
+while 1 
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}
+
+remove( gl_prog )
+
+//
+// Other functions
+//
+
+fn get_timer2( $d )
+{
+    $d * 1024
+    ret( ( get_timer( 0 ) & ( $d - 1 ) ) / $d )
+}

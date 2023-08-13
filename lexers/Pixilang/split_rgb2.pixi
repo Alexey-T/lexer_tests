@@ -1,0 +1,40 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img_src = load( "images/test.jpg" )
+img = clone( img_src )
+
+r = clone( img )
+g = clone( img )
+b = clone( img )
+split_rgb( 0, img, r, g, b )
+split_rgb( 1, r, r, r, r )
+split_rgb( 1, g, g, g, g )
+split_rgb( 1, b, b, b, b )
+
+ystep = ( get_ysize( get_screen() ) - 128 ) / 3
+
+while( 1 )
+{
+    clear()
+    y = -get_ysize( get_screen() ) / 2 + 64
+    
+    print( "Original:", 0, y, WHITE, RIGHT )
+    pixi( img, 64, y, WHITE, 0.25, 0.25 )
+    y + ystep
+
+    print( "Red channel:", 0, y, RED, RIGHT )
+    pixi( r, 64, y, WHITE, 0.25, 0.25 )
+    y + ystep
+
+    print( "Green channel:", 0, y, GREEN, RIGHT )
+    pixi( g, 64, y, WHITE, 0.25, 0.25 )
+    y + ystep
+
+    print( "Blue channel:", 0, y, BLUE, RIGHT )
+    pixi( b, 64, y, WHITE, 0.25, 0.25 )
+    y + ystep
+
+    frame()
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}

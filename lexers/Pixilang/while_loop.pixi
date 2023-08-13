@@ -1,0 +1,43 @@
+include "show_log.pixi"
+
+logf( "loop begin\n" )
+y = 0 while y < 8 //loop for y: 0...7
+{
+    x = 0 while x < 4 //nested loop for x: 0...3
+    {
+	logf( "%d %d\n", x, y )
+	if x == 2
+	{
+	    break2 //break the loops of two levels (x and y)
+	}
+	x + 1
+    }
+    y + 1
+}
+logf( "loop end\n" )
+
+logf( "loop2 begin\n" )
+x = 0 while x < 4 //loop for x: 0...3
+{
+    logf( "%d\n", x )
+    if x == 2
+    {
+	break //break the loop (current level)
+    }
+    x + 1
+}
+logf( "loop2 end\n" )
+
+logf( "loop3 begin\n" )
+x = 0
+while 1 //endless loop
+{
+    logf( "%d\n", x )
+    x + 1
+    if x > 4 { breakall } //break all loops
+    if x > 2 { continue } //go to the beginning of the next cycle
+    logf( "x < 2\n" )
+}
+logf( "loop3 end\n" )
+
+show_log()

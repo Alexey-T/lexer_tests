@@ -1,0 +1,17 @@
+include "../show_log.pixi"
+
+fn compare_strings( $s1, $s2 )
+{
+    $c = strcmp( $s1, $s2 )
+    if $c == 0 { $cs = "==" }
+    if $c < 0 { $cs = "<" }
+    if $c > 0 { $cs = ">" }
+    logf( "%s %s %s\n", $s1, $cs, $s2 )
+}
+
+compare_strings( "4", "1" )
+compare_strings( "apple", "orange" )
+compare_strings( "book15", "book10" )
+compare_strings( "cat", "cat" )
+
+show_log()

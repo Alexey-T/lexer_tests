@@ -1,0 +1,391 @@
+//
+// AVI MJPEG encoder
+//
+
+include "riff.pixi"
+
+AVIH_FLAG_HASINDEX = 0x00000010 //Index at end of file; NOT RECOGNIZED BY MPLAYER & VLC :(
+AVIH_FLAG_MUSTUSEINDEX = 0x00000020
+AVIH_FLAG_ISINTERLEAVED = 0x00000100
+AVIH_FLAG_TRUSTCKTYPE = 0x00000800 //Use CKType to find key frames
+AVIH_FLAG_WASCAPTUREFILE = 0x00010000
+AVIH_FLAG_COPYRIGHTED = 0x00020000
+
+MJPEG_ENCODER_FLAG_HASSOUND = ( 1 << 0 )
+MJPEG_ENCODER_FLAG_USEINDEX = ( 1 << 1 )
+
+fn mjpeg_fn_error( $fn_name, $pars )
+{
+    logf( "%s() MJPEG error: wrong number of parameters (%d)\n", $fn_name, $pars )
+}
+
+fn mjpeg_encoder_open( 
+    $fps, 
+    $width, 
+    $height,
+    $quality,
+    $audio_channels, 
+    $audio_frames_per_second,
+    $audio_sample_type,
+    $flags, 
+    $output_stream )
+{
+    if $0 != 9 { mjpeg_fn_error( "mjpeg_encoder_open", $0 ) ret( -1 ) }
+    
+    $mj = new( 1, 1, INT )
+    $mj.fps = $fps
+    $mj.frames = 0
+    $mj.width = $width
+    $mj.height = $height
+    $mj.quality = $quality
+    $mj.audio_ch = $audio_channels
+    $mj.audio_freq = $audio_frames_per_second
+    $mj.audio_type = $audio_sample_type
+    $mj.flags = $flags
+    $mj.out = $output_stream
+    $mj.idx = new( 4, 1, INT32 )
+    $mj.idx_ptr = 0
+    $mj.jpeg = -1
+    $mj.silent_chunk = -1
+    
+    $mj.audio_bits = 0
+    if $audio_sample_type == INT8 { $mj.audio_bits = 8 }
+    if $audio_sample_type == INT16 { $mj.audio_bits = 16 }
+    if $audio_sample_type == FLOAT32 { $mj.audio_bits = 32 }
+    if $mj.audio_bits == 0
+    {
+	logf( "MJPEG encoder error: wrong audio sample type. Possible values: INT8, INT16, FLOAT32\n" )
+	ret( -1 )
+    }
+    
+    //AVI:
+    
+    $mj.c_avi = riff_chunk_open( -1, "RIFF", $mj.out )
+    riff_chunk_write_data( $mj.c_avi, "AVI ", 0, 0 )
+
+    //Header:
+
+    $c_hdrl = riff_chunk_open( $mj.c_avi, "LIST", $mj.out )
+    riff_chunk_write_data( $c_hdrl, "hdrl", 0, 0 )
+
+    $c = riff_chunk_open( $c_hdrl, "avih", $mj.out )
+    $avih = new( 14, 1, INT32 )
+    clean( $avih )
+    $avih[ 0 ] = 1000000 div $mj.fps //microSecPerFrame
+    $avih[ 1 ] = 10000000 //maxBytesPerSec
+    $avih[ 3 ] = AVIH_FLAG_ISINTERLEAVED | AVIH_FLAG_TRUSTCKTYPE | AVIH_FLAG_WASCAPTUREFILE //flags
+    if $flags & MJPEG_ENCODER_FLAG_USEINDEX 
+    {
+	$avih[ 3 ] | AVIH_FLAG_HASINDEX
+    } 
+    $avih[ 4 ] = 0 //totalFrames
+    $mj.fix1_offset = ftell( $mj.out ) + 4 * 4
+    if $flags & MJPEG_ENCODER_FLAG_HASSOUND { $avih[ 6 ] = 2 } else { $avih[ 6 ] = 1 }
+    $avih[ 7 ] = 1024 * 1024 //suggestedBufferSize
+    $avih[ 8 ] = $mj.width
+    $avih[ 9 ] = $mj.height
+    riff_chunk_write_data( $c, $avih, 0, 0 )
+    riff_chunk_close( $c )
+    remove( $avih )
+    
+    //Video stream info:
+    
+    $c_strl = riff_chunk_open( $c_hdrl, "LIST", $mj.out )
+    riff_chunk_write_data( $c_strl, "strl", 0, 0 )
+
+    $c = riff_chunk_open( $c_strl, "strh", $mj.out )
+    $strh = new( 14, 1, INT32 )
+    clean( $strh )
+    $strh[ 0 ] = 'vids' //type
+    $strh[ 1 ] = 'MJPG' //handler
+    $strh[ 5 ] = 1 //scale
+    $strh[ 6 ] = $fps //rate
+    $strh[ 8 ] = 0 //length
+    $mj.fix2_offset = ftell( $mj.out ) + 8 * 4
+    $strh[ 9 ] = 1024 * 1024 //suggestedBufferSize
+    $strh[ 10 ] = -1 //quality
+    $strh[ 13 ] = $width | ( $height << 16 )
+    riff_chunk_write_data( $c, $strh, 0, 0 )
+    riff_chunk_close( $c )
+    remove( $strh )
+
+    $c = riff_chunk_open( $c_strl, "strf", $mj.out )
+    $bmph = new( 10, 1, INT32 )
+    clean( $bmph )
+    $bmph[ 0 ] = get_size( $bmph ) * get_esize( $bmph ) //size
+    $bmph[ 1 ] = $width
+    $bmph[ 2 ] = $height
+    $bmph[ 3 ] = 1 | ( 24 << 16 ) //planes and bitCount
+    $bmph[ 4 ] = 'MJPG' //compression
+    $bmph[ 5 ] = $width * $height * 3 //imgSize
+    riff_chunk_write_data( $c, $bmph, 0, 0 )
+    riff_chunk_close( $c )
+    remove( $bmph )
+
+    riff_chunk_close( $c_strl )
+
+    if $flags & MJPEG_ENCODER_FLAG_HASSOUND
+    {
+	//Audio stream info (uncompressed interleaved):
+    
+        $c_strl = riff_chunk_open( $c_hdrl, "LIST", $mj.out )
+	riff_chunk_write_data( $c_strl, "strl", 0, 0 )
+
+	$c = riff_chunk_open( $c_strl, "strh", $mj.out )
+	$strh = new( 14, 1, INT32 )
+	clean( $strh )
+	$strh[ 0 ] = 'auds' //type
+	$strh[ 1 ] = 0 //handler
+	$strh[ 5 ] = 1 //scale
+	$strh[ 6 ] = $audio_frames_per_second //rate
+	$strh[ 8 ] = 0 //length
+	$mj.fix3_offset = ftell( $mj.out ) + 8 * 4
+	$strh[ 9 ] = 0 //suggestedBufferSize
+	$strh[ 10 ] = -1 //quality
+	$strh[ 11 ] = $audio_channels * ( $mj.audio_bits / 8 ) //sampleSize
+	riff_chunk_write_data( $c, $strh, 0, 0 )
+	riff_chunk_close( $c )
+	remove( $strh )
+
+	$c = riff_chunk_open( $c_strl, "strf", $mj.out )
+	$fmt = new( 4, 1, INT32 )
+	clean( $fmt )
+	$audio_format = 1; if $mj.audio_bits == 32 { $audio_format = 3 }
+	$fmt[ 0 ] = $audio_format | ( $audio_channels << 16 )
+	$fmt[ 1 ] = $audio_frames_per_second
+	$fmt[ 2 ] = $audio_frames_per_second * $audio_channels * ( $mj.audio_bits / 8 ) //bytes per second
+	$fmt[ 3 ] = $audio_channels * ( $mj.audio_bits / 8 ) | ( $mj.audio_bits << 16 ) //block align + bits
+	riff_chunk_write_data( $c, $fmt, 0, 0 )
+	riff_chunk_close( $c )
+	remove( $fmt )
+
+	riff_chunk_close( $c_strl )
+    }
+    
+    riff_chunk_close( $c_hdrl )
+
+    //Video and Audio data:
+
+    $mj.c_movi = riff_chunk_open( $mj.c_avi, "LIST", $mj.out )
+    riff_chunk_write_data( $mj.c_movi, "movi", 0, 0 )
+    
+    ret( $mj )
+}
+
+/*fn mjpeg_encoder_jfif_to_avi1( $jpeg )
+{
+    if $0 != 1 { mjpeg_fn_error( "mjpeg_encoder_jfif_to_avi1", $0 ) ret( 0 ) }
+    
+    $p = -1
+    $i = 0 while $i < 256
+    {
+	if $jpeg[ $i ] == 'J'
+	{
+	    if $jpeg[ $i + 1 ] == 'F'
+	    {
+		if $jpeg[ $i + 2 ] == 'I'
+		{
+		    if $jpeg[ $i + 3 ] == 'F'
+		    {
+			$p = $i
+			break
+		    }
+		}
+	    }
+	}
+	$i + 1
+    }
+    if $p >= 0
+    {
+	$size = get_size( $jpeg )
+	$jpeg[ $p ] = 'A' $p + 1
+	$jpeg[ $p ] = 'V' $p + 1
+	$jpeg[ $p ] = 'I' $p + 1
+	$jpeg[ $p ] = '1' $p + 1
+	$jpeg[ $p ] = 0 $p + 1
+	$jpeg[ $p ] = 0 $p + 1
+	$jpeg[ $p ] = $size & 255 $p + 1
+	$jpeg[ $p ] = ( $size >> 8 ) & 255 $p + 1
+	$jpeg[ $p ] = ( $size >> 16 ) & 255 $p + 1
+	$jpeg[ $p ] = ( $size >> 24 ) & 255 $p + 1
+	$jpeg[ $p ] = $size & 255 $p + 1
+	$jpeg[ $p ] = ( $size >> 8 ) & 255 $p + 1
+	$jpeg[ $p ] = ( $size >> 16 ) & 255 $p + 1
+	$jpeg[ $p ] = ( $size >> 24 ) & 255 $p + 1
+    }
+    
+    ret( 0 )
+}*/
+
+fn mjpeg_encoder_write_jpeg( $mj, $jpeg, $offset_bytes, $size_bytes )
+{
+    if $0 != 4 { mjpeg_fn_error( "mjpeg_encoder_write_jpeg", $0 ) ret( 0 ) }
+    if $mj <= 0 { ret( 0 ) }
+
+    if $mj.flags & MJPEG_ENCODER_FLAG_USEINDEX 
+    {
+	mjpeg_encoder_add_index( $mj, '00dc', 0x10, ftell( $mj.out ) - ( $mj.c_movi.size_ptr + 4 ), $size_bytes )
+    }
+    
+    $c = riff_chunk_open( $mj.c_movi, "00dc", $mj.out )
+    riff_chunk_write_data( $c, $jpeg, $offset_bytes, $size_bytes )
+    riff_chunk_close( $c )
+    
+    ret( $size_bytes )
+}
+
+fn mjpeg_encoder_write_image( $mj, $img )
+{
+    if $0 != 2 { mjpeg_fn_error( "mjpeg_encoder_write_image", $0 ) ret( 0 ) }
+    if $mj <= 0 { ret( 0 ) }
+
+    if $mj.jpeg <= 0
+    {
+	$mj.jpeg = new( 1, 1, INT8 )
+    }
+    $jpeg = $mj.jpeg
+    if $img != -999
+    {
+	$f = fopen_mem( $jpeg )
+	fsave( $img, $f, FORMAT_JPEG, $mj.quality )
+	fclose( $f )
+    }
+
+    if $mj.flags & MJPEG_ENCODER_FLAG_USEINDEX 
+    {
+	mjpeg_encoder_add_index( $mj, '00dc', 0x10, ftell( $mj.out ) - ( $mj.c_movi.size_ptr + 4 ), get_size( $jpeg ) )
+    }
+    
+    $c = riff_chunk_open( $mj.c_movi, "00dc", $mj.out )
+    riff_chunk_write_data( $c, $jpeg, 0, 0 )
+    riff_chunk_close( $c )    
+    
+    ret( get_size( $jpeg ) )
+}
+
+fn mjpeg_encoder_get_audio_size( $mj ) //Number of audio frames per chunk
+{
+    if $0 != 1 { mjpeg_fn_error( "mjpeg_encoder_get_audio_size", $0 ) ret( 0 ) }
+    if $mj <= 0 { ret( 0 ) }
+
+    $len1 = ( ( $mj.frames - 1 ) * $mj.audio_freq ) div $mj.fps
+    $len2 = ( $mj.frames * $mj.audio_freq ) div $mj.fps
+    $len = $len2 - $len1
+
+    ret( $len )
+}
+
+fn mjpeg_encoder_write_audio( $mj, $audio, $offset_bytes, $size_bytes )
+{
+    if $0 != 4 { mjpeg_fn_error( "mjpeg_encoder_write_audio", $0 ) ret( 0 ) }
+    if $mj <= 0 { ret( 0 ) }
+
+    $bytes = mjpeg_encoder_get_audio_size( $mj ) * $mj.audio_ch * ( $mj.audio_bits div 8 )
+
+    if $mj.c_01wb <= 0
+    {
+	if $mj.flags & MJPEG_ENCODER_FLAG_USEINDEX 
+	{
+	    mjpeg_encoder_add_index( $mj, '01wb', 0, ftell( $mj.out ) - ( $mj.c_movi.size_ptr + 4 ), $bytes )
+	}
+	$mj.c_01wb = riff_chunk_open( $mj.c_movi, "01wb", $mj.out )
+    }
+    
+    if $audio <= 0
+    {
+	//Silent chunk:
+	if $mj.silent_chunk <= 0
+	{
+	    $mj.silent_chunk = new( $bytes, 1, INT8 )
+	    clean( $mj.silent_chunk )
+	}
+	$audio = $mj.silent_chunk
+    }
+    
+    riff_chunk_write_data( $mj.c_01wb, $audio, $offset_bytes, $size_bytes )
+    
+    ret( $size_bytes )
+}
+
+fn mjpeg_encoder_next_frame( $mj )
+{
+    if $0 != 1 { mjpeg_fn_error( "mjpeg_encoder_next_frame", $0 ) ret( -1 ) }
+    if $mj <= 0 { ret( -1 ) }
+
+    if $mj.c_01wb > 0
+    {
+	//Close audio chunk:
+	riff_chunk_close( $mj.c_01wb )
+	$mj.c_01wb = -1
+    }
+
+    $mj.frames + 1
+    
+    ret( 0 )
+}
+
+fn mjpeg_encoder_add_index( $mj, $id, $flags, $offset, $size )
+{
+    if $0 != 5 { mjpeg_fn_error( "mjpeg_encoder_add_index", $0 ) ret( -1 ) }
+    if $mj <= 0 { ret( -1 ) }
+
+    $idx = $mj.idx
+    $idx_ptr = $mj.idx_ptr
+    $idx[ $idx_ptr * 4 + 0 ] = $id
+    $idx[ $idx_ptr * 4 + 1 ] = $flags
+    $idx[ $idx_ptr * 4 + 2 ] = $offset
+    $idx[ $idx_ptr * 4 + 3 ] = $size
+    $idx_ptr + 1
+    if $idx_ptr >= get_size( $idx ) / 4
+    {
+	resize( $idx, ( $idx_ptr + 256 ) * 4, 1, INT32 )
+    }
+    $mj.idx_ptr = $idx_ptr
+    
+    ret( 0 )
+}
+
+fn mjpeg_encoder_close( $mj )
+{
+    if $0 != 1 { mjpeg_fn_error( "mjpeg_encoder_close", $0 ) ret( -1 ) }
+    if $mj <= 0 { ret( -1 ) }
+
+    if $mj.frames <= 0
+    {
+	logf( "MJPEG encoder error: no frames\n" )
+    }
+    
+    riff_chunk_close( $mj.c_movi )
+
+    //Index:
+
+    if $mj.flags & MJPEG_ENCODER_FLAG_USEINDEX 
+    {
+	$idx = $mj.idx
+	$idx_ptr = $mj.idx_ptr
+	$c = riff_chunk_open( $mj.c_avi, "idx1", $mj.out )
+	riff_chunk_write_data( $c, $idx, 0, $idx_ptr * 4 * 4 )
+	riff_chunk_close( $c )
+    }
+    
+    //Fixup:
+    
+    fseek( $mj.out, $mj.fix1_offset, SEEK_SET )
+    riff_write_int32( $mj.frames, $mj.out ) //totalFrames
+    fseek( $mj.out, $mj.fix2_offset, SEEK_SET )
+    riff_write_int32( $mj.frames, $mj.out ) //video stream length
+    if $mj.flags & MJPEG_ENCODER_FLAG_HASSOUND
+    {
+	fseek( $mj.out, $mj.fix3_offset, SEEK_SET )
+	riff_write_int32( ( $mj.frames * $mj.audio_freq ) div $mj.fps, $mj.out ) //audio stream length (number of frames)
+    }
+
+    riff_chunk_close( $mj.c_avi )
+    
+    remove( $mj.silent_chunk )
+    remove( $mj.jpeg )
+    remove( $mj.idx )
+    remove( $mj )
+    
+    ret( 0 )
+}

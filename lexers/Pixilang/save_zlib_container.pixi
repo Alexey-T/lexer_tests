@@ -1,0 +1,24 @@
+include "save_image.pixi"
+
+save_image_xsize = 480
+save_image_ysize = 320
+save_image_format = FORMAT_PIXICONTAINER
+
+save_image_generator = 0 while save_image_generator < 3
+{
+    logf( "Generator type: %d\n", save_image_generator )
+    
+    save_image_quality = Z_NO_COMPRESSION
+    save_image_test()
+    
+    save_image_quality = Z_BEST_SPEED
+    save_image_test()
+
+    save_image_quality = Z_BEST_COMPRESSION
+    save_image_test()
+    
+    save_image_quality = Z_DEFAULT_COMPRESSION
+    save_image_test()
+
+    save_image_generator + 1
+}

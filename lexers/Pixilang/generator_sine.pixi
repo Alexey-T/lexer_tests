@@ -1,0 +1,43 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+start_timer( 0 )
+
+palette = new( 256 )
+i = 0 while( i < 128 )
+{
+    v = i
+    v * 2
+    palette[ i ] = get_color( v / 8, v, v / 2 )
+    i + 1
+}
+
+i = 128 while( i < 256 )
+{
+    v = 256 - i
+    v * 2
+    palette[ i ] = get_color( v, v, v / 2 )
+    i + 1
+}
+
+scr = get_screen()
+img8 = new( get_xsize( scr ), get_ysize( scr ), INT8 )
+
+while( 1 )
+{
+    t = get_timer( 0 ) / 1000
+
+    clear()
+    
+    generator( OP_SIN, img8, t, 512 * sin( t ), sin( t ) / 32, cos( t ) / 32 )
+    replace_values( scr, img8, palette )
+
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -get_xsize( scr ) / 2 + 8, -get_ysize( scr ) / 2 + 8, WHITE, TOP | LEFT )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+}
+

@@ -1,0 +1,19 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+while( 1 )
+{
+    clear( BLACK )
+	
+    pixi( img )	
+
+    op_cn( OP_V_FLIP, img, 0, 0, 0, 160, 240 )
+    op_cn( OP_H_FLIP, img, 0, 160, 0, 160, 240 )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+	
+    frame( 400 )
+}
+

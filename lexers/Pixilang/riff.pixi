@@ -1,0 +1,111 @@
+/*
+
+  Functions for working with Resource Interchange File Format (RIFF)
+
+  How to write:
+    c = riff_chunk_open( -1, "NAME", stream )
+    riff_chunk_write_data( c, data_container, 0, 0 )
+    riff_chunk_close( c )
+
+  How to read: not implemented yet.
+
+*/
+
+fn riff_write_int32( $val, $f )
+{
+    $w = 0
+    while 1
+    {
+        if fputc( $val & 255, $f ) == -1 { $w = 0 break }
+        if fputc( ( $val >> 8 ) & 255, $f ) == -1 { $w = 0 break }
+        if fputc( ( $val >> 16 ) & 255, $f ) == -1 { $w = 0 break }
+        if fputc( ( $val >> 24 ) & 255, $f ) == -1 { $w = 0 break }
+        $w = 4
+        break
+    }
+    ret( $w )
+}
+
+fn riff_chunk_open( $parent, $id, $f )
+{
+    $err = 0
+    $c = new( 1, 1, INT )
+    $c.parent = $parent
+    if $parent > 0
+    {
+	$parent.size + 8
+	$parent2 = $parent.parent
+	while 1
+	{
+	    if $parent2 == -1 { break }
+	    $parent2.size + 8
+	    $parent2 = $parent2.parent
+	}
+    }
+    $c.id = $id
+    $c.size = 0
+    $c.size_ptr = 0
+    $c.f = $f
+    while 1
+    {
+	if fwrite( $id, 4, $f ) != 4 { $err = 1 break } //Save chunk ID
+	$c.size_ptr = ftell( $f )
+	if riff_write_int32( 0, $f ) != 4 { $err = 1 break } //Save chunk size (zero by default)
+	break
+    }
+    if $err
+    {
+	remove( $c )
+	$c = -1
+    }
+    ret( $c )
+}
+
+fn riff_chunk_close( $c )
+{
+    if $c <= 0 { logf( "Close: no chunk\n" ) ret }
+    if $c.size 
+    {
+	$f = $c.f
+        $prev_pos = ftell( $f )
+        fseek( $f, $c.size_ptr, SEEK_SET )
+        riff_write_int32( $c.size, $f )
+        fseek( $f, $prev_pos, SEEK_SET )
+        if $c.size & 1
+        {
+    	    fputc( 0, $f );
+	    $parent = $c.parent
+	    while 1
+	    {
+		if $parent == -1 { break }
+		$parent.size + 1
+		$parent = $parent.parent
+	    }
+        }
+    }
+    remove( $c )
+}
+
+fn riff_chunk_write_data( $c, $data, $offset_bytes, $size_bytes )
+{
+    $w = 0
+    if $c <= 0 { logf( "Write: no chunk\n" ) ret }
+    if $size_bytes <= 0
+    {
+	$size_bytes = get_size( $data ) * get_esize( $data )
+    }
+    $f = $c.f
+    $w = fwrite( $data, $size_bytes, $f, $offset_bytes )
+    if $w == $size_bytes
+    {
+	$c.size + $size_bytes
+	$parent = $c.parent
+	while 1
+	{
+	    if $parent == -1 { break }
+	    $parent.size + $size_bytes
+	    $parent = $parent.parent
+	}
+    }
+    ret( $w )
+}

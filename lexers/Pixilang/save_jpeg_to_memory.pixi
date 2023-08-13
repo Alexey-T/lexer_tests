@@ -1,0 +1,36 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+screen = get_screen()
+xsize = get_xsize( screen )
+ysize = get_ysize( screen )
+
+//Draw something:
+y = 0 while( y < ysize )
+{
+    fbox( -xsize / 2, -ysize / 2 + y, 2000, 1, get_blend( RED, YELLOW, ( y / ysize ) * 256 ) )
+    y + 1
+}
+print( "Hello!", 0, 0, BLACK )
+
+//Save this image to JPEG:
+c = new( 1, 1, INT8 )
+f = fopen_mem( c )
+fsave( screen, f, FORMAT_JPEG, 50 )
+fclose( f )
+
+printf( "JPEG has been saved to container (%d bytes)\n", get_size( c ) )
+
+//Load from JPEG:
+f = fopen_mem( c )
+screen2 = fload( f )
+fclose( f )
+
+printf( "JPEG has been loaded from container\n" )
+
+while( 1 )
+{
+    pixi( screen2 )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

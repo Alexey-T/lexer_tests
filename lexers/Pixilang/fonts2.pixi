@@ -1,0 +1,72 @@
+//Several monospace character sets on a single texture
+
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+
+font_img = load( "images/font_atlas.png" )
+set_key_color( font_img, font_img[ 0 ] )
+//First character set: Unicode Basic Latin: 0x20...
+set_font(
+    0x20, //first char code
+    font_img, //container with the font texture
+    16, //number of characters horizontally
+    6, //number of characters vertically
+    0x20 + 16*6 - 1, //last char code
+    8, 8, //character size on the screen
+    8, 8, //character size on the texture (font container)
+    0, 0, //grid offset
+    8, 8 ) //grid cell size
+//Second character set: Unicode Cyrillic: 0x410...
+set_font(
+    0x410, //first char code
+    font_img, //container with the font texture
+    16, //number of characters horizontally
+    4, //number of characters vertically
+    0x410 + 16*4 - 1, //last char code
+    8, 12, //character size on the screen
+    8, 12, //character size on the texture (font container)
+    77, 67, //grid offset
+    8, 12 ) //grid cell size
+//Unicode Cyrillic Character 'ё' 0x451
+set_font(
+    0x451, //first char code
+    font_img, //container with the font texture
+    1, //number of characters horizontally
+    1, //number of characters vertically
+    0x451, //last char code
+    8, 12, //character size on the screen
+    8, 12, //character size on the texture (font container)
+    206, 38, //grid offset
+    8, 12 ) //grid cell size
+//Unicode Cyrillic Character 'Ё' 0x401
+set_font(
+    0x401, //first char code
+    font_img, //container with the font texture
+    1, //number of characters horizontally
+    1, //number of characters vertically
+    0x401, //last char code
+    8, 12, //character size on the screen
+    8, 12, //character size on the texture (font container)
+    225, 38, //grid ofset
+    8, 12 ) //grid cell size
+
+while 1
+{
+    transp( 32 )
+    clear()
+    transp( 255 )
+    effector( EFF_HBLUR, 16 )
+    effector( EFF_VBLUR, 16 )
+
+    print( "Font Atlas Test\nПроверка карты шрифтов\nАБВГДЕЁЖЗабвгдеёжз" )
+
+    frame()
+    while( get_event() )
+    {
+    	if EVT[ EVT_TYPE ] == EVT_QUIT { halt }
+    }
+}

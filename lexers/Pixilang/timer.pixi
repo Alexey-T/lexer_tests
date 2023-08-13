@@ -1,0 +1,48 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+bar_ysize = ysize / 4
+bar_color = GREEN
+
+part_counter = 0
+number_of_parts = 3
+number_of_subparts = 3
+
+start_timer( 0 )
+clear( BLACK )
+
+while 1
+{
+    while( get_event() ) 
+    { 
+	if EVT[ EVT_TYPE ] == EVT_MOUSEBUTTONUP 
+	{
+	    part_counter + 1
+	    start_timer( 0 ) 
+	    clear( BLACK ) 
+	}
+	if EVT[ EVT_TYPE ] == EVT_QUIT { halt } 
+    }
+
+    t = get_timer( 0 )
+    c = get_blend( BLACK, bar_color, ( sin( ( ( t % 1000 ) / 1000 ) * M_PI * 2 ) + 1 ) * 256 + 180 )
+    
+    t_reset()
+    t_scale( 9, 9, 9 )
+    ts = ""
+    sprintf( ts, "%d.%d", ( ( part_counter div number_of_subparts ) % number_of_parts ) + 1, ( part_counter % number_of_subparts ) + 1 )
+    print( ts, 0, -11, c )
+    t_reset()
+
+    bar_xsize = ( ( t div 1000 ) * xsize ) div ( 60 * 4 )
+    fbox( -hxsize, -bar_ysize / 2, bar_xsize, bar_ysize, c )
+    box( -hxsize, -bar_ysize / 2, xsize - 1, bar_ysize - 1, c )
+
+    frame( 50 )
+}

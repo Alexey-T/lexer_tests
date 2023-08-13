@@ -1,0 +1,9 @@
+include "../show_log.pixi"
+
+s1 = "string"
+s2 = "123"
+
+strcat( s1, s2 ) //s1 = s1 + s2
+logf( "strcat( s1, s2 ): %s\n", s1 );
+
+show_log()

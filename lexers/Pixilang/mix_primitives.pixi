@@ -1,0 +1,57 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    $t = get_timer( 0 ) & 1023
+    $t = $t / 1024
+    
+    $s = WINDOW_XSIZE / get_xsize( img )
+    $s / 2
+    
+    $rect_size = get_xsize( img ) div 3
+    
+    set_screen( GL_SCREEN )
+    
+    clear()
+    
+    transp( 100 )
+    $x = -WINDOW_XSIZE / 2 while $x < WINDOW_XSIZE / 2
+    {
+	$y = sin((  $t + $x / WINDOW_XSIZE ) * M_PI * 2 ) * WINDOW_YSIZE / 8
+	pixi( img, $x, $y, WHITE, $s, $s )
+	fbox( $x - $rect_size / 2, -$y * 3 - $rect_size / 2, $rect_size, $rect_size, RED )
+	line( 0, 0, $x, -$y * 4, WHITE )
+	$x + 2
+    }
+    transp( 255 )
+    
+    t_reset()
+    $ts = ""
+    sprintf( $ts, "FPS:%u", FPS )
+    print( $ts, -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    
+    set_screen( 0 )
+}
+
+//Create perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.004
+
+img = load( "../graphics/images/test.png" )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+// GL_NICEST - use 32bit color, when possible
+
+start_timer( 0 )
+
+set_gl_callback(
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

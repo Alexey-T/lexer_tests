@@ -1,0 +1,337 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+logf( "Data Processing Benchmark\n(operations per second)\n" )
+
+fn fill_cont( $cont )
+{
+    $size = get_size( $cont ) $i = 0 while $i < $size { $cont[ $i ] = rand() $i + 1 }
+}
+
+fn test( $size, $type )
+{
+    $c1 = new( $size, $size, $type )
+    $c2 = new( $size, $size, $type )
+
+    $type_name = "INT8"
+    $fp = 0
+    if $type == INT16 { $type_name = "INT16" }
+    if $type == INT32 { $type_name = "INT32" }
+    if $type == INT64 { $type_name = "INT64" }
+    if $type == FLOAT32 { $type_name = "FLOAT32" $fp = 1 }
+    if $type == FLOAT64 { $type_name = "FLOAT64" $fp = 1 }
+
+    logf( "New test begin...\n" )
+
+    logf( "  First operand - container %dx%d %s. Second operand - const.\n", $size, $size, $type_name )
+
+    clear( RED )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cn( OP_ADD, $c1, rand() )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_ADD: %.01f K\n", $ops )
+
+    clear( GREEN )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cn( OP_SUB, $c1, rand() )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_SUB: %.01f K\n", $ops )
+
+    clear( BLUE )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cn( OP_MUL, $c1, rand() )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_MUL: %.01f K\n", $ops )
+
+    clear( YELLOW )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    if $fp == 0
+    {
+	fill_cont( $c1 )
+        fill_cont( $c2 )
+	$t1 = get_ticks()
+        $i = 0 while $i < 50000
+	{
+	    op_cn( OP_AND, $c1, rand() )
+    	    $i + 1
+        }
+	$t2 = get_ticks()
+        $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+	logf( "    OP_AND: %.01f K\n", $ops )
+
+        clear( #404040 )
+	frame()
+        while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+	fill_cont( $c1 )
+        fill_cont( $c2 )
+	$t1 = get_ticks()
+        $i = 0 while $i < 50000
+	{
+	    op_cn( OP_XOR, $c1, rand() )
+    	    $i + 1
+	}
+        $t2 = get_ticks()
+	$ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+        logf( "    OP_XOR: %.01f K\n", $ops )
+
+	clear( RED )
+        frame()
+	while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    }
+    
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cn( OP_H_INTEGRAL, $c1, 0 )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_H_INTEGRAL: %.01f K\n", $ops )
+
+    clear( ORANGE )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cn( OP_V_INTEGRAL, $c1, 0 )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_V_INTEGRAL: %.01f K\n", $ops )
+
+    clear( GREEN )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cn( OP_H_DERIVATIVE, $c1, 0 )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_H_DERIVATIVE: %.01f K\n", $ops )
+
+    clear( BLUE )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cn( OP_V_DERIVATIVE, $c1, 0 )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_V_DERIVATIVE: %.01f K\n", $ops )
+
+    clear( YELLOW )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    if $fp == 0
+    {
+        fill_cont( $c1 )
+	fill_cont( $c2 )
+        $t1 = get_ticks()
+	$i = 0 while $i < 50000
+        {
+    	    op_cn( OP_H_FLIP, $c1, 0 )
+    	    $i + 1
+        }
+	$t2 = get_ticks()
+        $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+	logf( "    OP_H_FLIP: %.01f K\n", $ops )
+
+        clear( #101010 )
+	frame()
+        while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+	
+        fill_cont( $c1 )
+	fill_cont( $c2 )
+        $t1 = get_ticks()
+	$i = 0 while $i < 50000
+        {
+    	    op_cn( OP_V_FLIP, $c1, 0 )
+    	    $i + 1
+        }
+	$t2 = get_ticks()
+        $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+	logf( "    OP_V_FLIP: %.01f K\n", $ops )
+
+        clear( #404040 )
+	frame()
+        while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    }
+
+    logf( "  First operand - container %dx%d %s. Second operand - container %dx%d %s.\n", $size, $size, $type_name, $size, $size, $type_name )
+
+    clear( RED )
+    frame()
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cc( OP_ADD, $c1, $c2 )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_ADD: %.01f K\n", $ops )
+
+    clear( GREEN )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cc( OP_SUB, $c1, $c2 )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_SUB: %.01f K\n", $ops )
+
+    clear( BLUE )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    fill_cont( $c1 )
+    fill_cont( $c2 )
+    $t1 = get_ticks()
+    $i = 0 while $i < 50000
+    {
+	op_cc( OP_MUL, $c1, $c2 )
+	$i + 1
+    }
+    $t2 = get_ticks()
+    $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+    logf( "    OP_MUL: %.01f K\n", $ops )
+
+    clear( YELLOW )
+    frame()
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    if $fp == 0
+    {
+	fill_cont( $c1 )
+	fill_cont( $c2 )
+	$t1 = get_ticks()
+	$i = 0 while $i < 50000
+	{  
+	    op_cc( OP_AND, $c1, $c2 )
+	    $i + 1
+        }
+        $t2 = get_ticks()
+	$ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+        logf( "    OP_AND: %.01f K\n", $ops )
+
+	clear( #404040 )
+        frame()
+	while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+        fill_cont( $c1 )
+	fill_cont( $c2 )
+        $t1 = get_ticks()
+	$i = 0 while $i < 50000
+        {
+    	    op_cc( OP_XOR, $c1, $c2 )
+	    $i + 1
+        }
+	$t2 = get_ticks()
+        $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+	logf( "    OP_XOR: %.01f K\n", $ops )
+
+        clear( RED )
+	frame()
+        while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+	fill_cont( $c1 )
+        fill_cont( $c2 )
+	$t1 = get_ticks()
+        $i = 0 while $i < 50000
+	{
+	    op_ccn( OP_MUL_RSHIFT, $c1, $c2, 4 )
+    	    $i + 1
+        }
+	$t2 = get_ticks()
+        $ops = ( 50000 / 1000 ) / ( ( ( $t2 - $t1 ) & 0xFFFFFFFF ) / get_tps() )
+	logf( "    OP_MUL_RSHIFT: %.01f K\n", $ops )
+
+        clear( GREEN )
+	frame()
+        while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    }
+    
+    remove( $c1 )
+    remove( $c2 )
+}
+
+test( 256, INT8 )
+test( 256, INT32 )
+test( 256, FLOAT32 )
+
+log_buffer = get_log()
+save( log_buffer, "data_processing_results.txt", FORMAT_RAW )
+
+clear()
+print( "Results were saved to data_processing_results.txt\n" )
+frame()
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame( 100 )
+}

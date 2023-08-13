@@ -1,0 +1,43 @@
+//Querying GL State with gl_get_int() and gl_get_float()
+//(you can call these functions from the gl_callback only)
+
+no_log = 0
+
+fn print_gl_state( $val, $valname )
+{
+    ts = ""
+    sprintf( ts, "%s: %d\n", $valname, gl_get_int( $val ) ) 
+    print( ts, x, y, WHITE, TOP | LEFT ) 
+    if no_log == 0 { logf( ts ) }
+    y + 8
+}
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+
+    clear()
+    x = -WINDOW_XSIZE div 2
+    y = -WINDOW_YSIZE div 2
+    print_gl_state( GL_MAX_TEXTURE_SIZE, "GL_MAX_TEXTURE_SIZE" )
+    print_gl_state( GL_MAX_VERTEX_ATTRIBS, "GL_MAX_VERTEX_ATTRIBS" )
+    print_gl_state( GL_MAX_VERTEX_UNIFORM_VECTORS, "GL_MAX_VERTEX_UNIFORM_VECTORS" )
+    print_gl_state( GL_MAX_VARYING_VECTORS, "GL_MAX_VARYING_VECTORS" )
+    print_gl_state( GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, "GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS" )
+    print_gl_state( GL_MAX_TEXTURE_IMAGE_UNITS, "GL_MAX_TEXTURE_IMAGE_UNITS" )
+    print_gl_state( GL_MAX_FRAGMENT_UNIFORM_VECTORS, "GL_MAX_FRAGMENT_UNIFORM_VECTORS" )
+    no_log = 1
+
+    set_screen( 0 ) //Back to the default screen
+}
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}

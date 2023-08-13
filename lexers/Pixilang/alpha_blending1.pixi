@@ -1,0 +1,33 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+alpha = new( get_xsize( img ), get_ysize( img ), INT8 )
+set_alpha( img, alpha )
+size = get_size( alpha ) i = 0 while( i < size ) 
+{
+    p = img[ i ]
+    alpha[ i ] = ( get_red( p ) + get_green( p ) + get_blue( p ) ) div 3
+    i + 1
+}
+
+start_timer( 0 )
+
+start:
+
+t = get_timer( 0 ) / 1000
+
+clear()
+
+pixi( img, 0, 0 )
+pixi( img, cos( t ) * 128, sin( t ) * 128 )
+
+ts = ""
+sprintf( ts, "FPS:%u", FPS )
+print( ts, -get_xsize( get_screen() ) / 2 + 8, -get_ysize( get_screen() ) / 2 + 8, WHITE, TOP | LEFT )
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+frame()
+
+go start

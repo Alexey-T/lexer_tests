@@ -1,0 +1,128 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 )
+    
+    set_screen( GL_SCREEN )
+    
+    clear()
+
+    if ( t div 4000 ) % 2 == 0
+    {
+	set_zbuf( GL_ZBUF )
+	clear_zbuf()
+    }
+    else
+    {
+	set_zbuf( -1 )
+    }
+    if ( t div 8000 ) % 2 == 0
+    {
+	tt = tt1
+    }
+    else
+    {
+	tt = tt2
+    }
+
+    t_set_matrix( matrix )
+    t_rotate( t / 20, 0.8, 0.9, 1 )
+    s = WINDOW_XSIZE / 512
+    t_scale( s, s, s )
+
+    sort_triangles3d( vv, tt )
+    transp( 255 - sin( t / 500 ) * 128 )
+    triangles3d( vv, tt )
+
+    t_reset()
+
+    transp( 255 )
+
+    if get_zbuf() != -1
+    {
+	set_zbuf( -1 )
+	print( "Z-Buffer ON", -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    }
+    else
+    {
+	print( "Z-Buffer OFF", -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    }
+    if tt == tt1
+    {
+	print( "Textured", -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 16, WHITE, TOP | LEFT )
+    }
+    
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -WINDOW_XSIZE div 2 + 8, WINDOW_YSIZE div 2 - 8, WHITE, BOTTOM | LEFT )
+
+    set_zbuf( -1 )
+    set_screen( 0 )
+}
+
+img = load( "../graphics/images/test.jpg" )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+// GL_NICEST - use 32bit color, when possible
+
+//Triangles:
+tnum = 64
+tt1 = new( tnum * 8, 1, INT )
+tt2 = new( tnum * 8, 1, INT )
+clean( tt1 )
+clean( tt2 )
+i = 0 while( i < tnum )
+{
+    tt1[ i * 8 + 0 ] = rand() & 31  // Vertex 1
+    tt1[ i * 8 + 1 ] = rand() & 31  // Vertex 2
+    tt1[ i * 8 + 2 ] = rand() & 31  // Vertex 3
+    tt1[ i * 8 + 3 ] = get_color( rand()&255, rand()&255, rand()&255 )  // Color
+    tt1[ i * 8 + 4 ] = img  // Texture
+    tt1[ i * 8 + 5 ] = rand() & 511  // Transparency
+    i + 1
+}
+i = 0 while( i < tnum )
+{
+    tt2[ i * 8 + 0 ] = rand() & 31  // Vertex 1
+    tt2[ i * 8 + 1 ] = rand() & 31  // Vertex 2
+    tt2[ i * 8 + 2 ] = rand() & 31  // Vertex 3
+    tt2[ i * 8 + 3 ] = get_color( rand()&255, rand()&255, rand()&255 )  // Color
+    tt2[ i * 8 + 4 ] = -1  // Texture
+    tt2[ i * 8 + 5 ] = rand() & 511  // Transparency
+    i + 1
+}
+
+//Vertices:
+vnum = 32
+vv = new( vnum * 8, 1, FLOAT )
+clean( vv )
+i = 0 while( i < vnum )
+{
+    vv[ i * 8 + 0 ] = ( rand() & 255 ) - 128  // X
+    vv[ i * 8 + 1 ] = ( rand() & 255 ) - 128  // Y
+    vv[ i * 8 + 2 ] = ( rand() & 255 ) - 128  // Z
+    vv[ i * 8 + 3 ] = rand() & 255  // Texture X
+    vv[ i * 8 + 4 ] = rand() & 255  // Texture Y
+    i + 1
+}
+
+//Create perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.002
+
+start_timer( 0 )
+
+set_gl_callback(
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+
+go start

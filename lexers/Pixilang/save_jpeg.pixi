@@ -1,0 +1,27 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+screen = get_screen()
+xsize = get_xsize( screen )
+ysize = get_ysize( screen )
+
+y = 0 while( y < ysize )
+{
+    fbox( -xsize / 2, -ysize / 2 + y, 2000, 1, get_blend( RED, YELLOW, ( y / ysize ) * 256 ) )
+    y + 1
+}
+print( "Hello!", 0, 0, BLACK )
+
+save( screen, "saved_jpeg_picture1.jpg", FORMAT_JPEG, 1 ) //Quality = 1 (very bad)
+save( screen, "saved_jpeg_picture50.jpg", FORMAT_JPEG, 50 ) //Quality = 50 (middle)
+save( screen, "saved_jpeg_picture100.jpg", FORMAT_JPEG, 100 ) //Quality = 100 (best)
+save( screen, "saved_jpeg_picture50_twopass.jpg", FORMAT_JPEG, 50 | JPEG_TWOPASS ) //Number of passes = 2
+save( screen, "saved_jpeg_picture50_h1v1.jpg", FORMAT_JPEG, 50 | JPEG_H1V1 ) //YCbCr, no subsampling (H1V1, YCbCr 1x1x1, 3 blocks per MCU)
+save( screen, "saved_jpeg_picture50_h2v1.jpg", FORMAT_JPEG, 50 | JPEG_H2V1 ) //YCbCr, H2V1 subsampling (YCbCr 2x1x1, 4 blocks per MCU)
+save( screen, "saved_jpeg_picture50_h2v2.jpg", FORMAT_JPEG, 50 | JPEG_H2V2 ) //YCbCr, H2V2 subsampling (YCbCr 4x1x1, 6 blocks per MCU); default
+
+while( 1 )
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

@@ -1,0 +1,89 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+signal = new( 32, 1, FLOAT32 )
+
+//Source signal (normalized -1..1)
+size = get_size( signal )
+i = 0 while( i < size )
+{
+    signal[ i ] = -( i & 15 ) / 16 + 0.5
+    i + 1
+}
+
+re = clone( signal )
+im = clone( re )
+clean( im )
+
+fn draw_wave( $x, $y, $s )
+{
+    size = get_size( $s )
+    i = 0 while( i < size )
+    {
+	line( $x + i, $y, $x + i, $y - $s[ i ] * 32 )
+	i + 1
+    }
+}
+
+fn draw_amp( $x, $y, $im, $re )
+{
+    size = get_size( $im ) / 2
+    i = 0 while( i < size )
+    {
+	v1 = $im[ i + 1 ]
+	v2 = $re[ i + 1 ]
+	v = sqrt( v1 * v1 + v2 * v2 )
+	line( $x + i, $y, $x + i, $y - v * get_size( signal ) )
+	i + 1
+    }
+}
+
+fn filter( $f, $im, $re )
+{
+    $f + 1
+    size = get_size( $im ) / 2
+    i = $f while( i < size )
+    {
+	$im[ i + 1 ] = 0;
+	$im[ size * 2 - 1 - i ] = 0;
+	$re[ i + 1 ] = 0;
+	$re[ size * 2 - 1 - i ] = 0;
+	i + 1
+    }    
+}
+
+filter_counter = 0
+
+start:
+
+//clear()
+
+copy( re, signal )
+clean( im )
+
+//Wave amplitude: -1 ... +1
+//Frequency amplitude: -1 / FFTSIZE/2 ... +1 / FFTSIZE/2
+//Wave -> Frequency
+fft( 0, im, re )
+
+draw_wave( -128, 64, signal )
+print( "WAVE", -128 + 16, 64 + 24 )
+draw_amp( -128 + 50, 64, im, re )
+print( "FREQ", -128 + 50 + 16, 64 + 24 )
+
+//Frequency -> Wave
+filter( filter_counter, im, re )
+fft( 1, im, re )
+
+x = ( filter_counter & 3 ) * 40
+y = ( filter_counter div 4 ) * 50
+draw_wave( -128 + 50 + 50 + x, -80 + y, re )
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+frame( 100 )
+
+filter_counter + 1
+if filter_counter >= get_size( signal ) / 2 { filter_counter = 0 }
+
+go start

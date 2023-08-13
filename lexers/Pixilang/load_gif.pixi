@@ -1,0 +1,33 @@
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) / 32
+    
+    s = WINDOW_XSIZE / get_xsize( img )
+    s / 2
+    
+    set_screen( GL_SCREEN )
+    
+    clear( get_color( sin(t/32+0.5) * 128, cos(t/32+3) * 128, sin(t/32+4) * 128 ) )
+    
+    pixi( img, 0, 0, WHITE, s, s )
+
+    set_screen( 0 )
+}
+
+img = load( "../graphics/images/test.gif" )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+// GL_NICEST - use 32bit color, when possible
+
+play( img )
+
+start_timer( 0 )
+
+set_gl_callback(
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

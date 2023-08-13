@@ -1,0 +1,39 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+include "../../lib/pseudo_hdr.pixi"
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+clear()
+
+//Load image:
+img = load( "images/dark.jpg" )
+set_flags( img, CFLAG_INTERP )
+img_xsize = get_xsize( img )
+img_ysize = get_ysize( img )
+s = 1
+if img_xsize > xsize || img_ysize >= ysize
+{
+    s1 = xsize / img_xsize
+    s2 = ysize / img_ysize
+    if s1 < s2 { s = s1 } else { s = s2 }
+}
+pixi( img, 0, 0, WHITE, s, s )
+frame( 500 )
+
+apply_hdr_effect( img, 3, 2 )
+set_flags( img, CFLAG_INTERP )
+//save( img, "hdr.jpg", FORMAT_JPEG, 95 )
+
+start_timer( 0 )
+while 1
+{
+    t = get_timer( 0 )
+    transp( t / 64 )
+    pixi( img, 0, 0, WHITE, s, s )
+    frame()
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}
+

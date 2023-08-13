@@ -1,0 +1,19 @@
+include "../show_log.pixi"
+
+str = new( 1024, 1, INT8 )
+f = fopen( "read_strings.pixi", "rb" )
+if f
+{
+    ln = 0
+    while 1
+    {
+	len = fgets( str, 1024, f )
+	if len < 0 { logf( "%d: EOF\n", ln ) break }
+	logf( "%d: %s\n", ln, str )
+	ln + 1
+    }
+    fclose( f )
+}
+remove( str )
+
+show_log()

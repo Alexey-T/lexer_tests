@@ -1,0 +1,33 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+
+start_timer( 0 )
+
+while 1
+{
+    t = get_timer( 0 ) / 500
+    
+    clear()
+    pixi( img, 0, 0, WHITE, 2, 2 );
+
+    c = get_color( sin( t * 2 ) * 256, cos( t + 5 ) * 128, sin( t / 2 ) * 256 )
+    color_gradient( c, 0, c, 0, c, 0, c, 255, -xsize/2, -ysize/2, xsize/2, ysize/2 )
+    color_gradient( c, 0, c, 0, c, 255, c, 0, 0, -ysize/2, xsize/2, ysize/2 )
+    color_gradient( c, 0, c, 255, c, 0, c, 0, -xsize/2, 0, xsize/2, ysize/2 )
+    color_gradient( c, 255, c, 0, c, 0, c, 0, 0, 0, xsize/2, ysize/2 )
+    print( "Color Gradient" )
+
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -get_xsize( scr ) / 2 + 8, -get_ysize( scr ) / 2 + 8, WHITE, TOP | LEFT )
+
+    frame()
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}
+

@@ -1,0 +1,57 @@
+xsize = 320
+ysize = 240
+hxsize = xsize div 2
+hysize = ysize div 2
+resize( get_screen(), xsize, ysize )
+
+include "../../../lib/ffmpeg_video_export.pixi"
+
+video_export = ffmpeg_video_export_open(
+    "/tmp/zoom.avi",
+    xsize, ysize,
+    30,
+    5000,
+    2 * 60 * 30 )
+
+scr1 = get_screen()
+scr2 = clone( scr1 )
+set_flags( scr1, CFLAG_INTERP )
+set_flags( scr2, CFLAG_INTERP )
+
+clear( BLACK )
+
+while( 1 )
+{
+    while( get_event() )
+    {
+	if EVT[ EVT_TYPE ] == EVT_QUIT
+        {
+    	    breakall
+	}
+    }
+
+    t_scale( 1.04, 1.04, 1 )
+    pixi( scr2, 0, 0 )
+    t_reset()
+    x = ( rand() & 15 ) - 7
+    y = ( rand() & 15 ) - 7
+    r = rand() & 255
+    g = rand() & 255
+    b = rand() & 255
+    c = get_color( r, g, b )
+    s = 2
+    fbox( x, y, s, s, c )
+
+    if ffmpeg_video_export_write( video_export, get_screen() )
+    {
+	breakall
+    }
+    frame()
+
+    t = scr1
+    scr1 = scr2
+    scr2 = t
+    set_screen( scr1 )
+}
+
+ffmpeg_video_export_close( video_export )

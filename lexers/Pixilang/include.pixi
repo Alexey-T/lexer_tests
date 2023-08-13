@@ -1,0 +1,7 @@
+include "show_log.pixi"
+
+logf( "Text from the main pixi-program file\n" )
+include "include_part2.pixi"
+logf( text2 )
+
+show_log()

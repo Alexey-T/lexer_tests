@@ -1,0 +1,59 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = get_timer( 0 ) / 32
+    
+    s = WINDOW_XSIZE / get_xsize( img )
+    s / 2
+    
+    set_screen( GL_SCREEN )
+    
+    clear( get_color( sin(t/32+0.5) * 128, cos(t/32+3) * 128, sin(t/32+4) * 128 ) )
+    
+    t_set_matrix( matrix )
+    t_translate( -WINDOW_XSIZE / 4, 0, 0 )
+    t_rotate( t, 1, 2, 3 )
+    pixi( img, 0, 0, WHITE, s, s )
+    
+    t_set_matrix( matrix )
+    t_translate( WINDOW_XSIZE / 4, 0, 0 )
+    t_rotate( t, 1, 2, 3 )
+    pixi( img2, 0, 0, WHITE, s, s )
+    
+    t_reset()
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -WINDOW_XSIZE div 2 + 8, -WINDOW_YSIZE div 2 + 8, WHITE, TOP | LEFT )
+    
+    print( "Filter: Linear\nHigh quality (Nicest)", -WINDOW_XSIZE div 4, WINDOW_YSIZE div 4, WHITE )
+    print( "Filter: Nearest\nLow quality (Fastest)", WINDOW_XSIZE div 4, WINDOW_YSIZE div 4, WHITE )
+    
+    set_screen( 0 )
+}
+
+//Create perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.004
+
+img = load( "../graphics/images/test.png" )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+// GL_NICEST - use 32bit color, when possible
+
+img2 = clone( img )
+reset_flags( img2, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+
+start_timer( 0 )
+
+set_gl_callback(
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+start:
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame()
+go start

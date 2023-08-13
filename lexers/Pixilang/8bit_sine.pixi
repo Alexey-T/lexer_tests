@@ -1,0 +1,52 @@
+set_pixel_size( WINDOW_XSIZE / 256 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    p = ( phase & 32767 ) / 32768 * 2 * M_PI
+    d = delta / 32768 * 2 * M_PI
+    generator( OP_SIN, $channels[ 0 ], p, 127 / 2, d, 0 )
+    generator( OP_SIN, $channels[ 1 ], p, 127 / 2, d, 0 )
+    copy( buf, $channels[ 1 ] )
+    phase + delta * $frames
+    ret( 1 )
+}
+
+buf = new( 256, 1, INT8 )
+clean( buf )
+
+phase = 0
+delta = 1024 * 1
+set_audio_callback( audio_callback, 0, 22050, INT8, 2 )
+
+rate1 = get_audio_sample_rate( 0 )
+rate2 = get_audio_sample_rate( 1 )
+logf( "Local (defined by the set_audio_callback()) sample rate: %d Hz\n", rate1 )
+logf( "Global (defined in the global Pixilang preferences) sample rate: %d Hz\n", rate2 )
+if rate1 != rate2
+{
+    logf( "%d != %d, so resampling will be enabled\n", rate1, rate2 )
+}
+
+while( 1 )
+{
+    clear()
+    
+    x = 0 while( x < 256 )
+    {
+	dot( x - 128, buf[ x ] / 2, GREEN )
+	x + 1
+    }
+    
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    
+    frame()
+}
+

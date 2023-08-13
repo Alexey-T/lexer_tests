@@ -1,0 +1,53 @@
+include "../../../lib/demo.pixi"
+
+demo_show_fps = 1
+//demo_opengl = 1
+demo_xsize = 320
+demo_ysize = 240
+//demo_video_export = "video.avi"
+
+demo_load_sunvox( "../../sound/sound_files/test2.sunvox" )
+
+demo_init()
+demo_add_scene( 0, 0, 0, scene1 )
+demo_add_scene( 0, 0, 1000, scene2 )
+demo_add_scene( 0, 0, 2000, scene3 )
+//demo_add_scene( 0, 0, 3000, DEMO_STOP )
+demo_add_scene( 0, 1, 0, scene4 )
+
+demo_play()
+demo_deinit()
+
+fn scene1( $t1, $t2, $len )
+{
+    //$t1 - current time;
+    //$t2 - current time relative to the beginning of the scene;
+    //$len - scene length;
+    //time unit = millisecond;
+    clear( #203040 )
+    sprintf( demo_ts, "SCENE #1\n%d\n%d\n%d", $t1, $t2, $len )
+    print( demo_ts )
+}
+
+fn scene2( $t1, $t2, $len )
+{
+    clear( #304050 )
+    sprintf( demo_ts, "SCENE #2\n%d\n%d\n%d", $t1, $t2, $len )
+    print( demo_ts )
+}
+
+fn scene3( $t1, $t2, $len )
+{
+    clear( #405060 )
+    sprintf( demo_ts, "SCENE #3\n%d\n%d\n%d", $t1, $t2, $len )
+    print( demo_ts )
+}
+
+fn scene4( $t1, $t2, $len )
+{
+    //time function = 1 (SunVox player); time unit = line;
+    $t = $t1
+    fbox( -demo_xsize/2 + $t, 32, 4, 1000, WHITE )
+}
+
+show_memory_debug_messages( 1 )

@@ -1,0 +1,39 @@
+include "../show_log.pixi"
+
+a = new( 5, 2, INT8 ) //Create some container: width = 5; height = 2; element type = INT8
+clean( a, 0 ) //Fill it with zeroes; for zero you can also 
+
+//Write something to the container:
+//  container_name[ X ] = number
+//OR
+//  container_name[ X, Y ] = number
+
+a[ 0 ] = 'H' //save character 'H' to the first element of the container
+a[ 1 ] = 'e'
+a[ 2 ] = 'l'
+a[ 3 ] = 'l'
+a[ 4 ] = 'o'
+
+a[ 0, 1 ] = 'P'
+a[ 1, 1 ] = 'i'
+a[ 2, 1 ] = 'x'
+a[ 3, 1 ] = 'i'
+a[ 4, 1 ] = '!'
+
+xsize = get_xsize( a ) //get width (xsize)
+ysize = get_ysize( a ) //get height (ysize)
+y = 0 while y < ysize
+{
+    logf( "a[ 0...3, %d ] = ", y )
+    x = 0 while x < xsize
+    {
+	logf( "%c", a[ x, y ] ) //print a character from a[x,y]
+	x + 1
+    }
+    logf( "\n" )
+    y + 1
+}
+
+remove( a ) //remove the container
+
+show_log()

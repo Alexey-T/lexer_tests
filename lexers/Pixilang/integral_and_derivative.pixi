@@ -1,0 +1,34 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+xsize = get_xsize( img )
+ysize = get_ysize( img )
+img2 = new( xsize, ysize, INT32 )
+split_rgb( 0, img, -1, img2, -1 ) //Get green channel from RGB image
+
+//Horisontal and vertical discrete integral (running sum) operations:
+op_cn( OP_H_INTEGRAL, img2, 0, 0, 0, xsize / 2, ysize / 2 )
+op_cn( OP_V_INTEGRAL, img2, 0, xsize / 2, 0, xsize / 2, ysize / 2 )
+
+//Horisontal and vertical discrete derivative (first difference) operations:
+op_cn( OP_H_DERIVATIVE, img2, 0, 0, ysize / 2, xsize / 2, ysize / 2 )
+op_cn( OP_V_DERIVATIVE, img2, 0, xsize / 2, ysize / 2, xsize / 2, ysize / 2 )
+
+if 0 //Set to 1, if you want to make reverse operations and restore the image
+{
+    op_cn( OP_H_DERIVATIVE, img2, 0, 0, 0, xsize / 2, ysize / 2 )
+    op_cn( OP_V_DERIVATIVE, img2, 0, xsize / 2, 0, xsize / 2, ysize / 2 )
+    op_cn( OP_H_INTEGRAL, img2, 0, 0, ysize / 2, xsize / 2, ysize / 2 )
+    op_cn( OP_V_INTEGRAL, img2, 0, xsize / 2, ysize / 2, xsize / 2, ysize / 2 )
+}
+
+while 1
+{
+    split_rgb( 1, img, img2, img2, img2 ) //Grayscale --> RGB
+    pixi( img )    
+    
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }    
+    frame()
+}
+

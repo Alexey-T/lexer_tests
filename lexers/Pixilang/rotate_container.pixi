@@ -1,0 +1,18 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+while( 1 )
+{
+    clear( BLACK )
+	
+    pixi( img )	
+    
+    rotate( img, 1 )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+	
+    frame( 400 )
+}
+

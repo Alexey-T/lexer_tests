@@ -1,0 +1,42 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+
+img = load( "images/test.jpg" )
+
+img_alpha = new( get_xsize( img ), get_ysize( img ), INT8 )
+
+//Set perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.001
+
+start_timer( 0 )
+
+while( 1 )
+{
+	t = get_timer( 0 )
+	t2 = t / 500
+
+	clear( BLACK )
+
+	t_set_matrix( matrix )
+	s = 1.0
+	t_scale( s, s, s )
+	t_rotate( t / 20, 0.8, 0.9, 1 )
+	pixi( img, 0, 0, get_color( sin( t2 ) * 256, cos( t2 ) * 256, sin( t2 * 2 ) * 256 ) )
+
+	t_reset()
+
+	ts = ""
+	sprintf( ts, "FPS:%u", FPS )
+	print( ts, -get_xsize( scr ) / 2 + 8, -get_ysize( scr ) / 2 + 8, WHITE, TOP | LEFT )
+
+	while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+	frame()
+}
+

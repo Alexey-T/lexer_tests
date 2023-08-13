@@ -1,0 +1,32 @@
+include "show_log.pixi"
+
+//
+// Method 1
+//
+
+a = rand() //random number from 0 to 32767
+b = rand() //...
+c = rand() //...
+d = rand() //...
+logf( "Random numbers:\n" )
+logf( "%d, %d, %d, %d\n", a, b, c, d )
+
+//
+// Method 2
+//
+
+//fill the container with 16 random numbers
+c = new( 16, 1, INT )
+generator( OP_RAND, c, 0, 200 ) //amplitude = 200 (random numbers -200...200)
+
+logf( "Random numbers from the container c:\n" )
+i = 0 while i < 16
+{
+    logf( "%d, ", c[ i ] )
+    i + 1
+}
+logf( "\n" )
+
+remove( c )
+
+show_log()

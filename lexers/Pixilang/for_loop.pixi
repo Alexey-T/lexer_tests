@@ -1,0 +1,11 @@
+include "show_log.pixi"
+
+for( y = 0; y < 4; y + 1 )
+{
+    for( x = 0; x < 4; x + 1 )
+    {
+	logf( "%d %d\n", x, y )
+    }
+}
+
+show_log()

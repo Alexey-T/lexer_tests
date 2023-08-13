@@ -1,0 +1,105 @@
+include "obj_loader.pixi"
+
+fn gl_callback($userdata)
+{
+    $t = (get_timer( 0 ) & 8191) / 8192
+    $t2 = $t * 360 * 2
+
+    set_screen(GL_SCREEN) //Enable OpenGL drawing mode
+    set_zbuf(GL_ZBUF)
+
+    clear(#203040)
+    clear_zbuf()
+
+    t_set_camera(
+        -100, 150, -100,
+        -5, $t2, 0,
+        1, 
+        20000,
+        100
+    )
+
+    gl_draw_arrays( GL_TRIANGLES, 0, obj.size, 255, 255, 255, 255, tex, obj, obj.cols, obj.uvs )
+
+    t_reset()
+
+    ts = ""
+    sprintf(ts, "FPS:%u", FPS)
+    print(ts, -WINDOW_XSIZE / 2 + 8, -WINDOW_YSIZE / 2 + 8, WHITE, TOP | LEFT)
+
+    set_zbuf(-1)
+    set_screen(0) //Back to the default screen
+}
+
+start_timer( 0 )
+
+tex = -1
+obj = obj_load( "test2.obj", 1 ) ; tex = load( "tex2.png" )
+//obj = obj_load( "test_cube.obj" ) ; tex = load( "tex2.png" )
+
+set_gl_callback(gl_callback, 0) 
+
+while 1
+{
+    while(get_event()) { if EVT[EVT_TYPE] == EVT_QUIT {halt} }
+    frame()
+}
+
+obj_remove(obj)
+
+//x,y,z - camera position;
+//r1 - rotation around the X-axis;
+//r2 - rotation around the Y-axis;
+//r3 - rotation around the Z-axis;
+//near,far - visible Z range;
+//angle_of_view - viewing angle in degrees
+fn t_set_camera( $x, $y, $z, $r1, $r2, $r3, $near, $far, $angle_of_view )
+{
+    $aspect_ratio = WINDOW_XSIZE / WINDOW_YSIZE
+    $scale = tan( $angle_of_view * 0.5 * M_PI / 180 ) * $near
+    $r = $aspect_ratio * $scale
+    $l = -$r
+    $t = $scale
+    $b = -$t
+    t_frustum( $l, $r, $b, $t, $near, $far )
+    if $r1 { t_rotate( $r1, -1, 0, 0 ) }
+    if $r2 { t_rotate( $r2, 0, -1, 0 ) }
+    if $r3 { t_rotate( $r3, 0, 0, 1 ) }
+    t_translate( -$x, -$y, -$z )
+}
+
+//Parallel projection:
+fn t_orthographic( $left, $right, $bottom, $top, $z_near, $z_far )
+{
+    t_scale( WINDOW_XSIZE / 2, -WINDOW_YSIZE / 2, -WINDOW_ZSIZE / 2 ) //OpenGL NDC -> Pixilang coordinates
+
+    if tmp_matrix == 0 { tmp_matrix = new( 4, 4, FLOAT ) }
+    $m = tmp_matrix
+    clean( $m )
+    $m[ 0 ] = 2 / ( $right - $left )
+    $m[ 4 + 1 ] = 2 / ( $top - $bottom )
+    $m[ 8 + 2 ] = -2 / ( $z_far - $z_near )
+    $m[ 12 + 0 ] = - ( $right + $left ) / ( $right - $left )
+    $m[ 12 + 1 ] = - ( $top + $bottom ) / ( $top - $bottom )
+    $m[ 12 + 2 ] = - ( $z_far + $z_near ) / ( $z_far - $z_near )
+    $m[ 12 + 3 ] = 1
+    t_mul_matrix( $m )
+}
+
+//Perspective projection:
+fn t_frustum( $left, $right, $bottom, $top, $z_near, $z_far )
+{
+    t_scale( WINDOW_XSIZE / 2, -WINDOW_YSIZE / 2, -WINDOW_ZSIZE / 2 ) //OpenGL NDC -> Pixilang coordinates
+
+    if tmp_matrix == 0 { tmp_matrix = new( 4, 4, FLOAT ) }
+    $m = tmp_matrix
+    clean( $m )
+    $m[ 0 ] = 2 * $z_near / ( $right - $left )
+    $m[ 5 ] = 2 * $z_near / ( $top - $bottom )
+    $m[ 8 ] = ( $right + $left ) / ( $right - $left )
+    $m[ 9 ] = ( $top + $bottom ) / ( $top - $bottom )
+    $m[ 10 ] = -( $z_far + $z_near ) / ( $z_far - $z_near )
+    $m[ 11 ] = -1
+    $m[ 14 ] = -2 * $z_far * $z_near / ( $z_far - $z_near )
+    t_mul_matrix( $m )
+}

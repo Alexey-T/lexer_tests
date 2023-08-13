@@ -1,0 +1,8 @@
+include "midi_selector.pixi"
+
+midi_dev = -1
+midi_port = 0
+
+mc = midi_open_client( "Pixi MIDI Client" )
+midi_selector( mc, MIDI_PORT_READ | MIDI_PORT_WRITE )
+midi_close_client( mc )

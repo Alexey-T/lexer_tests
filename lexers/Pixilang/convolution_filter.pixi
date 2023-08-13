@@ -1,0 +1,111 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test2.jpg" )
+img2 = clone( img )
+img_xsize = get_xsize( img )
+img_ysize = get_ysize( img )
+
+kernel1 = new( 3, 3, INT ) //BOX BLUR
+clean( kernel1, 1 )
+
+kernel2 = new( 3, 3, INT ) //SHARPEN
+i = 0
+kernel2[ i ] = 0 ; i + 1
+kernel2[ i ] = -1 ; i + 1
+kernel2[ i ] = 0 ; i + 1
+kernel2[ i ] = -1 ; i + 1
+kernel2[ i ] = 5 ; i + 1
+kernel2[ i ] = -1 ; i + 1
+kernel2[ i ] = 0 ; i + 1
+kernel2[ i ] = -1 ; i + 1
+kernel2[ i ] = 0 ; i + 1
+
+kernel3 = new( 3, 3, INT ) //EDGE DETECTION
+clean( kernel3, -1 )
+kernel3[ 1, 1 ] = 8
+
+kernel4 = new( 3, 3, INT ) //EMBOSS
+i = 0
+kernel4[ i ] = -2 ; i + 1
+kernel4[ i ] = -1 ; i + 1
+kernel4[ i ] = 0 ; i + 1
+kernel4[ i ] = -1 ; i + 1
+kernel4[ i ] = 1 ; i + 1
+kernel4[ i ] = 1 ; i + 1
+kernel4[ i ] = 0 ; i + 1
+kernel4[ i ] = 1 ; i + 1
+kernel4[ i ] = 2 ; i + 1
+
+filter_flags = CONV_FILTER_COLOR
+
+x = 0
+conv_filter(
+    img,  //destination
+    img2,  //source
+    kernel1,  //kernel
+//OPTIONAL PARAMETERS:
+    9,  //divisor (dividing the result)
+    0,  //offset (addition after division)
+    filter_flags,  //flags (options)
+    1, 1,  //kernel center XY (relative to the upper left corner)
+    x, 0,  //destination XY
+    x, 0,  //source XY
+    img_xsize/4, img_ysize,
+    1, 1  //XY pitch (step length)
+)
+
+x + img_xsize/4
+conv_filter(
+    img,  //destination
+    img2,  //source
+    kernel2,  //kernel
+    1,  //divisor (dividing the result)
+    0,  //offset (addition after division)
+    filter_flags,  //flags (options)
+    1, 1,  //kernel center XY (relative to the upper left corner)
+    x, 0,  //destination XY
+    x, 0,  //source XY
+    img_xsize/4, img_ysize,
+    1, 1  //XY pitch (step length)
+)
+
+x + img_xsize/4
+conv_filter(
+    img,  //destination
+    img2,  //source
+    kernel3,  //kernel
+    1,  //divisor (dividing the result)
+    0,  //offset (addition after division)
+    filter_flags,  //flags (options)
+    1, 1,  //kernel center XY (relative to the upper left corner)
+    x, 0,  //destination XY
+    x, 0,  //source XY
+    img_xsize/4, img_ysize,
+    1, 1  //XY pitch (step length)
+)
+
+x + img_xsize/4
+conv_filter(
+    img,  //destination
+    img2,  //source
+    kernel4,  //kernel
+    1,  //divisor (dividing the result)
+    0,  //offset (addition after division)
+    filter_flags,  //flags (options)
+    1, 1,  //kernel center XY (relative to the upper left corner)
+    x, 0,  //destination XY
+    x, 0,  //source XY
+    img_xsize/4, img_ysize,
+    1, 1  //XY pitch (step length)
+)
+
+while 1
+{
+    pixi( img, 0, 0 )
+
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+}
+

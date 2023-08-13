@@ -1,0 +1,13 @@
+fputs( "ASCII characters:\n" )
+
+x = 0
+c = 0x20
+while( c < 0x7F )
+{
+    fputc( c, STDOUT )
+    c + 1
+    x + 1
+    if x % 16 == 0 { fputs( "\n" ) }
+}
+
+fputs( "\n" )

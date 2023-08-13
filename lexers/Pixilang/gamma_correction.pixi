@@ -1,0 +1,68 @@
+// $img - Image to change
+// $val - Used to build the gamma ramp (usually .2 to 5)
+fn apply_gamma( $img, $val )
+{
+    $rv = -1
+    $val = 1 / $val
+    $xsize = get_xsize( $img )
+    $ysize = get_ysize( $img )
+    if $ysize > 32
+    {
+	$part_ysize = 32
+    }
+    else
+    {
+	$part_ysize = $ysize
+    }
+    if $xsize <= 0 || $ysize <= 0
+    {
+	ret( -1 )
+    }
+    $ramp = get_gamma_table_8bit( $val )
+    $r = new( $xsize, $part_ysize, INT16 )
+    $g = new( $xsize, $part_ysize, INT16 )
+    $b = new( $xsize, $part_ysize, INT16 )
+    if $ramp > 0 && $r > 0 && $g > 0 && $b > 0
+    {
+	$y = 0 while $y < $ysize
+	{
+	    $ysize2 = $ysize - $y
+	    if $ysize2 > $part_ysize { $ysize2 = $part_ysize }
+	    split_rgb( 0, $img, $r, $g, $b, $y * $xsize, 0, $ysize2 * $xsize )
+	    replace_values( $r, $r, $ramp )
+	    replace_values( $g, $g, $ramp )
+	    replace_values( $b, $b, $ramp )
+	    split_rgb( 1, $img, $r, $g, $b, $y * $xsize, 0, $ysize2 * $xsize )
+	    $y + $ysize2
+	}
+	$rv = 0
+    }
+    remove( $ramp )
+    remove( $r )
+    remove( $g )
+    remove( $b )
+    ret( $rv )
+}
+
+fn get_gamma_table( $table_size, $table_type, $max, $val )
+{
+    $ramp = new( $table_size, 1, $table_type )
+    if $ramp > 0
+    {
+	$s = $table_size - 1
+	$i = 0 while $i < $table_size
+	{
+	    $v = $max * pow( $i / $s, $val ) + 0.5
+	    if $v > $max { $v = $max }
+	    $ramp[ $i ] = $v
+	    $i + 1
+	}
+	ret( $ramp )
+    }
+    ret( -1 )
+}
+
+fn get_gamma_table_8bit( $val )
+{
+    ret( get_gamma_table( 256, INT16, 255, $val ) )
+}

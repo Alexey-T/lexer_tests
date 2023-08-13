@@ -1,0 +1,91 @@
+//Built-in (default) Pixilang shaders:
+//  GL_SHADER_SOLID - solid;
+//  GL_SHADER_GRAD - gradient;
+//  GL_SHADER_TEX_ALPHA_SOLID - solid + alpha texture;
+//  GL_SHADER_TEX_ALPHA_GRAD - gradient + alpha texture;
+//  GL_SHADER_TEX_RGB_SOLID - solid + rgb texture;
+//  GL_SHADER_TEX_RGB_GRAD - gradient + rgb texture.
+
+set_pixel_size( WINDOW_XSIZE / 480 )
+
+fn get_timer2( $d )
+{
+    $d * 1024
+    ret( ( get_timer( 0 ) & ( $d - 1 ) ) / $d )
+}
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t1 = get_timer2( 32 )
+    t2 = get_timer2( 2 )
+
+    t_reset()
+    t_scale( 2 + sin(t1*M_PI*2), 2 + sin(t1*M_PI*2), 1 )
+    t_rotate( t1 * 360 * 4, 0, 0, 1 )
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    transp( 255 )
+    clear( get_color( sin(t2*M_PI*2+0.5) * 128, cos(t2*M_PI*2+1) * 128, sin(t2*M_PI*2+2) * 128 ) )
+
+    gl_use_prog( gl_prog ) //Use user-defined GLSL program (vertex shader + fragment shader)
+    gl_uniform( gl_prog.g_time, t2*M_PI*2 )
+    gl_blend_func( GL_SRC_ALPHA, GL_ONE ) 
+    
+    $s = WINDOW_XSIZE / get_xsize( img ) / 4
+    pixi( img, 0, 0, WHITE, $s / 2, $s / 2 )
+    pixi( img, 0, 0, WHITE, $s, $s )
+    $s * 3
+    //transp( 64 )
+    pixi( img, 0, 0, YELLOW, $s, $s )
+    //transp( 255 )
+
+    gl_blend_func()
+    gl_use_prog() //Back to default GLSL program
+    
+    /*t_reset()
+    t_scale( WINDOW_XSIZE / 190, WINDOW_XSIZE / 190, 1 )
+    print( "Pixi loves Shaders" )*/
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+start_timer( 0 )
+
+gl_vshader = GL_SHADER_TEX_RGB_SOLID //Vertex shader = default shader for solid primitives drawing
+gl_fshader = //Fragment shader
+"PRECISION( LOWP, float )
+uniform sampler2D g_texture;
+uniform float g_time;
+uniform vec4 g_color;
+IN vec2 tex_coord_var;
+void main()
+{
+    vec2 pos = tex_coord_var;
+    float x = pos.x - 0.5;
+    float y = pos.y - 0.5;
+    float l;
+    x *= x;
+    y *= y;
+    l = ( 0.5 - sqrt( x + y ) ) * 2.0;
+    if( l < 0.0 ) l = 0.0;
+    gl_FragColor = ( cos( 80.0 * ( x + y ) * cos( 40.0 * ( x - y ) ) - g_time ) ) * g_color * l;
+}
+"
+gl_prog = gl_new_prog( gl_vshader, gl_fshader )
+
+img = new( 16, 16 )
+clean( img, RED )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+while 1 
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}
+
+remove( gl_prog )

@@ -1,0 +1,43 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img1 = load( "images/pack.png" )
+img2 = load( "images/grey.png" )
+img3 = load( "images/24bit.png" )
+img4 = load( "images/mask.png" )
+img5 = load( "images/grey+mask.png" )
+img6 = load( "images/24bit+mask.png" )
+img7 = load( "images/alpha.png" )
+img8 = load( "images/grey+alpha.png" )
+img9 = load( "images/24bit+alpha.png" )
+
+while( 1 )
+{
+    clear( #203090 )
+    
+    pixi( img1, -64, -32 )
+    pixi( img2, -64, 0 )
+    pixi( img3, -64, 32 )
+
+    pixi( img4, 0, -32 )
+    pixi( img5, 0, 0 )
+    pixi( img6, 0, 32 )
+
+    pixi( img7, 64, -32 )
+    pixi( img8, 64, 0 )
+    pixi( img9, 64, 32 )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    
+    frame()
+}
+
+remove_with_alpha( img1 )
+remove_with_alpha( img2 )
+remove_with_alpha( img3 )
+remove_with_alpha( img4 )
+remove_with_alpha( img5 )
+remove_with_alpha( img6 )
+remove_with_alpha( img7 )
+remove_with_alpha( img8 )
+remove_with_alpha( img9 )

@@ -1,0 +1,108 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+g_halt = 0
+num_threads = 8
+rendered = new( num_threads, 1, INT )
+clean( rendered )
+render_request = 0
+
+start_timer( 0 )
+recalc_coefs()
+
+fn recalc_coefs()
+{
+    $t = get_timer( 0 ) / 2000
+    a = ( sin( $t ) * 128 ) |0
+    b = ( cos( $t ) * 128 ) |0
+    magn = 120 //( 128 + $t * 8 ) |0
+    render_request + 1
+}
+
+fn thread_body( $thread_num, $segment )
+{
+    $rr = -1111
+    while g_halt == 0
+    {
+	if $rr != render_request
+	{
+	    draw_fract( $segment )
+	    rendered[ $segment ] = 1
+	    $rr = render_request
+	}
+	else
+	{
+	    sleep( 5 )
+	}
+    }
+}
+
+i = 0 while( i < num_threads )
+{
+    thread_create( thread_body, i )
+    i + 1
+}
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { g_halt = 1 breakall } }
+
+    frame_ready = 1
+    i = 0 while( i < num_threads )
+    {
+	if rendered[ i ] == 0 { frame_ready = 0 break }
+	i + 1
+    }
+
+    if frame_ready
+    {
+	ts = ""
+	sprintf( ts, "FPS:%d", FPS )
+	tx = -get_xsize( scr ) / 2 + 8
+	ty = -get_ysize( scr ) / 2 + 8
+	print( "FPS:888", tx, ty, BLACK, TOP | LEFT )
+        print( ts, tx, ty, WHITE, TOP | LEFT )
+
+	frame()
+
+	clean( rendered )
+
+	recalc_coefs()
+    }
+    else
+    {
+	sleep( 5 )
+    }
+}
+
+fn draw_fract( $thread_cnt )
+{
+    $y = -hysize
+    while $y < hysize
+    {
+	$x = -hxsize + $thread_cnt
+	while $x < hxsize
+	{
+	    $xx = ( $x * magn ) >> 7
+	    $yy = ( $y * magn ) >> 7
+	    $col = 0 while $col < 256
+	    {
+		$xxx = ( $xx * $xx ) >> 7
+		$yyy = ( $yy * $yy ) >> 7
+		if $xxx + $yyy > 4 * 128 { break }
+		$yy = ( ( $xx * $yy ) >> 6 ) + b
+		$xx = $xxx - $yyy + a
+		$col + 8
+	    }
+	    dot( $x, $y, get_color( $col, $col, $col * 4 ) )
+	    $x + num_threads
+	}
+	$y + 1
+    }
+}

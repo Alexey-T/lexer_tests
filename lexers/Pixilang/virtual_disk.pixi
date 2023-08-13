@@ -1,0 +1,28 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+//Open TAR archive with images:
+disk0 = fopen( "images/archive.tar", "rb" )
+//and then use this archive as virtual disk "0:/":
+set_disk0( disk0 )
+
+//Load images:
+img1 = load( "0:/test2.jpg" )
+img2 = load( "0:/test3.jpg" )
+
+start_timer( 0 )
+while 1
+{
+    t = get_timer( 0 ) / 1000
+    transp( 256 )
+    pixi( img1 )
+    transp( sin( t ) * 128 + 128 )
+    pixi( img2 )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}
+
+//Close virtual disk:
+set_disk0( 0 )
+fclose( disk0 )
+

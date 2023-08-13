@@ -1,0 +1,48 @@
+//Input (Mic/Line) Visualizer
+
+set_pixel_size( WINDOW_XSIZE / 256 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    if $in_channels >= 0
+    {
+	copy( visual_buf, $in_channels[ 0 ] )
+    }
+    ret( 0 ) //output is empty
+}
+
+visual_buf = new( 256, 1, INT16 )
+clean( visual_buf )
+
+set_audio_callback( audio_callback, 0, 44100, INT16, 2 )
+enable_audio_input( 1 )
+
+xsize = get_xsize( get_screen() )
+ysize = get_ysize( get_screen() )
+hxsize = xsize / 2
+hysize = ysize / 2
+
+while 1
+{
+    transp( 64 );
+    clear()
+    transp( 256 );
+
+    x = 0 while( x < 256 )
+    {
+        line( x - 128, 0, x - 128, visual_buf[ x ] / 512, GREEN )
+        x + 1
+    }
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+}

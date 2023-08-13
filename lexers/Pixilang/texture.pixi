@@ -1,0 +1,83 @@
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t = ( ( get_timer( 0 ) / 4 ) & 1023 ) / 1024
+
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+
+    clear()
+
+    t_reset()
+    t_scale( WINDOW_XSIZE / 2, WINDOW_YSIZE / 2, 1 )
+
+    $x = t
+    $y = t
+    $xsize = sin( t * M_PI * 2 ) + 2
+    $ysize = cos( t * M_PI * 2 ) + 2    
+    tt[ 0, 0 ] = $x
+    tt[ 1, 0 ] = $y + $ysize
+    tt[ 0, 1 ] = tt[ 0, 0 ]
+    tt[ 1, 1 ] = $y
+    tt[ 0, 2 ] = $x + $xsize
+    tt[ 1, 2 ] = tt[ 1, 0 ]
+    tt[ 0, 3 ] = tt[ 0, 2 ]
+    tt[ 1, 3 ] = tt[ 1, 1 ]
+    
+    gl_draw_arrays(
+        GL_TRIANGLE_STRIP, 0, 4,
+        255, 255, 255, 255,
+        txt, //texture
+        vv, //vertex array
+        -1, //color array
+        tt //texture coordinates array
+    )
+        
+    set_screen( scr ) //Back to the default screen
+}
+
+scr = get_screen()
+
+//Create texture:
+txsize = 128
+tysize = 128
+txt = new( txsize, tysize )
+set_flags( txt, GL_MIN_LINEAR | GL_MAG_LINEAR )
+p = 0
+y = 0 while y < tysize
+{
+    ty = y / tysize
+    x = 0 while x < txsize
+    {
+	tx = x / txsize
+	v = sin( tx * M_PI * 2 + sin( ty * M_PI * 2 ) ) * cos( ty * M_PI * 4 )
+	v * 256
+	txt[ p ] = get_color( v & 123, v ^ 222, v ^ 112 )
+	p + 1	
+	x + 1
+    }
+    y + 1
+}
+
+//Vertices:
+vv = new( 2, 4, FLOAT32 )
+vv[ 0, 0 ] = -1
+vv[ 1, 0 ] = 1
+vv[ 0, 1 ] = -1
+vv[ 1, 1 ] = -1
+vv[ 0, 2 ] = 1
+vv[ 1, 2 ] = 1
+vv[ 0, 3 ] = 1
+vv[ 1, 3 ] = -1
+tt = new( 2, 4, FLOAT32 )
+
+start_timer( 0 )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}

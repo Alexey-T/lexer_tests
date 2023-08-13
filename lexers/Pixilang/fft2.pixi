@@ -1,0 +1,78 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+sample_rate = 44100
+fft_size = 1024
+fft_size2 = fft_size div 2
+yscale = 0.5
+
+//Generate three SINE signals:
+wave = new( fft_size, 1, FLOAT ) clean( wave )
+wave2 = clone( wave )
+generator( OP_SIN, wave2, 0, 1, ( 10766.6015625 / sample_rate ) * 2 * M_PI, 0 ) op_cc( OP_ADD, wave, wave2 )
+generator( OP_SIN, wave2, 0, 1, ( 5000 / sample_rate ) * 2 * M_PI, 0 ) op_cc( OP_ADD, wave, wave2 )
+generator( OP_SIN, wave2, 0, 1, ( 500 / sample_rate ) * 2 * M_PI, 0 ) op_cc( OP_ADD, wave, wave2 )
+//Draw it:
+i = 0 while i < fft_size
+{
+    x = ( i / fft_size ) * xsize - hxsize
+    y = -wave[ i ] * hysize * yscale
+    if i > 0 { line( x2, y2, x, y, #004000 ) }
+    x2 = x y2 = y
+    i + 1
+}
+transp( 200 )
+line( -hxsize, 0, hxsize, 0 )
+line( -hxsize, -hysize * yscale, hxsize, -hysize * yscale )
+line( -hxsize, hysize * yscale, hxsize, hysize * yscale )
+line( 0, -hysize, 0, hysize )
+print( "1", -hxsize + 2, -hysize * yscale, WHITE, BOTTOM | LEFT )
+print( "1", 2, -hysize * yscale, WHITE, BOTTOM | LEFT )
+print( "0", -hxsize + 2, 0, WHITE, BOTTOM | LEFT )
+print( "0", 2, 0, WHITE, BOTTOM | LEFT )
+transp( 255 )
+frame()
+
+//Do FFT (Wave -> Spectrum):
+fft_im = new( fft_size, 1, FLOAT )
+fft_re = new( fft_size, 1, FLOAT )
+clean( fft_im )
+copy( fft_re, wave )
+fft( 0, fft_im, fft_re )
+//If you want to analyze the spectrum, then you need to perform the following transformations after direct FFT:
+//  if( k == 0 || k == fft_size / 2 )
+//    Re2[ 0 ] = Re[ 0 ] / fft_size
+//    Re2[ fft_size / 2 ] = Re[ fft_size / 2 ] / fft_size
+//  else
+//    Re2[ k ] = Re[ k ] / ( fft_size / 2 )
+//    Im2[ k ] = -Im[ k ] / ( fft_size / 2 )
+//Draw the spectrum:
+i = 0 while i <= fft_size
+{
+    x = ( i / fft_size ) * xsize - hxsize
+    im = fft_im[ i ]
+    re = fft_re[ i ]
+    v = sqrt( im * im + re * re ) / fft_size2
+    y = -v * hysize * yscale
+    if i > 0 { line( x2, y2, x, y, YELLOW ) }
+    x2 = x y2 = y
+    i + 1
+}
+frame()
+
+//Do Inverse FFT (back from Spectrum -> Signal):
+fft( 1, fft_im, fft_re )
+//Signal is in the fft_re now.
+//Don't draw it, because it is the same as the original wave.
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame( 100 )
+}

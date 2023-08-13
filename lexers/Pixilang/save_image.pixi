@@ -1,0 +1,110 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+save_image_xsize = 480
+save_image_ysize = 320
+save_image_format = FORMAT_JPEG
+save_image_quality = 0
+save_image_test_len = 2 //seconds
+save_image_generator = 0 // 0:rand; 1:gradient; 2:rectangles
+
+fn save_image_test()
+{
+    $xsize = save_image_xsize
+    $ysize = save_image_ysize
+    $format = save_image_format
+    $quality = save_image_quality
+    $seconds = save_image_test_len
+    $gen = save_image_generator
+
+    $img = new( $xsize, $ysize )
+    clean( $img )
+    $scr = get_screen()
+    set_screen( $img )
+    $start_t = get_ticks()
+    $timeout = $seconds * get_tps()
+    $frame = 0
+    $packed_size_avg = 0
+    while 1
+    {
+	if ( ( get_ticks() - $start_t ) & 0x7FFFFFFF ) >= $timeout
+	{
+	    break
+	}
+
+	if ( $frame & 7 ) == 0
+	{
+	    if $gen == 0 
+	    {
+		generator( OP_RAND, $img, 0, rand() + rand(), 1, 1 )
+	    }
+	    if $gen == 1
+	    {
+		$c1 = get_color( rand() & 255, rand() & 255, rand() & 255 )
+		$c2 = get_color( rand() & 255, rand() & 255, rand() & 255 )
+		$c3 = get_color( rand() & 255, rand() & 255, rand() & 255 )
+		$c4 = get_color( rand() & 255, rand() & 255, rand() & 255 )
+		color_gradient( $c1, 255, $c2, 255, $c3, 255, $c4, 255 )
+	    }
+	    if $gen == 2
+	    {
+		$i = 0 while $i < 32
+		{
+		    $c = get_color( rand() & 255, rand() & 255, rand() & 255 )
+		    $x = ( ( rand() & 255 ) / 255 ) * $xsize * 2 - $xsize
+		    $y = ( ( rand() & 255 ) / 255 ) * $ysize * 2 - $ysize
+		    $fxsize = ( ( rand() & 255 ) / 255 ) * $xsize
+		    $fysize = ( ( rand() & 255 ) / 255 ) * $ysize
+		    fbox( $x, $y, $fxsize, $fysize, $c )
+		    $i + 1
+		}
+	    }
+	}
+	if ( $frame & 31 ) == 0
+	{
+	    frame()
+	}
+
+	if $format == FORMAT_PIXICONTAINER
+	{
+	    $packed_img = zlib_pack( $img, $quality )
+	    $packed_size = get_size( $packed_img ) * get_esize( $packed_img )
+	    remove( $packed_img )
+	}
+	else
+	{
+	    $c = new( 1, 1, INT8 )
+	    $f = fopen_mem( $c )
+	    fsave( $img, $f, $format, $quality )
+	    fclose( $f )
+	    $packed_size = get_size( $c ) * get_esize( $c )
+	    remove( $c )
+	}
+	$packed_size_avg + $packed_size
+
+	$frame + 1
+    }
+    set_screen( $scr )
+    remove( $img )
+    $packed_size_avg / $frame
+    if $format == FORMAT_JPEG
+    {
+	logf( "SAVE JPEG %d x %d Q%d : %d FPS; ~%d bytes\n", $xsize, $ysize, $quality & 127, $frame / $seconds, $packed_size_avg )
+    }
+    if $format == FORMAT_GIF
+    {
+	$flags = ""
+	if $quality == GIF_DITHER { $flags = "DITHER" }
+	if $quality == GIF_GRAYSCALE { $flags = "GRAYSCALE" }
+	logf( "SAVE GIF %d x %d %s: %d FPS; ~%d bytes\n", $xsize, $ysize, $flags, $frame / $seconds, $packed_size_avg )
+    }
+    if $format == FORMAT_PNG
+    {
+	logf( "SAVE PNG %d x %d : %d FPS; ~%d bytes\n", $xsize, $ysize, $frame / $seconds, $packed_size_avg )
+    }
+    if $format == FORMAT_PIXICONTAINER
+    {
+	logf( "SAVE ZLIB PACKED CONTAINER %d x %d x %d: %d FPS; ~%d bytes\n", $xsize, $ysize, $quality, $frame / $seconds, $packed_size_avg )
+    }
+    ret( $frame / $seconds )
+}

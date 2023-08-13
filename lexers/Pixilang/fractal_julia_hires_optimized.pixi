@@ -1,0 +1,184 @@
+//Using block data processing operations
+
+//set_pixel_size( WINDOW_XSIZE / 480 )
+//resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+hxsize = xsize div 2
+hysize = ysize div 2
+
+//benchmark = 1
+
+fractal_init()
+
+if benchmark
+{
+    fractal_draw2( -hxsize, -hysize, xsize, ysize, 0 )
+    $t1 = get_ticks()
+    for( $i = 0; $i < 30; $i + 1 )
+    {
+	fractal_draw2( -hxsize, -hysize, xsize, ysize, 0 )
+    }
+    $t2 = get_ticks()
+    printf( "%f ms\n", ( $t2 - $t1 ) / get_tps() * 1000 )
+    halt
+}
+
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+
+    fractal_recalc()
+    fractal_draw2( -hxsize, -hysize, xsize, ysize, 0 )
+
+    ts = ""
+    sprintf( ts, "FPS:%d", FPS )
+    tx = -hxsize + 8
+    ty = -hysize + 8
+    print( ts, tx, ty, WHITE, TOP | LEFT )
+
+    frame()
+}
+
+fractal_deinit()
+
+fn fractal_init()
+{
+    ftbuf_cnt = 1
+    ftbuf1 = new( ftbuf_cnt, 1, INT ) clean( ftbuf1, -1 ) //temp buffers
+    ftbuf2 = new( ftbuf_cnt, 1, INT ) clean( ftbuf2, -1 )
+    ftbuf3 = new( ftbuf_cnt, 1, INT ) clean( ftbuf3, -1 )
+    ftbuf4 = new( ftbuf_cnt, 1, INT ) clean( ftbuf4, -1 )
+    ftbuf5 = new( ftbuf_cnt, 1, INT ) clean( ftbuf5, -1 )
+    ftbuf6 = new( ftbuf_cnt, 1, INT ) clean( ftbuf6, -1 )
+    start_timer( 0 )
+    fractal_recalc()
+}
+
+fn fractal_deinit()
+{
+    for( $i = 0; $i < ftbuf_cnt; $i + 1 )
+    {
+	remove( ftbuf1[ $i ] )
+	remove( ftbuf2[ $i ] )
+	remove( ftbuf3[ $i ] )
+	remove( ftbuf4[ $i ] )
+	remove( ftbuf5[ $i ] )
+	remove( ftbuf6[ $i ] )
+    }
+    remove( ftbuf1 )
+    remove( ftbuf2 )
+    remove( ftbuf3 )
+    remove( ftbuf4 )
+    remove( ftbuf5 )
+    remove( ftbuf6 )
+}
+
+fn fractal_recalc()
+{
+    if benchmark
+    {
+	$t = 4.45
+    }
+    else
+    {
+	$t = get_timer( 0 ) / 2000
+    }
+    fa = sin( $t ) / 8
+    fb = cos( $t )
+    fscale = 1 / hxsize
+    fscale2 = 1 / hysize
+    if fscale2 > fscale { fscale = fscale2 }
+    fscale * 0.8
+}
+
+fn fractal_draw( $x0, $y0, $xsize, $ysize, $tbuf_n )
+{
+    $y = $y0
+    while $y < $ysize
+    {
+	$x = $x0
+	while $x < $xsize
+	{
+	    $final = 0
+	    $xx = $x * fscale
+	    $yy = $y * fscale
+	    $final = 0
+	    $col = 0 while $col < 256
+	    {
+		$xxx = $xx * $xx
+		$yyy = $yy * $yy
+		if $xxx + $yyy > 4 { break }
+		$yy = $xx * $yy * 2 + fb
+		$xx = $xxx - $yyy + fa
+		$col + 8
+	    }
+	    dot( $x, $y, get_color( $col, $col, $col * 4 ) )
+	    $x + 1
+	}
+
+	$y + 1
+    }
+}
+
+fn fractal_draw2( $x0, $y0, $xsize, $ysize, $tbuf_n )
+{
+    $ystep = 1 //2 is slightly faster
+    if ftbuf1[ $tbuf_n ] < 0
+    {
+	ftbuf1[ $tbuf_n ] = new( $xsize, $ystep, FLOAT32 ) //$xx
+	ftbuf2[ $tbuf_n ] = new( $xsize, $ystep, FLOAT32 ) //$yy
+	ftbuf3[ $tbuf_n ] = new( $xsize, $ystep, FLOAT32 ) //$xxx = $xx * $xx
+	ftbuf4[ $tbuf_n ] = new( $xsize, $ystep, FLOAT32 ) //$yyy = $yy * $yy
+	ftbuf5[ $tbuf_n ] = new( $xsize, $ystep, FLOAT32 )
+	ftbuf6[ $tbuf_n ] = new( $xsize, $ystep, FLOAT32 )
+    }
+    $tbuf_xx = ftbuf1[ $tbuf_n ]
+    $tbuf_yy = ftbuf2[ $tbuf_n ]
+    $tbuf_xxx = ftbuf3[ $tbuf_n ]
+    $tbuf_yyy = ftbuf4[ $tbuf_n ]
+    $tbuf_cmp = ftbuf5[ $tbuf_n ]
+    $tbuf_final = ftbuf6[ $tbuf_n ]
+
+    $y = $y0
+    $ysize2 = $y0 + $ysize
+    while $y < $ysize2
+    {
+	gradient( $tbuf_xx, $x0 * fscale, ( $x0 + $xsize ) * fscale, $x0 * fscale, ( $x0 + $xsize ) * fscale ) //$xx = $x * fscale
+	//clean( $tbuf_yy, $y * fscale ) //$yy = $y * fscale
+	gradient( $tbuf_yy, $y * fscale, $y * fscale, ( $y + $ystep ) * fscale, ( $y + $ystep ) * fscale )
+	clean( $tbuf_final )
+
+	$col_step = 8
+        $col = 0 while $col < 256
+        {
+    	    copy( $tbuf_xxx, $tbuf_xx ) //$xxx = $xx
+    	    op_cc( OP_MUL, $tbuf_xxx, $tbuf_xx ) //$xxx = $xxx * $xx
+
+    	    copy( $tbuf_yyy, $tbuf_yy ) //$yyy = $yy
+    	    op_cc( OP_MUL, $tbuf_yyy, $tbuf_yy ) //$yyy = $yyy * $yy
+
+	    copy( $tbuf_cmp, $tbuf_xxx ) //$cmp = $xxx
+	    op_cc( OP_ADD, $tbuf_cmp, $tbuf_yyy ) //$cmp = $cmp + $yyy
+	    op_cn( OP_LESS, $tbuf_cmp, 4 ) //$cmp = $cmp < 4
+	    op_cc( OP_ADD, $tbuf_final, $tbuf_cmp ) //$final = $final + $cmp
+
+	    op_cc( OP_MUL, $tbuf_yy, $tbuf_xx ) //$yy = $yy * $xx
+	    op_cn( OP_MUL, $tbuf_yy, 2 ) //$yy = $yy * 2
+	    op_cn( OP_ADD, $tbuf_yy, fb ) //$yy = $yy + fb
+
+	    op_cc( OP_SUB, $tbuf_xxx, $tbuf_yyy ) //$xxx = $xxx - $yyy
+	    copy( $tbuf_xx, $tbuf_xxx ) //$xx = $xxx
+	    op_cn( OP_ADD, $tbuf_xx, fa ) //$xx = $xx + fa
+
+	    $col + $col_step
+        }
+
+	op_cn( OP_MUL, $tbuf_final, 1/256 * $col_step )
+        split_rgb( 1, scr, $tbuf_final, $tbuf_final, $tbuf_final, ( $y + hysize ) * xsize + ( $x0 + hxsize ), 0, $xsize * $ystep )
+
+	$y + $ystep
+    }
+}

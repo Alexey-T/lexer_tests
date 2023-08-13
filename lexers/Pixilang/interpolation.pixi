@@ -1,0 +1,25 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/alpha.png" )
+set_flags( img, CFLAG_INTERP )
+
+start_timer( 0 )
+
+while( 1 )
+{
+    t = get_timer( 0 ) / 1000
+    
+    clear( BLACK )
+    effector( EFF_NOISE, 256, #808080 )
+
+    pixi( img, -64, 0, WHITE, sin( t ) + 2, sin( t + 1 ) * 4 + 3 )
+    pixi( img, 64, 0, YELLOW, cos( t ) + 2, cos( t + 1 ) + 3 )
+
+    ts = "" sprintf( ts, "FPS:%u", FPS ) print( ts, -get_xsize( get_screen() ) / 2 + 8, -get_ysize( get_screen() ) / 2 + 8, WHITE, TOP | LEFT )
+
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+
+    frame()
+}
+

@@ -1,0 +1,177 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+//Real window size:
+//   WINDOW_XSIZE x WINDOW_YSIZE
+//   this size can't be changed from the program.
+//Current screen size:
+//   scr = get_screen()
+//   xsize = get_xsize(scr)
+//   ysize = get_ysize(scr)
+//   this size can be changed from the program.
+
+scr = get_screen() //Container with the current screen
+xsize = get_xsize( scr ) //Width of the current screen
+ysize = get_ysize( scr ) //Height of the current screen
+//xsize = xsize * 0.875 |0
+//ysize = ysize * 0.875 |0
+resize( scr, xsize, ysize ) //Resize the current screen (make is smaller)
+hxsize = xsize div 2 //X-coordinate of the screen center; use div instead of / to get the integer value (not floating point)
+hysize = ysize div 2 //Y-coordinate of the screen center;
+
+load_font()
+load_strings()
+
+clear( WHITE )
+ts = ""
+
+line_color = #808080
+line( 0, -hysize, 0, hysize, line_color )
+line( -hxsize, 0, hxsize, 0, line_color )
+//print( str_x, hxsize div 2, -2, #807060, BOTTOM )
+//print( str_y, -2, hysize div 2, #807060, RIGHT )
+sprintf( ts, str_cur_screen, xsize, ysize )
+x = -hxsize + 32
+y = -hysize + 32
+ss = get_text_xysize( ts, LEFT | TOP, xsize )
+w = ss & 0xFFFF ; h = ( ss >> 16 ) & 0xFFFF
+h - 8
+transp( 180 )
+fbox( x - 8, y - 8, w + 16, h + 16, WHITE )
+transp( 16 )
+fbox( x - 8, y - 8, w + 16, h + 16, #0000FF )
+transp( 180 )
+print( ts, x, y, #0000FF, LEFT | TOP, xsize )
+print( str_z, -hxsize + 40, hysize - 40, #800000, LEFT | BOTTOM, xsize )
+t_reset()
+transp( 255 )
+
+//Center:
+x = 0
+y = 0
+sprintf( ts, "0 (%s)", str_center )
+print( ts, x + 2, y + 2, BLACK, LEFT | TOP )
+
+//Right:
+x = hxsize
+y = 0
+draw_arrow( x-1, y, 90, line_color )
+print( "X", x - 2, y - 12, BLACK, RIGHT | TOP )
+sprintf( ts, "%d", x )
+print( ts, x - 2, y + 6, BLACK, RIGHT | TOP )
+
+//Left:
+x = -hxsize
+y = 0
+draw_arrow( x, y, -90, line_color )
+print( "X", x + 2, y - 12, BLACK, LEFT | TOP )
+sprintf( ts, "%d", x )
+print( ts, x + 2, y + 6, BLACK, LEFT | TOP )
+
+//Top:
+x = 0
+y = -hysize
+draw_arrow( x, y, 0, line_color )
+print( "Y", x - 6, y + 2, BLACK, RIGHT | TOP )
+sprintf( ts, "%d", y )
+print( ts, x + 6, y + 2, BLACK, LEFT | TOP )
+
+//Bottom:
+x = 0
+y = hysize
+draw_arrow( x, y-1, 180, line_color )
+print( "Y", x - 6, y - 2, BLACK, RIGHT | BOTTOM )
+sprintf( ts, "%d", y )
+print( ts, x + 6, y - 2, BLACK, LEFT | BOTTOM )
+
+x = -86
+y = 86
+line( 0, 0, x, y, line_color )
+draw_arrow( x, y, -135, line_color )
+xx = 0
+for( $a = 255; $a >= 0; $a - 8 )
+{
+    transp( $a )
+    dot( xx, -xx, line_color )
+    xx + 1
+}
+transp( 255 )
+
+while 1
+{
+    frame( 100 )
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}
+
+fn load_font()
+{
+    $f = load( "images/font8x8_2.png" )
+    set_key_color( $f, BLACK )
+    set_font( 0x20, $f, 16, 6 )
+
+    $f = load( "images/font8x8_2_cyr.png" )
+    set_key_color( $f, BLACK )
+    set_font( 0x410, $f, 16, 4 )
+}
+
+fn load_strings()
+{
+    if strstr( LANG_NAME, "ru_" ) >= 0
+    {
+	//Russian:
+	str_cur_screen = "ТЕКУЩИЙ ЭКРАН %dx%d (пиксельный контейнер):
+его размер может не совпадать
+с размером реального окна.
+
+ПОЛУЧИТЬ:
+  get_screen()
+УСТАНОВИТЬ:
+  set_screen(мой_контейнер)
+УЗНАТЬ РАЗМЕР:
+  ширина=get_xsize(get_screen())
+  высота=get_ysize(get_screen())
+"
+	str_z = "Ось Z (глубина):
+  больше 0 - ближе к зрителю;
+  меньше 0 - дальше от зрителя (за экран)."
+	str_center = "центр"
+	str_x = "X"
+	str_y = "Y"
+    }
+    else
+    {
+	//English:
+	str_cur_screen = "CURRENT SCREEN %dx%d (pixel container):
+its size may differ from the actual window size.
+
+GET:
+  get_screen()
+SET:
+  set_screen(some_container)
+GET SIZE:
+  width=get_xsize(get_screen())
+  height=get_ysize(get_screen())
+"
+	str_z = "Z-axis (depth):
+  positive - closer to the viewer (near);
+  negative - away from the viewer (far)."
+	str_center = "center"
+	str_x = "X"
+	str_y = "Y"
+    }
+}
+
+fn draw_arrow( $x, $y, $r, $color )
+{
+    $len = 5
+    t_translate( $x, $y, 0 )
+    t_rotate( $r, 0, 0, 1 )
+    for( $l = 0; $l < $len; $l + 1 )
+    {
+	for( $a = 0; $a < 1.001; $a + 0.01 )
+	{
+	    line( -$l - 0.5, $l * 2 + $a, $l + 0.5, $l * 2 + $a, $color )
+	}
+    }
+    t_reset()
+}

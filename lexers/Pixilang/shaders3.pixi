@@ -1,0 +1,68 @@
+fn get_timer2( $d )
+{
+    $d * 1024
+    ret( ( get_timer( 0 ) & ( $d - 1 ) ) / $d )
+}
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    $t1 = get_timer2( 16 )
+    $t2 = get_timer2( 4 )
+    
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    t_set_matrix( matrix )
+    t_scale( WINDOW_XSIZE / 150, WINDOW_XSIZE / 150, 1 )
+    t_rotate( $t2 * 360, 0, 1, 0 )
+    
+    transp( 255 )
+    clear()
+
+    gl_use_prog( gl_prog ) //Use user-defined GLSL program (vertex shader + fragment shader)
+    gl_uniform( gl_prog.g_time, $t1 * M_PI * 2 )
+
+    print( "Hello Pixi!\nOpenGL shaders\nGLSL" )
+
+    gl_use_prog() //Back to default GLSL program
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+start_timer( 0 )
+
+//Set perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.008
+
+gl_vshader = 
+"
+uniform mat4 g_wm_transform;
+uniform mat4 g_pixi_transform;
+uniform float g_time;
+IN vec4 position; // vertex position attribute
+IN vec2 tex_coord; // vertex texture coordinate attribute
+OUT vec2 tex_coord_var; // vertex texture coordinate varying
+void main()
+{
+    gl_Position = g_wm_transform * g_pixi_transform * position;
+    tex_coord_var = tex_coord * sin( g_time ); // assign the texture coordinate attribute to its varying
+}
+"
+gl_fshader = GL_SHADER_TEX_ALPHA_SOLID
+gl_prog = gl_new_prog( gl_vshader, gl_fshader )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+while 1 
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}
+
+remove( gl_prog )

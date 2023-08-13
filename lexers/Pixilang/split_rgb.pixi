@@ -1,0 +1,30 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img_src = load( "images/test.jpg" )
+img = clone( img_src )
+
+r = clone( img ) convert_type( r, INT8 )
+g = clone( img ) convert_type( g, INT8 )
+b = clone( img ) convert_type( b, INT8 )
+
+start_timer( 0 )
+
+while( 1 )
+{
+    t = get_timer( 0 ) / 1000
+    
+    copy( img, img_src )
+    
+    // Convert from image to RGB channels:
+    split_rgb( 0, img, r, g, b )
+
+    // Convert from RGB to image:
+    copy( r, r, 0, (sin( t )+1) * 32, get_size( r ) )
+    copy( g, g, 0, (sin( t + 2 )+1) * 32, get_size( g ) )
+    split_rgb( 1, img, r, g, b )
+    
+    pixi( img )
+    frame()
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+}

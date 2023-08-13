@@ -1,0 +1,81 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+include "../../lib/mjpeg.pixi"
+
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+
+$fps = 10
+$movie_len = 10 //seconds
+$audio_sample_type = INT16
+
+$out = fopen( "saved_mjpeg.avi", "wb" )
+if $out <= 0 { logf( "Can't open file\n" ) halt }
+$encoder = mjpeg_encoder_open(
+    $fps,
+    xsize,
+    ysize,
+    50, //Quality
+    1, //Audio channels
+    44100, //Audio frames per second
+    $audio_sample_type, //Audio sample type
+    MJPEG_ENCODER_FLAG_USEINDEX | MJPEG_ENCODER_FLAG_HASSOUND, //Flags
+    $out )
+    
+$audio_buf_size = mjpeg_encoder_get_audio_size( $encoder ) //Number of frames per audio chunk
+$audio_buf = new( $audio_buf_size, 1, $audio_sample_type )
+logf( "Audio buffer size: %d frames\n", $audio_buf_size )
+
+$sine_phase = 0
+$sine_delta = 1024 * 1
+
+$t = 0 while $t < $movie_len * $fps
+{
+    $t2 = $t / ( $fps / 2 )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+
+    //Video:
+    
+    clear()
+    $y = -64
+    $x = -xsize/2
+    while( $x < xsize / 2 )
+    {
+	$tt = $t2 + $x / 16
+	dot( $x, $y + sin( $tt ) * 32, WHITE )
+	$v = sin( $tt * 1.1 ) * cos( $tt / 2 + $x / 4 ) * 32
+	dot( $x, 32 + $y + $v, WHITE )
+	dot( $x, 64 + $y + ( sin( $tt * 3 ) + cos( $tt + $t2 ) ) * 16, WHITE )
+	dot( $x, 100 + $y + ( rand() & 31 ), WHITE )
+	line( $x, 128 + $y + $v, $x, ysize / 2, get_color( 129 - $v * 8, $v * 5, $v * 9 ) )
+	$x + 1
+    }
+    
+    $ts = ""
+    sprintf( $ts, "%f", $t / $fps )
+    print( $ts, -xsize / 2 + 4, -ysize / 2 + 4, WHITE, LEFT | TOP )
+
+    //Audio:
+
+    $sine_delta = ( $t % $fps + 1 ) * 64
+    $p = ( $sine_phase & 32767 ) / 32768 * 2 * M_PI
+    $d = $sine_delta / 32768 * 2 * M_PI
+    generator( OP_SIN, $audio_buf, $p, 32767 / 8, $d, 0 )
+    $sine_phase + $sine_delta * $audio_buf_size
+    
+    //Save:
+    
+    mjpeg_encoder_write_image( $encoder, scr )
+    mjpeg_encoder_write_audio( $encoder, $audio_buf, 0, 0 )
+    mjpeg_encoder_next_frame( $encoder )
+
+    frame()
+
+    $t + 1
+}
+
+mjpeg_encoder_close( $encoder )
+fclose( $out )

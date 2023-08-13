@@ -1,0 +1,32 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr1 = get_screen()
+scr2 = clone( scr1 )
+
+clear( BLACK )
+
+start:
+
+t_scale( 1.02, 1.02, 1 )
+t_rotate( 1, 0, 0, 1 )
+pixi( scr2, ( rand() & 3 ) - 1, ( rand() & 3 ) - 1 )
+t_reset()
+r = rand() & 255
+g = rand() & 255
+b = rand() & 255
+x = ( rand() & 15 ) - 7
+y = ( rand() & 15 ) - 7
+s = 1
+fbox( x, y, s, s, get_color( r, g, b ) )
+
+frame()
+
+t = scr1
+scr1 = scr2
+scr2 = t
+set_screen( scr1 )
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+go start

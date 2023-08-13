@@ -1,0 +1,63 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test.jpg" )
+
+screen = get_screen()
+xsize = get_xsize( screen )
+ysize = get_ysize( screen )
+
+zbuf = new( xsize, ysize, INT32 )
+set_zbuf( zbuf )
+
+//Set perspective matrix:
+matrix = new( 4, 4, FLOAT )
+clean( matrix )
+t_reset()
+//t_scale( 1, -1, 1 ) //Pixilang uses right-hand coordinate system but with inverted Y-axis; use this t_scale() if you need to flip Y back;
+t_get_matrix( matrix )
+matrix[ 2 * 4 + 3 ] = -0.006
+
+start_timer( 0 )
+
+while( 1 )
+{
+	t = get_timer( 0 )
+
+	clear()
+	clear_zbuf()
+
+	bsize = 128
+
+	t_set_matrix( matrix )
+	t_rotate( t / 20, 0.8, 0.9, 1 )
+	fbox( -bsize / 2, -bsize / 2, bsize, bsize, RED )
+
+	t_set_matrix( matrix )
+	t_rotate( t / 18, 0.2, 1.9, 0.3 )
+	fbox( -bsize / 2, -bsize / 2, bsize, bsize, YELLOW )
+
+	t_reset()
+	line( -1000, 0, 1000, 0, WHITE )
+	line( 0, -1000, 0, 1000, WHITE )
+
+	t_translate( 0, 0, -256 )
+	pixi( img, 0, 0 )
+
+	t_reset()
+
+        ts = ""
+        sprintf( ts, "FPS:%u", FPS )
+        print( ts, -get_xsize( get_screen() ) / 2 + 8, -get_ysize( get_screen() ) / 2 + 8, WHITE, TOP | LEFT )
+
+	while( get_event() )
+	{
+	    if EVT[ EVT_TYPE ] == EVT_QUIT
+	    {
+    		halt
+	    }
+	}
+
+	frame()
+}
+

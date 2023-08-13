@@ -1,0 +1,51 @@
+set_pixel_size( WINDOW_XSIZE / 240 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+scr = get_screen()
+
+// FRAME 0:
+img = new( 64, 64, PIXEL )
+set_key_color( img, BLUE )
+set_screen( img )
+clear()
+fbox( 0, 0, 100, 100, BLUE )
+fbox( -2, -2, 4, 4, WHITE )
+set_screen( scr )
+
+create_anim( img )
+
+// FRAME 1:
+clone_frame( img )
+img.frame = 1
+set_screen( img )
+fbox( -4, -4, 8, 8, YELLOW )
+set_screen( scr )
+pack_frame( img )
+
+// FRAME 2:
+clone_frame( img )
+img.frame = 2
+set_screen( img )
+fbox( -8, -8, 16, 16, GREEN )
+set_screen( scr )
+pack_frame( img )
+
+// AUTO-PLAY:
+img.frame = 0
+img.fps = 4
+play( img )
+
+while 1
+{
+    clear( #808080 )
+    effector( EFF_NOISE, 256, WHITE )
+
+    pixi( img, 0, 0 )
+
+    ts = "" sprintf( ts, "FPS:%u", FPS ) print( ts, -get_xsize( get_screen() ) / 2 + 8, -get_ysize( get_screen() ) / 2 + 8, WHITE, TOP | LEFT )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+}
+

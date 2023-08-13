@@ -1,0 +1,31 @@
+set_pixel_size( WINDOW_XSIZE / 240 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+c = new( 4, 3, PIXEL ) //New pixel container
+//The new container may have 32-bit type for some devices, or 16-bit for other.
+clean( c, #808080 )
+
+//Write container pixels:
+// c[ x, y ] = color
+c[ 0, 1 ] = #000000
+c[ 1, 1 ] = #FF0000
+c[ 2, 1 ] = #00FF00
+c[ 3, 1 ] = #0000FF
+
+//Read container pixels:
+printf( "c[ 0, 1 ] = %x\n", c[ 0, 1 ] )
+printf( "c[ 1, 1 ] = %x\n", c[ 1, 1 ] )
+printf( "c[ 2, 1 ] = %x\n", c[ 2, 1 ] )
+printf( "c[ 3, 1 ] = %x\n", c[ 3, 1 ] )
+
+start:
+transp( 256 )
+clear( BLACK )
+pixi( c, 0, 0, WHITE, 8, 8 )
+transp( 64 )
+pixi( c, 0, 0, WHITE, 8 * 2, 8 * 2 )
+transp( 32 )
+pixi( c, 0, 0, WHITE, 8 * 4, 8 * 4 )
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+frame( 100 ) //10 Frames Per Second (delay = 100 ms)
+go start

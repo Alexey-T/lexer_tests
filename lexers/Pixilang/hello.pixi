@@ -1,0 +1,18 @@
+if strstr( OS_NAME, "linux" ) >= 0
+{
+    printf( "\e[0;34m" ) //text color = blue
+    printf( "--==#############==--\n" )
+    printf( "\e[0;31m" ) //text color = red
+    printf( "--==#############==--\n" )
+    printf( "\e[0;33m" ) //text color = yellow
+    printf( "--== \e[01;33m Hello Pixi! \e[0;33m ==--\n" )
+    printf( "\e[0;31m" ) //text color = red
+    printf( "--==#############==--\n" )
+    printf( "\e[0;34m" ) //text color = blue
+    printf( "--==#############==--\n" )
+    printf( "\e[0m" ) //default color
+}
+else
+{
+    printf( "\n--== Hello Pixi! ==--\n\n" )
+}

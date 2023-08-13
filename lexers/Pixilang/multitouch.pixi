@@ -1,0 +1,91 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+scr = get_screen()
+resize( scr, WINDOW_XSIZE, WINDOW_YSIZE )
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+
+include "../../lib/gfx_primitives.pixi"
+
+touches = new( 3, 10, INT ) //x, y, state
+clean( touches )
+touch_colors = new( 10, 1, PIXEL )
+touch_colors[ 0 ] = WHITE
+touch_colors[ 1 ] = RED
+touch_colors[ 2 ] = GREEN
+touch_colors[ 3 ] = BLUE
+touch_colors[ 4 ] = YELLOW
+touch_colors[ 5 ] = #808080
+touch_colors[ 6 ] = #00FFFF
+touch_colors[ 7 ] = #FF00FF
+touch_colors[ 8 ] = #FF8040
+touch_colors[ 9 ] = #4080FF
+
+start:
+
+frame()
+
+while get_event()
+{
+    type = EVT[ EVT_TYPE ]
+    if EVT[ EVT_KEY ] == KEY_MOUSE_LEFT
+    {
+	x = EVT[ EVT_X ]
+	y = EVT[ EVT_Y ]
+	tnum = 0
+	if type == EVT_MOUSEBUTTONDOWN 
+	{
+	    touches[ 0, tnum ] = x
+	    touches[ 1, tnum ] = y
+	    touches[ 2, tnum ] = 1
+	}
+	if type == EVT_MOUSEMOVE 
+	{
+	    touches[ 0, tnum ] = x
+	    touches[ 1, tnum ] = y
+	}
+	if type == EVT_MOUSEBUTTONUP
+	{
+	    touches[ 0, tnum ] = x
+	    touches[ 1, tnum ] = y
+	    touches[ 2, tnum ] = 0
+	}
+	if type == EVT_TOUCHBEGIN
+	{
+	    tnum = EVT[ EVT_SCANCODE ]
+	    touches[ 0, tnum ] = x
+	    touches[ 1, tnum ] = y
+	    touches[ 2, tnum ] = 1
+	}
+	if type == EVT_TOUCHMOVE
+	{
+	    tnum = EVT[ EVT_SCANCODE ]
+	    touches[ 0, tnum ] = x
+	    touches[ 1, tnum ] = y
+	}
+	if type == EVT_TOUCHEND
+	{
+	    tnum = EVT[ EVT_SCANCODE ]
+	    touches[ 0, tnum ] = x
+	    touches[ 1, tnum ] = y
+	    touches[ 2, tnum ] = 0
+	}
+    }
+    if type == EVT_QUIT { halt }
+}
+
+clear()
+transp( 128 )
+i = 0 while i < 10
+{
+    if touches[ 2, i ]
+    {
+	x = touches[ 0, i ]
+	y = touches[ 1, i ]
+	fcircle( x, y, xsize / 10, 32, touch_colors[ i ] )
+    }
+    i + 1
+}
+transp( 255 )
+
+go start
+

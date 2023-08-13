@@ -1,0 +1,30 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+img = load( "images/test3.jpg" )
+
+start_timer( 0 )
+
+while 1 
+{
+    t = get_timer( 0 ) / 256
+
+    transp( 256 )
+    clear();
+    pixi( img, 0, 0 )
+
+    tt = ( sin( t ) + 1 ) * 32
+    effector( EFF_SPREAD_LEFT, tt, WHITE, -160, -120, 320, 60 )
+    effector( EFF_SPREAD_RIGHT, tt, WHITE, -160, -120 + 60, 320, 60 )
+    effector( EFF_SPREAD_UP, tt, WHITE, -160, -120 + 120, 320, 60 )
+    effector( EFF_SPREAD_DOWN, tt, WHITE, -160, -120 + 180, 320, 60 )
+
+    ts = ""
+    sprintf( ts, "FPS:%u", FPS )
+    print( ts, -get_xsize( get_screen() ) / 2 + 8, -get_ysize( get_screen() ) / 2 + 8, WHITE, TOP | LEFT )
+
+    while get_event() { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    
+    frame()
+}
+

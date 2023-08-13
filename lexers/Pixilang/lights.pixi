@@ -1,0 +1,80 @@
+xsize = 320
+ysize = 240
+hxsize = xsize div 2
+hysize = ysize div 2
+resize( get_screen(), xsize, ysize )
+
+include "../../../lib/ffmpeg_video_export.pixi"
+
+video_export = ffmpeg_video_export_open( 
+    "/tmp/lights.avi", 
+    xsize, ysize,
+    30,
+    5000,
+    1 * 60 * 30 )
+
+rand_seed( 32 )
+l = load( "images/light.png" )
+lnum = 256
+lx = new( lnum, 1, INT )
+ly = new( lnum, 1, INT )
+ls = new( lnum, 1, FLOAT )
+lt = new( lnum, 1, INT )
+lo = new( lnum, 1, FLOAT )
+lso = new( lnum, 1, FLOAT )
+i = 0
+while( i < lnum )
+{
+    lx[ i ] = ( ( ( rand() & 1023 ) * xsize ) div 1024 ) - hxsize
+    ly[ i ] = ( ( ( rand() & 1023 ) * ysize ) div 1024 ) - hysize
+    lx[ i ] * 2
+    ly[ i ] * 2
+    ls[ i ] = ( ( rand() & 1023 ) / 2000 ) + 0.1
+    lt[ i ] = ( rand() & 255 ) div 4
+    lo[ i ] = ( rand() & 255 ) / 32
+    lso[ i ] = 1 + ( rand() & 255 ) / 256
+    i + 1
+}
+
+timer = 0
+
+while( 1 )
+{
+    while( get_event() )
+    {
+	if EVT[ EVT_TYPE ] == EVT_QUIT
+        {
+    	    breakall
+	}
+    }
+    
+    transp( 255 )
+    clear()
+
+    i = 0
+    while( i < lnum )
+    {
+	x = lx[ i ]
+	y = ly[ i ]
+	s = ls[ i ]
+	t = lt[ i ]
+	o = lo[ i ]
+	so = lso[ i ]
+	tr = ( ( sin( timer / so + o ) * 128 ) + 128 )
+	tr = tr * ( sin( ( timer / so + o ) / 8 ) * 0.5 + 0.5 )
+	tr = ( tr * t ) div 256
+	transp( tr )
+	pixi( l, x, y, WHITE, s, s )
+	i + 1
+    }
+
+    if ffmpeg_video_export_write( video_export, get_screen() ) 
+    {
+	breakall
+    }
+    frame()
+    
+    timer + 0.1
+}
+
+ffmpeg_video_export_close( video_export )

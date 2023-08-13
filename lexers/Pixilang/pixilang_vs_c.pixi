@@ -1,0 +1,87 @@
+/*
+Results (x86_64 Linux):
+  Pixilang 3.8:
+    3248 ms;
+  gcc -O0 -c pixilang_vs_c.c ; gcc -o pixilang_vs_c pixilang_vs_c.o
+    320 ms (10 times slower)
+  gcc -O3 -c pixilang_vs_c.c ; gcc -o pixilang_vs_c pixilang_vs_c.o
+    21 ms (154 times slower)
+*/
+
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+size = 256 * 256
+d1 = new( size, 1, INT32 )
+d2 = new( size, 1, INT32 )
+i = 0 while i < size
+{
+    d1[ i ] = rand()
+    d2[ i ] = rand()
+    i + 1
+}
+
+t1 = get_ticks()
+i2 = 0 while i2 < 1024
+{
+    i = 0 while i < size
+    {
+	d1[ i ] = d1[ i ] * d2[ i ] ^ i + i2
+	i + 1
+    }
+    i2 + 1
+}
+t2 = get_ticks()
+t = ( t2 - t1 ) * 1000 div get_tps()
+ts = ""
+sprintf( ts, "%d ms\n(higher = slower)\n", t )
+printf( ts )
+
+while( 1 )
+{
+    print( ts )
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+    frame()
+}
+
+/* pixilang_vs_c.c:
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <time.h>
+#include <sys/select.h>
+
+uint32_t get_ticks( void )
+{
+    struct timespec t;
+    clock_gettime( CLOCK_REALTIME, &t );
+    return ( t.tv_nsec / ( 1000000000 / 1000 ) ) + t.tv_sec * 1000;
+}
+
+int main()
+{
+    int size = 256 * 256;
+    int* d1 = (int*)malloc( size * sizeof( int ) );
+    int* d2 = (int*)malloc( size * sizeof( int ) );
+    int i, i2;
+    for( i = 0; i < size; i++ )
+    {
+        d1[ i ] = rand();
+        d2[ i ] = rand();
+    }
+    uint32_t t1 = get_ticks();
+    for( i2 = 0; i2 < 1024; i2++ )
+    {
+        for( i = 0; i < size; i++ )
+        {
+    	    d1[ i ] = d1[ i ] * d2[ i ] ^ i + i2
+        }
+    }
+    uint32_t t2 = get_ticks();
+    uint32_t t = t2 - t1;
+    printf( "%d ms\n(higher = slower)\n", t );
+    return 0;
+}
+
+*/

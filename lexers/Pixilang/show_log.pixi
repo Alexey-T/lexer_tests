@@ -1,0 +1,23 @@
+//Call this function to show the log on the screen:
+fn show_log()
+{
+    scr = get_screen()
+    xsize = get_xsize( scr )
+    ysize = get_ysize( scr )
+    hxsize = xsize div 2
+    hysize = ysize div 2
+
+    $l = get_system_log()
+    clear()
+    print( $l, -hxsize, hysize, WHITE, BOTTOM | LEFT )
+    frame()
+    remove( $l )
+
+    while 1 //Wait for the EVT_QUIT event:
+    {
+	while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+	frame()
+    }
+}
+
+logf( "\n" )

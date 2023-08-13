@@ -1,0 +1,76 @@
+fn get_timer2( $d )
+{
+    $d * 1024
+    ret( ( get_timer( 0 ) & ( $d - 1 ) ) / $d )
+}
+
+//Read GL_CALLBACK.txt for more information
+fn gl_callback( $userdata )
+{
+    t1 = get_timer2( 2 )
+    
+    set_screen( GL_SCREEN ) //Enable OpenGL drawing mode
+    
+    transp( 255 )
+    clear()
+
+    gl_use_prog( gl_prog ) //Use user-defined GLSL program (vertex shader + fragment shader)
+    gl_uniform( gl_prog.g_time, t1 * M_PI * 2 )
+
+    $s1 = WINDOW_XSIZE / get_xsize( img )
+    $s2 = WINDOW_YSIZE / get_ysize( img )
+    if $s2 < $s1 { $s1 = $s2 }
+    pixi( img, 0, 0, WHITE, $s2, $s2 )
+
+    gl_use_prog() //Back to default GLSL program
+    
+    set_screen( 0 ) //Back to the default screen
+}
+
+start_timer( 0 )
+
+gl_vshader = GL_SHADER_TEX_RGB_SOLID //Vertex shader = default shader for solid primitives drawing
+gl_fshader = //Fragment shader
+"PRECISION( HIGHP, float )
+float PHI = 1.61803398874989484820459 * 00000.1; // Golden Ratio   
+float PI  = 3.14159265358979323846264 * 00000.1; // PI
+float SRT = 1.41421356237309504880169 * 10000.0; // Square Root of Two
+float noise( in vec2 coordinate, in float seed ) { return fract( sin( dot( coordinate * seed, vec2( PHI, PI ) ) ) * SRT ); }
+uniform sampler2D g_texture;
+uniform float g_time;
+uniform vec4 g_color;
+IN vec2 tex_coord_var;
+void main()
+{
+    vec2 tc;
+    float v = sin( g_time ) / 8.0;
+    float rnd;
+    gl_FragColor = vec4( 0, 0, 0, 0 );
+    for( int i = 0; i < 8; i++ )
+    {
+	tc = tex_coord_var;
+	rnd = noise( tc, g_time + PHI * float( i ) ) - 0.5;
+	tc.x += rnd * v;
+	rnd = noise( tc, g_time + PHI * float( i ) ) - 0.5;
+	tc.y += rnd * v;
+	gl_FragColor += texture2D( g_texture, tc ) * g_color;
+    }
+    gl_FragColor /= 8.0;
+}
+"
+gl_prog = gl_new_prog( gl_vshader, gl_fshader )
+
+img = load( "../graphics/images/test.png" )
+set_flags( img, GL_MIN_LINEAR | GL_MAG_LINEAR | GL_NICEST )
+
+set_gl_callback( 
+    gl_callback, //OpenGL frame drawing function
+    0 ) //Some user-defined data
+
+while 1 
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { breakall } }
+    frame()
+}
+
+remove( gl_prog )

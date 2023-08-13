@@ -1,0 +1,17 @@
+printf( "Number of command line arguments: %d\n", argc() )
+a = 0
+while( a < argc() )
+{
+
+arg = argv( a )
+if arg != -1 { 
+  fputs( "Argument " )
+  fputc( '0' + a )
+  fputs( ": " )
+  fputs( arg )
+  fputs( "\n" )
+  remove( arg )
+}
+a + 1
+
+}

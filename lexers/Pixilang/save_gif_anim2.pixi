@@ -1,0 +1,43 @@
+scr = get_screen()
+xsize = get_xsize( scr )
+ysize = get_ysize( scr )
+
+anim = clone( scr )
+create_anim( anim )
+anim.fps = 30
+
+f = 0 while( f < 32 )
+{
+    t = ( f / 32 ) * M_PI * 2
+
+    clear()
+
+    y = -64
+    x = -xsize/2
+    while( x < xsize / 2 )
+    {
+	tt = t + x / 16
+	dot( x, y + sin( tt ) * 32, WHITE )
+	v = sin( tt * 1.1 ) * cos( tt / 2 + x / 4 ) * 32
+	dot( x, 32 + y + v, WHITE )
+	dot( x, 64 + y + ( sin( tt * 3 ) + cos( tt + t ) ) * 16, WHITE )
+	dot( x, 100 + y + ( rand() & 31 ), WHITE )
+	line( x, 128 + y + v, x, ysize / 2, get_color( 129 - v * 8, v * 5, v * 9 ) )
+	x + 1
+    } 
+    
+    print( "PIXILANG\nGIF ANIMATION EXPORT" )
+
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    frame()
+    
+    copy( anim, scr )
+    pack_frame( anim )
+    clone_frame( anim )
+    anim.frame + 1
+
+    f + 1
+}
+
+save( anim, "saved_gif_animation2.gif", FORMAT_GIF )

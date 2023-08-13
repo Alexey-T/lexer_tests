@@ -1,0 +1,49 @@
+set_pixel_size( WINDOW_XSIZE / 480 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+start_timer( 0 )
+
+start:
+
+t = get_timer( 0 ) / 500
+
+transp( 32 )
+
+xscale = sin( sin( t ) ) * 2
+yscale = cos( t ) * 2
+pixi( get_screen(), 0, 0, WHITE, xscale, yscale )
+
+transp( 64 )
+
+clear()
+
+transp( 256 )
+
+box( -100, -100, 200, 200 )
+c = get_color( sin( t ) * 128, cos( t ) * 512, sin( t ) * 256 )
+print( "Top\nLeft", -100, -100, c, TOP | LEFT )
+print( "Top\nRight", 100, -100, c, TOP | RIGHT )
+print( "Bottom\nLeft", -100, 100, c, BOTTOM | LEFT )
+print( "Bottom\nRight", 100, 100, c, BOTTOM | RIGHT )
+ts = ""
+a = ( sin( t ) * 128 ) div 1
+b = ( cos( t ) * 128 ) div 1
+r = a + b
+ts2 = ""
+ts2[ 0 ] = 0
+strcat( ts2, "Center\n" )
+num_to_str( ts, a )
+strcat( ts2, ts )
+strcat( ts2, " + " )
+num_to_str( ts, b )
+strcat( ts2, ts )
+strcat( ts2, " = " )
+num_to_str( ts, r )
+strcat( ts2, ts )
+print( ts2, 0, 0, c )
+
+while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+frame()
+
+go start
