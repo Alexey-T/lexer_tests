@@ -1,0 +1,44 @@
+#! /usr/bin/env stap
+#
+# Copyright (C) 2010 Red Hat, Inc.
+# By Dominic Duval, Red Hat Inc.
+# dduval@redhat.com
+#
+# Keeps track of seeks on devices.
+# Shows how to use hist_log.
+#  
+# USAGE: stap deviceseeks.stp
+#
+
+global seeks, oldsec
+
+@define q_cast(var) %( @cast(@var, "request_queue", "kernel") %)
+
+probe ioblock_trace.request {
+  if (size == 0) next
+  %( $# == 1 %? if (devname !~ @1) next %) // reject mismatching device names
+  # Newer kernels remove the $q parameter from tracepoint
+  # For 5.12 and newer get the q from $bio->bi_bdev->bd_disk->queue
+  # For 5.11 get queue from $bio->bi_disk->queue
+  queue =  @defined ($q) ? $q
+    : @choose_defined($bio->bi_bdev->bd_disk->queue, $bio->bi_disk->queue)
+  sectorsize = (@defined(@q_cast(queue)->limits->logical_block_size) ?
+		@q_cast(queue)->limits->logical_block_size :
+		(@defined(@q_cast(queue)->logical_block_size) ?
+		 @q_cast(queue)->logical_block_size :
+		 @q_cast(queue)->hardsect_size ))
+  # printf("%s %s\n", devname, rw ? "w" : "r")
+  sec = sector
+  seeks[devname] <<< sec - oldsec[devname]
+  oldsec[devname] = sector + (size/sectorsize)
+}
+
+probe timer.s(10), end, error {
+  printf("\n")
+  foreach ([devname] in seeks- limit 5) {
+    printf("Device: %s\n", devname)
+    println(@hist_log(seeks[devname]))
+  }
+  delete seeks
+}
+

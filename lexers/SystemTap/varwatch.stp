@@ -1,0 +1,20 @@
+#! /usr/bin/env stap
+
+global var%, varerr
+
+probe $1 {
+  if (@defined($2)) {
+     try {
+         newvar = $2;
+         if (var[tid()] != newvar) {
+            printf("%s[%d] %s %s:\n", execname(), tid(), pp(), @2);
+            println(newvar);
+            var[tid()] = newvar;
+         }
+     } catch { varerr ++ }  # error during $2 resolution or perhaps var[] assignment
+  }
+}
+
+probe error,end {
+  if (varerr) printf("%s %s access errors: %d", @1, @2, varerr);
+}

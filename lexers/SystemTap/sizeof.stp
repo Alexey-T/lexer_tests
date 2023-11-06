@@ -1,0 +1,17 @@
+#! /usr/bin/env stap
+
+# Usage:   sizeof.stp TYPENAME
+#          sizeof.stp TYPENAME kernelmodule
+#          sizeof.stp TYPENAME /usr/bin/executable
+#          sizeof.stp TYPENAME kernel<include/linux/someheader.h>
+#          sizeof.stp TYPENAME </usr/include/someheader.h>
+
+probe oneshot {
+  %( $# > 1 %?
+     printf("type %s in %s byte-size: %d\n", @1, @2,
+	    @cast_module_sizeof(@2, @1))
+  %:
+     printf("type %s byte-size: %d\n", @1,
+	    @cast_module_sizeof("kernel", @1))
+  %)
+}
