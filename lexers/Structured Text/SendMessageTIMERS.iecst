@@ -1,0 +1,57 @@
+/* Example on how to send a message/state every x seconds with Structured Text Programming.
+ This example uses a state machine logic */
+
+IF MOTOR_ACTIVATED = TRUE THEN 
+
+    CASE State OF 
+
+        1:
+            SendMessage := TRUE; 
+            State := 2;
+        
+        2: 
+             tonSendMessage(
+                IN := ActivateTmr,
+                PT := T#3S ); 
+
+              // (transmitting 1 message every 3 seconds.)  
+			  // Choose whether to set or clear ActivateTmr
+            
+            IF tonSendMessage.Q  THEN
+                ActivateTmr := FALSE;
+                State := 1;
+            ELSE
+                 ActivateTmr := TRUE;
+            END_IF;
+    END_CASE
+
+END_IF
+
+
+/*  State 2: have to execute the timer with the ActivateTmr set to false to get the reset to take effect. 
+This is a standard trap for using PLC on delay timers. 
+
+Example of setting incorrectly the timer: (transmitting 3 messages per second instead of only 1 every 3 seconds.)
+
+IF MOTOR_ACTIVATED = TRUE THEN 
+
+    CASE State OF 
+
+        1:
+            SendMessage := TRUE; 
+            State := 2;
+        
+        2:
+                ActivateTmr := TRUE;
+        
+                tonSendMessage(
+                IN := ActivateTmr,
+                PT := T#3S );
+            
+             IF tonSendMessage.Q  THEN
+                 
+                 ActivateTmr := FALSE;
+                State := 1;
+    END_CASE
+
+END_IF */
