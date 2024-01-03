@@ -1,0 +1,19 @@
+block @Const begin
+  kabs = 0.01; // constant of absorption
+  kel = 0.01; // constant of elimination
+  Vmax = 1.2;
+  Km = 1.1;
+end
+
+include non-saturable.heta;
+
+namespace one_comp_saturation begin
+  include non-saturable.heta;
+  vel := Vmax*s1*comp1/(Km + s1);
+end
+
+//one_comp::sbml_non_saturable @SBMLExport;
+//one_comp_saturation::sbml_saturable @SBMLExport;
+json @JSONExport;
+one_comp::slv_non_saturable @SLVExport;
+one_comp_saturation::slv_saturable @SLVExport;

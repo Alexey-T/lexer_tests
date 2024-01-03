@@ -1,0 +1,9 @@
+// dependences: a <- b, a <- c, b <- c
+
+one::k1 @Record {
+  title: hello world
+};
+
+include normal-b.heta;
+
+include ../module-system/normal-c.heta;

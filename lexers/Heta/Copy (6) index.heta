@@ -1,0 +1,71 @@
+/*
+  checking different types of records for switching
+*/
+
+// === implicit boundary, static ===
+
+// aux
+k1 @Const = 1e-3;
+k2 @Const = 1e-2;
+
+// switching record
+rec1 @Record .= 0;
+rec1 [sw1]= 12;
+
+// switching both compartment and species
+comp1 @Compartment .= 1;
+spec_amt1 @Species { compartment: comp1, isAmount: true }.= 0;
+spec_conc1 @Species { compartment: comp1 }.= 1;
+comp1 [sw1]= 10;
+spec_amt1 [sw1]= 8;
+spec_conc1 [sw1]= 6;
+
+// switching only species
+comp2 @Compartment .= 1;
+spec_amt2 @Species { compartment: comp2, isAmount: true }.= 0;
+spec_conc2 @Species { compartment: comp2 }.= 1;
+spec_amt2 [sw1]= 8;
+spec_conc2 [sw1]= 6;
+
+// switching only compartment
+comp3 @Compartment .= 1;
+spec_amt3 @Species { compartment: comp3, isAmount: true }.= 0;
+spec_conc3 @Species { compartment: comp3 }.= 1;
+comp3 [sw1]= 10;
+
+// === dynamic ===
+
+// switching both compartment and species
+comp4 @Compartment .= 1;
+spec_amt4 @Species { compartment: comp4, isAmount: true }.= 0;
+spec_conc4 @Species { compartment: comp4 }.= 1;
+comp4 [sw1]= 10;
+spec_amt4 [sw1]= 8;
+spec_conc4 [sw1]= 6;
+r4 @Reaction { actors: = spec_amt4 + spec_conc4 } := 0.1;
+
+// switching only species
+comp5 @Compartment .= 1;
+spec_amt5 @Species { compartment: comp5, isAmount: true }.= 0;
+spec_conc5 @Species { compartment: comp5 }.= 1;
+spec_amt5 [sw1]= 8;
+spec_conc5 [sw1]= 6;
+r5 @Reaction { actors: = spec_amt5 + spec_conc5 } := 0.1;
+
+// switching only compartment
+comp6 @Compartment .= 1;
+spec_amt6 @Species { compartment: comp6, isAmount: true }.= 0;
+spec_conc6 @Species { compartment: comp6 }.= 1;
+comp6 [sw1]= 10;
+r6 @Reaction { actors: = spec_amt6 + spec_conc6 } := 0.1;
+
+// === switcher ===
+sw1 @TimeSwitcher {
+  start: 10
+};
+
+// exports
+#export {
+  format: Julia,
+  filepath: julia_model
+};

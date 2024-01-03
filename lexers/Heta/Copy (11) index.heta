@@ -1,0 +1,62 @@
+block @Const begin
+    plasma = 2.5;
+    k_prol = 1e-4;
+    AXP_neu =  0.1;
+end
+
+namespace invitro begin
+    AXP_neu #import {fromId: AXP_neu, fromSpace: nameless};
+
+    include neu.heta;
+    tot_vol @Compartment []= 0.1; // <L>
+
+    P1_mean @Record := ( P1_ext * ext + P1_neu * neu_vol ) / tot_vol;
+
+    ext .= 1;
+    S1 .= 150; // initial value of substrate
+    IL15_ext .= 0; // <nM>
+    neu_count .= 1e6;
+    P1_ext .= 0;
+    P1_neu .= 0;
+    ATP_neu .= AXP_neu * K_eq_ADP / (1 + K_eq_ADP);
+    ADP_neu .= AXP_neu / (1 + K_eq_ADP);
+end
+
+namespace invivo begin
+    plasma #import {fromId: plasma, fromSpace: nameless};
+    k_prol #import {fromId: k_prol, fromSpace: nameless};
+
+    include neu.heta;
+
+    blood @Compartment .= 5.2;
+    neu_count @Species {compartment: blood};
+    #update S1 {compartment: blood}; // update from neu
+    #delete tot_vol; // delete
+    ext := plasma; // substitue id is better but is not available for this heta version
+
+    AXP_neu @Record .= 0.1;
+    IL15_ext .= 0; // <nM>
+
+    neu_count .= 1e-9;
+    r_prol_neu @Reaction {
+        actors: -> neu_count
+    };
+    r_prol_neu := k_prol * neu_count;
+
+    S1 .= 10; // initial value of substrate
+    P1_ext .= 0;
+    P1_neu .= 0;
+    ATP_neu .= AXP_neu * K_eq_ADP / (1 + K_eq_ADP);
+    ADP_neu .= AXP_neu / (1 + K_eq_ADP);
+end
+
+#export {spaceFilter: invitro, format: YAML, filepath: yaml_invitro};
+#export {spaceFilter: invivo, format: YAML, filepath: yaml_invivo};
+#export {spaceFilter: invitro, format: DBSolve, filepath: slv_invitro};
+#export {spaceFilter: invivo, format: DBSolve, filepath: slv_invivo};
+#export {spaceFilter: invitro, format: Mrgsolve, filepath: mrg_invitro};
+#export {spaceFilter: invivo, format: Mrgsolve, filepath: mrg_invivo};
+#export {spaceFilter: invitro, format: SBML, filepath: sbml_invitro};
+#export {spaceFilter: invivo, format: SBML, filepath: sbml_invivo};
+#export {format: Dot, filepath: graph};
+

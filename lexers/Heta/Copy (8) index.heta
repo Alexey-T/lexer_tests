@@ -1,0 +1,104 @@
+/*
+  template file for creating platform
+*/
+// add qsp units
+include ./qsp-units.heta;
+
+comp1 @Compartment .= 1 { units: L, output: true };
+s1 @Species { compartment: comp1, units: uM, output: true } .= 10;
+r1 @Reaction {
+  actors: s1 =>
+};
+r1 := k1 * s1 * comp1;
+k1 @Const = 1e-3 {units: 1/minute};
+
+namespace one begin
+  comp2 @Compartment .= 1 { units: L, output: true };
+  s2 @Species { compartment: comp2, units: uM, output: true } .= 10;
+  s3 @Species { compartment: comp2, units: umole, isAmount: true } .= 0;
+  r2 @Reaction {
+    actors: s2 => s3
+  };
+  r2 := k1 * s2 * comp2;
+  k1 @Const = 1e-5 {units: 1/minute};
+end
+
+abstract namespace two begin
+  s2 @Species { compartment: comp2, units: uM } .= 10;
+  s3 @Species { compartment: comp2, units: umole, isAmount: true } .= 0;
+  r2 @Reaction {
+    actors: s2 => s3
+  };
+  r2 := k1 * s2 * comp2;
+  k1 @Const = 1e-5 {units: 1/minute};
+end
+
+// exports 1
+#export {
+  format: JSON,
+  filepath: output,
+  spaceFilter: [ nameless, one, two ],
+  noUnitsExpr: false
+};
+#export {
+  format: YAML,
+  filepath: output,
+  spaceFilter: one,
+  noUnitsExpr: false
+};
+#export {
+  format: XLSX,
+  filepath: table,
+  omitRows: 3,
+  splitByClass: true,
+  spaceFilter: one
+};
+#export {
+  format: HetaCode,
+  filepath: heta-generated,
+  spaceFilter: [one,two]
+};
+
+// exports 2
+#export {
+  format: SBML,
+  filepath: sbml,
+  version: L2V4,
+  spaceFilter: [one,two]
+};
+#export {
+  format: Simbio,
+  filepath: simbio,
+  //spaceFilter: [one,two]
+};
+
+// export 3
+#export {
+  format: Mrgsolve,
+  filepath: mrgsolve,
+  spaceFilter: [nameless, one]
+};
+
+#export {
+  format: SLV,
+  filepath: model_slv,
+  eventsOff: false,
+  spaceFilter: [one]
+};
+#export {
+  format: DBSolve,
+  filepath: model_dbs,
+  eventsOff: false,
+  spaceFilter: [one]
+};
+
+#export {
+  format: Matlab,
+  filepath: matlab,
+  spaceFilter: [nameless, one]
+};
+#export {
+  format: Julia,
+  filepath: julia,
+  spaceFilter: nameless
+};

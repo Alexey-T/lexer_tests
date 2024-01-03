@@ -1,0 +1,102 @@
+include ./qsp-units.heta type heta;
+
+// this block unites elements with the same space
+namespace mm begin
+  '''Note for the Default compartment'''
+  default_comp @Compartment { title: Default compartment, units: L };
+  default_comp .= 1;
+
+  S @Species { title: substrate, compartment: default_comp, units: uM, output: true };
+  P @Species { title: product,  compartment: default_comp, units: uM, output: true };
+  ''' Transformation of __substrate__ to __product__ '''
+  r1 @Reaction {
+    title: Michaelis-Menten reaction,
+    actors: S -> P,
+    units: umole/minute
+  };
+
+  r1 := Vmax*S/(Km+S)*default_comp; // S is used here but assigned below
+  S .= 10; // S should be initialialized after creation
+  P .= 0;
+
+  t {units: second};
+  Vmax @Const = 0.1 {units: uM/minute}; // this is global constant available for any scoped equation
+  Km @Const = 2.5 {units: uM};
+
+  //ss1 @StopSwitcher {trigger: t > 10};
+  //ss2 @StopSwitcher {trigger: S < P};
+end
+
+heta_code #export {
+  format: HetaCode,
+  filepath: heta_code
+};
+mm_sbml_l2v4 #export {
+  spaceFilter: mm,
+  format: SBML,
+  filepath: mm_sbml_l2v4,
+  version: L2V4
+};
+mm_sbml_l3v1 #export {
+  spaceFilter: mm,
+  format: SBML,
+  filepath: mm_sbml_l3v1,
+  version: L3V1
+};
+mm_simbio #export {
+  spaceFilter: mm,
+  format: Simbio,
+  filepath: mm_simbio,
+};
+full_json #export {
+  spaceFilter: mm,
+  format: JSON,
+  filepath: full_json,
+};
+full_yaml #export {
+  spaceFilter: mm,
+  format: YAML,
+  filepath: full_yaml,
+};
+mm_slv #export {
+  spaceFilter: mm,
+  format: SLV,
+  filepath: mm_slv,
+  version: 25
+};
+mm_julia #export {
+  spaceFilter: mm,
+  format: Julia,
+  filepath: mm_julia,
+};
+mm_dbsolve #export {
+  spaceFilter: mm,
+  format: DBSolve,
+  filepath: mm_dbsolve,
+};
+mm_mrg #export {
+  spaceFilter: mm,
+  format: Mrgsolve,
+  filepath: mm_mrg,
+};
+matlab1 #export {
+  spaceFilter: mm,
+  format: Matlab,
+  filepath: matlab1,
+};
+table #export {
+  spaceFilter: mm,
+  format: XLSX,
+  filepath: table,
+  splitByClass: true
+};
+table2 #export {
+  spaceFilter: mm,
+  format: Table,
+  filepath: table2,
+  bookType: biff8
+};
+graph #export {
+  format: Dot,
+  filepath: graph
+};

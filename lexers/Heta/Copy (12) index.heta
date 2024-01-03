@@ -1,0 +1,70 @@
+/*
+  template file for creating platform
+*/
+// add qsp units
+include ./qsp-units.heta;
+
+ud1_xxx #defineUnit {units: mole/L};
+rec1 @Record {units: ud1_xxx} .= 12;
+
+c1 @Compartment {}.= 1;
+s1 @Species {compartment: c1,} .= 10;
+m1 @species { /* comment 0 */
+  compartment: c1, // comment
+} .= 0;
+r1 @Reaction { // comment 0
+  actors: s1=>, // comment 1
+  modifiers: [m1], // comment 2
+  aux: { // one comment
+    one: Hello // one comment
+    two: World!, // two comment
+    array: [ // cm 0
+      one, // cm 1
+      two, // cm 2
+      three // cm3
+    ]
+  }
+} := k1 * s1 * c1; // comment 3
+
+x1 @Record := c1 * piecewise(t > 1, 1, t > 2, 2, 0);
+x2 @Record := t < 2 ? 1 : 2;
+
+k1 @Const = 1e-3;
+
+r2 @Reaction {actors: <=>s1} := 1e-2;
+
+// Switcher
+ts1 @TimeSwitcher {
+  start: 12,
+  period: 24,
+  stop: 100,
+  atStart: true
+};
+s1 [ts1]= s1*2 + 1.1;
+c1 [ts1]= 1.1;
+
+period2 @Const = 22;
+ts2 @TimeSwitcher {
+  start: 0,
+  period: period2,
+  atStart: false
+};
+
+cs1 @CSwitcher {
+  trigger: k1 - 1
+};
+
+ss1 @StopSwitcher { trigger: s1>k1};
+
+// exports
+#export { format: JSON, filepath: output };
+#export { format: HetaCode, filepath: output };
+#export { format: YAML, filepath: output };
+#export { format: XLSX, filepath: table, omitRows: 3, splitByClass: true };
+#export { format: SBML, filepath: sbml, version: L2V4 };
+#export { format: SLV, filepath: model, eventsOff: false };
+#export { format: DBSolve, filepath: dbsolve };
+#export { format: Simbio, filepath: simbio };
+#export { format: Mrgsolve, filepath: mrgsolve };
+#export { format: Matlab, filepath: matlab };
+#export { format: Julia, filepath: julia };

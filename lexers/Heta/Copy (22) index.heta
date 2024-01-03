@@ -1,0 +1,24 @@
+k1 @Const = 0.01;
+
+comp1 @Compartment .= 1;
+x1 @Species { compartment: comp1 , output: true} .= 10;
+x2 @Species { compartment: comp1, output: true } .= 0;
+r1 @Reaction { actors: x1->x2 } := k1*x1*comp1;
+p1 @Record {output: true} .= 10;
+x3 @Species { compartment: comp1, output: true } .= 12.12;
+
+#export { filepath: sbml, format: SBML };
+#export { filepath: slv, format: SLV };
+#export { filepath: dbsolve, format: DBSolve };
+#export { filepath: julia, format: Julia };
+#export { filepath: matlab, format: Matlab };
+#export { filepath: simbio, format: Simbio };
+#export { filepath: mrgsolve, format: Mrgsolve };
+
+// switcher
+cond1 @Record := 6-x1;
+sw1 @CSwitcher {
+  trigger: cond1
+};
+x1 [sw1]= x1 + 10;
+p1 [sw1]= x1 * 2;
