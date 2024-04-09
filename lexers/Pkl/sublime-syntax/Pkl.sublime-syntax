@@ -1,0 +1,577 @@
+%YAML 1.2
+---
+# Syntax: sublimetext.com/docs/syntax.html
+# Documentation: pkl-lang.org/main/current/language-reference/index.html
+
+name: Pkl
+file_extensions: [pkl, pcf]
+scope: source.pkl
+
+variables:
+  digits: '(?:\d[\d_]*\d|\d)'
+  bits: '(?:[0-1][0-1_]*[0-1]|[0-1])'
+  octets: '(?:[0-7][0-7_]*[0-7]|[0-7])'
+  hexa: '(?:[\da-fA-F][\da-fA-F_]*[\da-fA-F]|[\da-fA-F_])'
+
+  base_ident: '(?:[\p{L}_$][\p{L}0-9_$]*\b)' # can't start with a number
+  quoted_ident: '(?:`(?:{{base_ident}}\s*)+`)'
+  ident: '(?:{{base_ident}}|{{quoted_ident}})'
+  # baseType: '(?:{{ident}}\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?\s*\??)' # eg: Listing<Mapping>(something)?
+  baseType: '(?:\*?{{ident}}\s*(?:<[^>]*>)?)' # eg: Listing<Mapping>
+  type: '(?:{{baseType}}\s*(\|\s*{{baseType}})*)' # eg: Listing<Float>|Mapping<Int>?|Duration
+
+  # We let pkl do the heavy lifting
+  # import "pkl:base"
+  # import "pkl:reflect" // Requires pkl v 0.26+ it's broken before.
+  #
+  # function getMethods(module_mirror): Set = module_mirror.classes.flatMap((k,v) -> Map(k, v.methods.keys)).fold(Set(), (S, k, v) -> S.add(v)).flatten()
+  # function getProperties(module_mirror): Set = module_mirror.classes.flatMap((k,v) -> Map(k, v.properties.keys)).fold(Set(), (S, k, v) -> S.add(v)).flatten()
+  #
+  # #"(?:\#(reflect.Module(base).typeAliases.keys.join("|")))"#
+  pklbase_typealiases: '(?:NonNull|Int8|Int16|Int32|UInt8|UInt16|UInt32|UInt|Comparable|Char|Uri|DurationUnit|DataSizeUnit|Mixin)'
+
+  # #"(?:\#(bm.classes.filter((k,v)->v.modifiers.contains("external")).keys.join("|")))"#
+  pklbase_type_external:  '(?:Any|Null|Class|TypeAlias|Module|Number|Int|Float|Boolean|String|Regex|Duration|DataSize|Object|Function|Function0|Function1|Function2|Function3|Function4|Function5|Pair|Collection|IntSeq|VarArgs|List|Set|Map)'
+  # #"(?:\#(bm.classes.filter((k,v)->v.modifiers.contains("open")).keys.join("|")))"#
+  pklbase_type_open:  '(?:FileOutput)'
+  # #"(?:\#(bm.classes.filter((k,v)->v.modifiers.isEmpty).keys.join("|")))"#
+  pklbase_type_other:  '(?:Since|Deprecated|AlsoKnownAs|Unlisted|DocExample|SourceCode|ModuleInfo|ModuleOutput|PcfRenderer|RenderDirective|PcfRenderDirective|JsonRenderer|YamlRenderer|PListRenderer|PropertiesRenderer|Resource|RegexMatch|Dynamic|Listing|Mapping)'
+  # #"(?:\#(bm.classes.filter((k,v)->v.modifiers.contains("abstract")).keys.join("|")))"#
+  pklbase_type_abstract:  '(?:Any|Module|Annotation|ValueRenderer|Number|Object|Typed|Function|Collection)'
+  pklbase_types: '(?:{{pklbase_type_open}}|{{pklbase_type_abstract}}||{{pklbase_type_external}}||{{pklbase_type_other}})'
+
+  # #"(?:\#(reflect.Module(base).moduleClass.methods.keys.join("|)")))"#
+  pklbase_module_methods: '(?:Regex|Undefined|TODO|Null|Pair|IntSeq|List|Set|Map)'
+  # #"(?:\#(getMethods(reflect.Module(base)).join("|")))"#
+  pklbase_classes_methods: '(?:getClass|toString|ifNonNull|relativePathTo|renderDocument|renderValue|round|truncate|toInt|toFloat|toFixed|toDuration|toDataSize|isBetween|toRadixString|shl|shr|ushr|and|or|xor|toChar|implies|getOrNull|substring|substringOrNull|repeat|contains|matches|startsWith|endsWith|indexOf|indexOfOrNull|lastIndexOf|lastIndexOfOrNull|take|takeWhile|takeLast|takeLastWhile|drop|dropWhile|dropLast|dropLastWhile|replaceFirst|replaceLast|replaceAll|replaceFirstMapped|replaceLastMapped|replaceAllMapped|replaceRange|toUpperCase|toLowerCase|reverse|trim|trimStart|trimEnd|padStart|padEnd|split|capitalize|decapitalize|toIntOrNull|toFloatOrNull|toBoolean|toBooleanOrNull|findMatchesIn|matchEntire|toUnit|toBinaryUnit|toDecimalUnit|hasProperty|getProperty|getPropertyOrNull|toDynamic|toMap|length|toList|toTyped|isDistinctBy|distinctBy|fold|foldIndexed|join|toSet|containsKey|applyToList|apply|splitOrNull|partition|find|findOrNull|findLast|findLastOrNull|findIndex|findIndexOrNull|findLastIndex|findLastIndexOrNull|count|every|any|filter|filterNonNull|filterIndexed|filterIsInstance|map|mapIndexed|mapNonNull|flatMap|flatMapIndexed|flatten|add|foldBack|reduce|reduceOrNull|groupBy|minBy|minByOrNull|minWith|minWithOrNull|maxBy|maxByOrNull|maxWith|maxWithOrNull|sort|sortBy|sortWith|zip|transpose|toListing|step|sublist|sublistOrNull|replace|replaceOrNull|replaceRangeOrNull|intersect|difference|containsValue|put|remove|mapKeys|mapValues|toMapping)'
+
+  # #"(?:\#(reflect.Module(base).moduleClass.properties.keys.join("|")))"#
+  pklbase_module_properties: '(?:NaN|Infinity)'
+  # #"(?:\#(getProperties(reflect.Module(base)).join("|")))"#
+  pklbase_classes_properties: '(?:simpleName|output|version|since|message|replaceWith|names|subjects|language|prefix|suffix|minPklVersion|value|renderer|text|files|converters|extension|indent|omitNullProperties|useCustomStringDelimiters|before|after|mode|indentWidth|isStream|restrictCharset|uri|base64|md5|sha1|sha256|sha256Int|ns|us|ms|s|min|h|d|b|kb|mb|gb|tb|pb|kib|mib|gib|tib|pib|sign|abs|ceil|floor|isPositive|isFinite|isInfinite|isNaN|isNonZero|inv|isEven|isOdd|length|lastIndex|isEmpty|isBlank|isRegex|base64Decoded|chars|codePoints|pattern|groupCount|start|end|groups|isoString|unit|isBinaryUnit|isDecimalUnit|default|isDistinct|distinct|keys|first|second|key|firstOrNull|rest|restOrNull|last|lastOrNull|single|singleOrNull|minOrNull|max|maxOrNull|step|values|entries)'
+
+  # import "pkl:math"
+  # #"(?:\#(reflect.Module(math).moduleClass.properties.keys).join("|")))"#
+  pklmath_constant: '(?:minInt|minInt8|minInt16|minInt32|maxInt|maxInt8|maxInt16|maxInt32|maxUInt|maxUInt8|maxUInt16|maxUInt32|minFiniteFloat|maxFiniteFloat|minPositiveFloat|e|pi)'
+
+  # #"(?:\#(reflect.Module(math).moduleClass.methods.keys.join("|")))"#
+  pklmath_functions: '(?:exp|sqrt|cbrt|log|log2|log10|sin|cos|tan|asin|acos|atan|gcd|lcm|isPowerOfTwo|min|max)'
+
+  duration_unit: '(?:ns|us|ms|s|min|h|d)'
+  data_size_unit: '(?:b|kb|kib|mb|mib|gb|gib|tb|tib|pb|pib)'
+
+contexts:
+  main:
+    - include: typealias
+    - include: isPattern
+    - include: asPattern
+    - include: functions
+    - include: lambda-function
+    - include: class-declaration
+    - include: instantiation
+    - include: member-predicate
+    - include: comments
+    - include: strings
+    - include: keyword
+    - include: base-built-ins
+    - include: constants
+    - include: super
+    - include: operator
+    - include: punctuation
+    - include: identifiers
+    - include: brackets
+
+  comments:
+    - match: //.*
+      scope: comment.line.pkl
+    - match: '/\*'
+      scope: punctuation.definition.comment.begin.pkl
+      push:
+        - meta_content_scope: comment.block.pkl
+        - match: '\*/'
+          scope: punctuation.definition.comment.end.pkl
+          pop: true
+    - match: '\*/'
+      scope: invalid.illegal.pkl
+
+  escaped-char:
+    - match: '[\\"tnr]'
+      scope: constant.character.escape.pkl
+      pop: true
+    - match: 'u\{[\da-fA-F]{1,6}\}'
+      scope: constant.character.escape.unicode.pkl
+      pop: true
+
+  string-interpolation:
+    - match: \\#*\(
+      scope: punctuation.section.interpolation.begin.pkl
+      push:
+        - clear_scopes: 1
+        - meta_scope: meta.interpolation.pkl
+        - match: \)
+          scope: punctuation.section.interpolation.end.pkl
+          pop: 2 # pops both the ( and the {escape-char}
+        - include: main
+
+  escape-char-0:
+    - match: '(?=\\\()'
+      push: string-interpolation
+    - match: '\\'
+      scope: constant.character.escape.pkl
+      push: escaped-char
+
+  escape-char-1:
+    - match: '(?=\\#\()'
+      push: string-interpolation
+    - match: '\\#'
+      scope: constant.character.escape.pkl
+      push: escaped-char
+
+  escape-char-2:
+    - match: '(?=\\##\()'
+      scope: punctuation.section.interpolation.begin.pkl
+      push: string-interpolation
+    - match: '\\##'
+      scope: constant.character.escape.pkl
+      push: escaped-char
+
+  strings:
+    - include: string-multi-line
+    - include: string-single-line
+
+  string-single-line:
+    - match: '##"'
+      scope: string.quoted.double.2.pkl punctuation.definition.string.begin.2.pkl
+      push:
+        - meta_content_scope: string.quoted.double.2.pkl
+        - match: '"##'
+          scope: string.quoted.double.2.pkl punctuation.definition.string.end.2.pkl
+          set: after-expression
+        - include: escape-char-2
+    - match: '#"'
+      scope: string.quoted.double.1.pkl punctuation.definition.string.begin.1.pkl
+      push:
+        - meta_content_scope: string.quoted.double.1.pkl
+        - match: '"#'
+          scope: string.quoted.double.1.pkl punctuation.definition.string.end.1.pkl
+          set: after-expression
+        - include: escape-char-1
+    - match: '"'
+      scope: string.quoted.double.0.pkl punctuation.definition.string.begin.0.pkl
+      push:
+        - meta_content_scope: string.quoted.double.0.pkl
+        - match: '"'
+          scope: string.quoted.double.0.pkl punctuation.definition.string.end.0.pkl
+          set: after-expression
+        - include: escape-char-0
+
+  string-multi-line:
+    - match: '(##""")\s*?$' # content must start on a new line
+      scope: string.quoted.triple.2.pkl punctuation.definition.string.begin.2.pkl
+      push:
+        - meta_content_scope: string.quoted.triple.2.pkl
+        - match: '^\s*?("""##)' # closing delim must start on a new line
+          scope: string.quoted.triple.2.pkl punctuation.definition.string.end.2.pkl
+          set: after-expression
+        - include: escape-char-2
+    - match: '(#""")\s*?$' # content must start on a new line
+      scope: string.quoted.triple.1.pkl punctuation.definition.string.begin.1.pkl
+      push:
+        - meta_content_scope: string.quoted.triple.1.pkl
+        - match: '^\s*?("""#)' # closing delim must start on a new line
+          scope: string.quoted.triple.1.pkl punctuation.definition.string.end.1.pkl
+          set: after-expression
+        - include: escape-char-1
+    - match: '(""")\s*?$' # content must start on a new line
+      scope: string.quoted.triple.0.pkl punctuation.definition.string.begin.0.pkl
+      push:
+        - meta_content_scope: string.quoted.triple.0.pkl
+        - match: '^\s*?(""")' # closing delim must start on a new line
+          scope: string.quoted.triple.0.pkl punctuation.definition.string.end.0.pkl
+          set: after-expression
+        - include: escape-char-0
+
+  constants:
+    - match: '\b(?:{{digits}}?\.{{digits}}(?:[eE][+-]?{{digits}})?|{{digits}}[eE][+-]?{{digits}})\b'
+      scope: constant.numeric.float.pkl
+      push: after-expression
+    - match: '\b(?:0[xX]){{hexa}}\b'
+      scope: constant.numeric.integer.hex.pkl
+      push: after-expression
+    - match: '\b(?:0[bB]){{bits}}\b'
+      scope: constant.numeric.integer.binary.pkl
+      push: after-expression
+    - match: '\b(?:0[oO]){{octets}}\b'
+      scope: constant.numeric.integer.octal.pkl
+      push: after-expression
+    - match: '\b{{digits}}\b'
+      scope: constant.numeric.integer.decimal.pkl
+      push: after-expression
+    - match: '\bmath\.({{pklmath_constant}})\b'
+      captures:
+        1: constant.language.pkl
+    - match: \b(true|false)\b
+      scope: constant.language.boolean.pkl
+    - match: \b(null)\b
+      scope: constant.language.null.pkl
+    - match: \b(NaN)\b
+      scope: constant.language.nan.pkl
+    - match: \b(Infinity)\b
+      scope: constant.language.infinity.pkl
+
+  operator:
+    - match: \.\.\.\?|\.\.\.|'\|>|\?\.|\?\?|!!|\->|\|'
+      scope: keyword.operator.pkl
+    - match: '(==|!=|<=|>=|>|<)'
+      scope: keyword.operator.comparison
+    - match: '='
+      scope: keyword.operator.assignment
+    - match: '(\*\*|[+\-*\/%]|~\/)'
+      scope: keyword.operator.arithmetic
+    - match: '[~&|^]|<<|>>>?'
+      scope: keyword.operator.bitwise
+    - match: '\!|\&\&|\|\|'
+      scope: keyword.operator.logical
+
+  base-built-ins:
+    - match: '{{pklbase_module_methods}}'
+      scope: support.function.pkl
+    - match: '\bmath\.({{pklmath_functions}})\b'
+      captures:
+        1: support.function.pkl
+        
+  stdblib-built-ins:
+    - match: '{{pklbase_classes_methods}}'
+      scope: support.function.pkl
+
+  keyword:
+    - match: \b(protected|override|record|delete|match|case|vararg|const)\b
+      scope: keyword.other.pkl
+    - match: '\b(read[?*]?|import[*]?)\s*'
+      scope: keyword.import.pkl
+    - match: \b(if|else|when)\b
+      scope: keyword.control.conditional.pkl
+    - match: \b(for)\b
+      scope: keyword.control.loop.pkl
+    - match: \b(hidden|local|abstract|external|open|in|out|amends|extends|fixed)\b
+      scope: storage.modifier.pkl
+    - match: \b(class|typealias|new)\b
+      scope: storage.type.class.pkl keyword.declaration.class.pkl
+    - match: '\b(amends|as|extends|function|is|let|read|import|throw|trace|module)\b'
+      scope: keyword.pkl
+    - match: \b(this|outer|super)\b
+      scope: support.function.built.pkl
+
+  punctuation:
+    - match: ';'
+      scope: punctuation.terminator.pkl
+
+  super:
+    - match: \@({{base_ident}})
+      scope: keyword.pkl
+
+  identifiers:
+    - match: '`'
+      scope: punctuation.section.quoted.begin.pkl
+      push:
+        - meta_scope: meta.quoted.pkl variable.other.pkl
+        - match: '`'
+          scope: punctuation.section.quoted.end.pkl
+          set: after-expression
+    - match: '\[(?!\[)'
+      scope: punctuation.section.brackets.begin.pkl
+      push:
+        - meta_content_scope: meta.entry.pkl
+        - match: '\]'
+          scope: punctuation.section.brackets.end.pkl
+          pop: true
+        - match: '{{ident}}'
+          scope: meta.key.pkl
+        - include: strings
+        - include: constants
+    - match: '{{ident}}\s*(?==)'
+      scope: meta.property.pkl
+    - match: '{{ident}}\s*(?={)'
+      scope: meta.object.pkl
+    - match: '{{base_ident}}'
+      scope: meta.name.pkl
+      push: after-expression
+
+  class-declaration:
+    - match: '\b(open)\b'
+      scope: storage.modifier.pkl
+    - match: '\b(class)\s+({{ident}})'
+      captures:
+        1: storage.type.class.pkl keyword.declaration.class.pkl
+        2: entity.name.class.pkl
+      push: [class-block, class-extends]
+
+  class-extends:
+    - match: '\s+(extends)\s+'
+      scope: storage.modifier.pkl
+      push:
+        - match: '\b{{pklbase_type_open}}'
+          scope: storage.type.class.pkl
+        - match: '\b(?:{{pklbase_type_external}}|{{pklbase_type_other}}|{{pklbase_type_abstract}}|{{pklbase_typealiases}})'
+          scope: invalid.illegal.pkl
+        - match: '\b{{ident}}\b'
+          scope: entity.name.class.pkl
+        - match: ''
+          pop: true
+    - match: '(?=\S)'
+      pop: true
+
+  class-block:
+    - match: '\{'
+      scope: punctuation.section.class.begin.pkl
+      push:
+        - meta_content_scope: meta.class.pkl
+        - match: '\}'
+          scope: punctuation.section.class.end.pkl
+          set: after-expression
+        - include: main
+    - match: ''
+      pop: true
+
+  instantiation:
+    - match: '\b(new)\s+'
+      scope: keyword.pkl
+      set:
+        - match: 'Mixin' # the only typealias that can be instantiated
+          scope: support.type.pkl
+        - match: '(?:{{pklbase_type_other}}|{{pklbase_type_open}})'
+          scope: support.type.pkl
+        - match: '(?:{{pklbase_type_external}}||{{pklbase_type_abstract}}|{{pklbase_typealiases}})'
+          scope: invalid.illegal.pkl
+        - match: '(?:{{ident}})'
+          scope: entity.name.class.pkl
+        - match: ''
+          pop: true
+
+  type:
+    - match: \b(Pair|Collection|List|Set|Map|Listing|Mapping)\b
+      scope: support.type.pkl
+      push:
+        - match: '(?=\s*<)'
+          push: generic-angles
+        - match: ''
+          pop: true
+    - match: '\b({{pklbase_types}})\b'
+      scope: support.type.pkl
+    - match: '\b({{pklbase_typealiases}})\b'
+      scope: support.type.enum.pkl
+    - match: \b(nothing)\b
+      scope: storage.type.class.pkl
+    - match: '\b{{ident}}\b'
+      scope: entity.name.type.pkl
+    - match: '\s*\|\s*'
+      scope: punctuation.separator.sequence.pkl
+    - match: '(?=")'
+      push:
+        - meta_content_scope: meta.type.string-literal.pkl
+        - include: string-single-line
+        - match: ''
+          pop: true
+    - match: '\*'
+      scope: punctuation.definition.annotation.pkl
+    - match: '(?=\s*\()'
+      push: type-constraint
+    - match: ''
+      pop: true
+
+  type-constraint:
+    - meta_content_scope: meta.type.constraint.pkl
+    - match: '\)'
+      scope: punctuation.section.parens.end.pkl
+      set: after-expression
+    - match: '\('
+      scope: punctuation.section.parens.begin.pkl
+      push: type-constraint-contents
+
+  type-constraint-contents:
+    - match: '(?=\))'
+      pop: true
+    - include: stdblib-built-ins
+    - include: main
+
+  generic-angles:
+    - meta_content_scope: meta.generic.pkl
+    - match: '>'
+      scope: punctuation.definition.generic.end.pkl
+      set: after-expression
+    - match: '<'
+      scope: punctuation.definition.generic.begin.pkl
+      push: generic-angles-contents
+
+  generic-angles-contents:
+    - match: '(?=>)'
+      pop: true
+    - match: '(,)\s*'
+      scope: punctuation.separator.pkl
+    - include: type
+
+  typealias:
+    - match: '(typealias)\s+({{ident}})'
+      captures:
+        0: meta.typealias.pkl
+        1: keyword.declaration.class.pkl
+        2: entity.name.type.pkl
+      push: typealias-type
+
+  typealias-type:
+    - meta_scope: meta.typealias.pkl
+    - match: '=\s*'
+      scope: keyword.operator.assignment.pkl
+      push: type
+    - match: '(?=\S)'
+      pop: true
+
+  functions:
+    - match: '\b(function)\s+({{ident}})\s*'
+      captures:
+        0: meta.function.pkl
+        1: keyword.pkl
+        2: entity.name.function.pkl
+      push: [function-def, function-proto]
+
+  function-proto:
+    - match: \(
+      scope: punctuation.section.parens.begin.pkl
+      push:
+        - meta_content_scope: meta.function.parameters.pkl
+        - match: \)
+          scope: punctuation.section.parens.end.pkl
+          pop: true
+          set: after-expression
+        - include: main
+    - match: '\s*(=)\s*'
+      scope: keyword.operator.assignment.pkl
+      pop: true
+
+  function-def:
+    - meta_content_scope: meta.function.pkl
+    - match: '(?=new)'
+      set: [function-body, instantiation]
+    - match: ''
+      set: function-body
+
+  function-body:
+    - meta_content_scope: meta.function.body.pkl
+    - match: '\{'
+      scope: punctuation.section.brackets.begin.pkl
+      push:
+      - match: '\}'
+        scope: punctuation.section.function.end.pkl
+        pop: true
+        set: after-expression
+      - include: main
+    - include: main
+    - match: '\n'
+      pop: true
+
+  lambda-function:
+    - match: '(?=\((?:\s*[^()]\s*\,?)*\)\s*\->)'
+      push: [lambda-func-def, lambda-func-proto]
+
+  lambda-func-proto:
+    - match: '\('
+      scope: punctuation.section.parens.begin.pkl
+      push:
+        - meta_content_scope: meta.function.anonymous.parameters.pkl
+        - match: \)
+          scope: punctuation.section.parens.end.pkl
+          pop: true
+        - include: main
+    - match: '\s*\->\s*'
+      scope: keyword.operator.assignment.pkl
+      pop: true
+
+  lambda-func-def:
+    - meta_content_scope: meta.function.anonymous.pkl
+    - match: '(?=new)'
+      set: [lambda-func-body, instantiation]
+    - match: ''
+      set: lambda-func-body
+
+  lambda-func-body:
+    - meta_content_scope: meta.function.anonymous.body.pkl
+    - match: '\{'
+      scope: punctuation.section.brackets.begin.pkl
+      push:
+      - match: '\}'
+        scope: punctuation.section.function.end.pkl
+        pop: 2
+        set: after-expression
+      - include: main
+    - include: main
+    - match: '\n'
+      pop: true
+    - match: '(?=\S)'
+      pop: true
+
+  isPattern:
+    - match: '({{ident}})\s+(is)\s+'
+      captures:
+        1: meta.name.pkl
+        2: keyword.pkl
+      push: type
+
+  asPattern:
+    - match: '(as)\s+'
+      scope: keyword.other.pkl
+      push: type
+
+  member-predicate:
+    - match: '\[\['
+      scope: punctuation.section.group.begin.pkl
+      push:
+        - meta_content_scope: meta.member-predicate.pkl
+        - match: '\]\]'
+          scope: punctuation.section.group.end.pkl
+          pop: true
+        - include: main
+
+  after-expression:
+    - match: \s*(\.)\s*(?={{ident}})
+      scope: punctuation.accessor.dot.pkl
+      push:
+        - include: stdblib-built-ins
+        - match: '{{duration_unit}}'
+          scope: support.type.duration.pkl
+          push: after-expression
+        - match: '{{data_size_unit}}'
+          scope: support.type.data_size.pkl
+          push: after-expression
+        - match: ''
+          pop: true
+    - match: \s*(:)\s*
+      scope: punctuation.separator.pkl
+      set: type
+    - match: ''
+      pop: true
+
+  brackets:
+    - match: \(
+      scope: punctuation.section.parens.begin.pkl
+      push:
+        - match: \)
+          scope: punctuation.section.parens.end.pkl
+          set: after-expression
+        - include: main
+    - match: \[
+      scope: punctuation.section.brackets.begin.pkl
+      push:
+        - match: \]
+          scope: punctuation.section.brackets.end.pkl
+          set: after-expression
+        - include: main
+    - match: '\{'
+      scope: punctuation.section.block.begin.pkl
+      push: block
+
+  block:
+    - meta_content_scope: meta.block.pkl
+    - match: '\}'
+      scope: punctuation.section.block.end.pkl
+      set: after-expression
+    - include: main
