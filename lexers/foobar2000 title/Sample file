@@ -1,0 +1,158 @@
+﻿
+----   TITLE FORMATTING LEXER   ----
+
+Lexer for the programs
+
+foobar2000 https://www.foobar2000.org
+and
+Mp3tag https://www.mp3tag.de/en/
+
+
+
+------   Samples - Examples   ------
+
+This is raw text
+// This is a comment (always from the start of the line)
+      //  This won't work as a comment
+Numbers: 1 2 3 4 5 6 7 8 9 0
+Symbols: ~ ` ! @ \ # $ % ^ & * ( ) _ + - = { } [ ] | ¨ ΄ ; : " ' , < > . ? /
+Query words: AFTER AND BEFORE DURING
+Color control: <test> >>test<< >test<
+
+Variables:
+
+		%album%   [%album%]
+		%artist%   [%artist%]
+		%title%   [%title%]
+
+Functions colors:
+
+	Basic:
+
+		$if(%var%,text,$meta(var))
+		$left(%var%,Y)
+		$len(%var%)
+
+	For $meta only:
+
+		$meta(var)
+		$meta_sep(var,Y)
+		$meta_num(var,n)
+
+	For Columns UI globals:
+
+		$set_style(text,$rgb(255,0,0),$rgb(0,255,0),$rgb(0,0,255))
+		$set_global(variable name,variable value)
+		$get_global(variable name)
+
+
+
+EXAMPLES
+
+Tags:
+
+$if([%artist%],%artist%   the '('best')' artist in the world,$meta(album artist))
+
+Columns UI   globals:
+
+$if(%isplaying%,$set_style(text,$rgb(255,0,0),$rgb(0,255,0),$rgb(0,0,255)),)
+
+Columns UI   foobar2000 window title:
+
+$if2([%year%],[%date%])   " [%artist%] - [%title%] "    BPM [%bpm%]   '((' [+%playback_time% ]| %length% |[ -%playback_time_remaining%] '))'   " $if3([%style_info%],[%disc_info%],[%album%]) "     this '('is')' simple text
+
+Query syntax:
+
+(([%genre%] HAS House OR [%genre%] HAS Techno) AND [%rating%] PRESENT) AND NOT ([%skip%] IS 1)
+
+   or the same as
+
+((genre HAS House OR genre HAS Techno) AND rating PRESENT) AND NOT (skip IS 1)
+
+   another one
+
+%added% DURING LAST 2 DAYS
+
+
+-------------------------------------------------------------------
+
+
+The following   $not(ALWAYS WORKING GREAT)   (use with care)
+
+
+You can use folds.
+
+------------This is a title------------
+
+Starting a line with at least 2 -
+and ending the line with at least another 2 -
+and some text between them, you have a folding title.
+
+You can also find them at the code tree as titles.
+
+The fold closes with a line having at least 4 - in a raw and no text.
+
+And this is the end line without text like this:
+---------------------------------------
+
+
+--The minimum is--
+4
+----
+
+
+--This is a fold--
+Some text
+------------------
+
+
+----Works like this also BUT----
+Haven't test it much, but i think it works with open text also, without a following line of multiple ------ in a row.
+
+
+--You need to break the fold with another title though--
+
+so you can add a close line
+--------------------------------------------------------
+
+
+Starting a line with at least 4 - can create a seperator
+
+
+---------------------------------------------------------------------------
+Escaping characters with '' always in pair:
+
+Use ']' if you want to add this characters   []()#$%   in foobar
+Use '' if you want to add a single   '
+
+
+Example:
+
+This isn''t the '('best')' quality
+---------------------------------------------------------------------------
+
+
+--Regex in Mp3tag--
+
+Some basic highlight (not test it much)
+
+$regexp(%TITLE%,(\b\s)?\s*\bf(ea)?t(uring)?\b\.?(?:(\s*|[^\w])),\1feat. ,1)
+
+-------------------
+
+
+For sure it's not perfect.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
