@@ -1,0 +1,21 @@
+123, 0xffffff, 0xFF_FF_FF, 0o7_5_5, 0b01_01_01
+///A UUIDv4 value.
+@uuid = bytes,
+///Possible command actions.
+@action = enum { clear_chat, ban_user },
+
+struct Message {
+  id: @uuid,
+  payload: Command | Notification,
+}
+
+struct Command {
+  do: @action,
+  sender: bytes,
+}
+
+struct Notification {
+  title: bytes,
+  text: bytes,
+  level: int,
+}
