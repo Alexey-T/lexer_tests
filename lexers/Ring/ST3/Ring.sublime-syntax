@@ -1,0 +1,226 @@
+%YAML 1.2
+---
+#
+#   Author: ysdragon (https://github.com/ysdragon)
+#
+
+name: Ring
+scope: source.ring
+
+file_extensions:
+  - ring
+  - rh
+  - rform
+
+variables:
+  keywords: '\b(?i:(enablehashcomments|disablehashcomments|call|class|from|get|give|import|load|new|package|private|changeringkeyword|changeringoperator|loadsyntax|endclass|endpackage|nl|see|put))\b'
+  controls: '\b(?i:(if|but|else|elseif|ok|for|foreach|to|next|catch|step|endfor|while|other|end|do|endwhile|endswitch|endtry|try|break|bye|continue|default|endfunc|endfunction|return|switch|case|on|off|do|again|exit|loop|done|in))\b'
+  operators: '(\+|~|-|\*|/|%|&|(\|)|^|!|<|>|=|\.)'
+  types: '\b(?i:(char|unsigned|signed|int|short|long|float|double|void|byte|boolean|string|list|number|object|public|static|abstract|protected|override|@override))\b'
+
+contexts:
+  main:
+    - include: comments
+    - include: class-definition
+    - include: new-class-instance
+    - include: keywords-and-controls
+    - include: function-definition
+    - include: functions
+    - include: print-operator
+    - include: strings
+    - include: numbers
+    - include: operators
+    - include: variables
+    - include: lists
+    - include: special-values
+
+  comments:
+    - match: "#|//"
+      push: line_comment
+    - match: '/\*'
+      push: block_comment
+
+  line_comment:
+    - meta_scope: comment.line.ring
+    - match: $
+      pop: true
+
+  block_comment:
+    - meta_scope: comment.block.ring
+    - match: '\*/'
+      pop: true
+
+  class-definition:
+    - match: '\b(?i:(class|from))\s+([A-Za-z_]\w*)'
+      captures:
+        1: keyword.control.class.ring
+        2: entity.name.class.ring
+      push:
+        - match: '\b(?i:(func|def))\s+(?i:(init))\b'
+          captures:
+            1: keyword.control.ring
+            2: entity.name.functio  n.constructor.ring
+        - include: function-definition
+        - match: '\b(?i:(self|super))\b'
+          scope: variable.language.self.ring
+        - match: '\bendclass\b'
+          pop: true
+        - include: main
+
+  new-class-instance:
+    - match: '\b(?i:(new))\s+([A-Za-z_]\w*)'
+      captures:
+        1: keyword.operator.new.ring
+        2: support.class.ring
+
+  keywords-and-controls:
+    - match: "{{keywords}}"
+      scope: keyword.control.ring
+    - match: "{{controls}}"
+      scope: keyword.control.conditional.ring
+    - match: "{{types}}"
+      scope: storage.type.ring
+
+  function-definition:
+    - match: '\b(?i:(func|def))\s+([a-zA-Z_]\w*)\s*(\()'
+      captures:
+        1: storage.type.function.ring
+        2: entity.name.function.ring
+        3: punctuation.section.parameters.begin.ring
+      push: function-parameters
+    - match: '\b(?i:(func|def))\s+([a-zA-Z_]\w*)'
+      captures:
+        1: storage.type.function.ring
+        2: entity.name.function.ring
+      push: function-parameters-no-parens
+
+  functions:
+    - match: '\b([a-zA-Z_]\w*)\s*(\()'
+      captures:
+        1: support.function.ring
+        2: punctuation.section.parameters.begin.ring
+      push: function-parameters
+    - match: '\b(?i:(func))\s*(\{)'
+      captures:
+        1: keyword.control.ring
+        2: punctuation.section.function.begin.ring
+      push: anonymous-function
+
+  function-parameters:
+    - meta_scope: meta.function.parameters.ring
+    - match: '\('
+      scope: punctuation.section.parameters.begin.ring
+      push: function-parameters
+    - match: '\)'
+      scope: punctuation.section.parameters.end.ring
+      pop: true
+    - match: '\b[a-zA-Z_]\w*\b'
+      scope: variable.parameter.ring
+    - match: ","
+      scope: punctuation.separator.ring
+    - include: main
+
+  function-parameters-no-parens:
+    - meta_scope: meta.function.parameters.ring
+    - match: '\b[a-zA-Z_]\w*\b'
+      scope: variable.parameter.ring
+    - match: ","
+      scope: punctuation.separator.ring
+    - match: '$|(?=\{)'
+      pop: true
+
+  anonymous-function:
+    - meta_scope: meta.function.anonymous.ring
+    - match: '\}'
+      scope: punctuation.section.function.end.ring
+      pop: true
+    - include: main
+
+  print-operator:
+    - match: '\?(?!\w)'
+      scope: support.function.builtin.ring
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.ring
+      push: double_quoted_string
+    - match: "'"
+      scope: punctuation.definition.string.begin.ring
+      push: single_quoted_string
+    - match: "`"
+      scope: punctuation.definition.string.begin.ring
+      push: constant_string
+
+  double_quoted_string:
+    - meta_scope: string.quoted.double.ring
+    - match: '"'
+      scope: punctuation.definition.string.end.ring
+      pop: true
+    - include: string_interpolation
+
+  single_quoted_string:
+    - meta_scope: string.quoted.single.ring
+    - match: "'"
+      scope: punctuation.definition.string.end.ring
+      pop: true
+    - match: \\'|\\\\
+      scope: constant.character.escape.ring
+    - include: string_interpolation
+
+  constant_string:
+    - meta_scope: string.interpolated.ring
+    - match: "`"
+      scope: punctuation.definition.string.end.ring
+      pop: true
+    - include: string_interpolation
+
+  string_interpolation:
+    - match: '#\{'
+      scope: punctuation.section.interpolation.begin.ring
+      push:
+        - meta_scope: meta.interpolation.ring
+        - match: '\}'
+          scope: punctuation.section.interpolation.end.ring
+          pop: true
+        - match: '\b[A-Za-z_]\w*\b'
+          scope: variable.other.interpolated.ring
+        - include: main
+
+  numbers:
+    - match: (?:(?:[-]?)(?:[0-9e]*)(?:[.]){1}(?:[0-9]+))
+      scope: constant.numeric.float.decimal.ring
+    - match: \b(?:0[xX])(?:[0-9a-fA-F]+)
+      scope: constant.numeric.hex.ring
+    - match: \b(?:[-]?)(?:[0-9]+)
+      scope: constant.numeric.integer.decimal.ring
+
+  operators:
+    - match: "{{operators}}"
+      scope: keyword.operator.ring
+    - match: '\b(and|or|not)\b'
+      scope: keyword.operator.logical.ring
+
+  variables:
+    - match: '\b([a-zA-Z_]\w*)\s*(=)'
+      captures:
+        1: variable.other.ring
+        2: keyword.operator.assignment.ring
+    - match: '\:([a-zA-Z_]\w*)\b'
+      scope: constant.other.symbol.ring
+
+  lists:
+    - match: '\['
+      scope: punctuation.section.list.begin.ring
+      push:
+        - meta_scope: meta.structure.list.ring
+        - match: '\]'
+          scope: punctuation.section.list.end.ring
+          pop: true
+        - match: ","
+          scope: punctuation.separator.list.ring
+
+        - include: main
+
+  special-values:
+    - match: '\b(?i:(true|false|null))\b'
+      scope: constant.language.ring
