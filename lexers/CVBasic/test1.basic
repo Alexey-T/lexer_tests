@@ -1,0 +1,104 @@
+
+title_screen:
+	MODE 0
+	DEFINE CHAR 128,89,dungeon_title_char
+	DEFINE COLOR 128,89,dungeon_title_color
+
+	SCREEN dungeon_title_pattern,0,0,32,8,32
+	
+		'
+	' Build the random map
+	'
+generate_maze:
+	PLAY OFF
+
+	CLS
+	IF level = 1 THEN BORDER 4
+	IF level = 2 THEN BORDER 12
+	IF level = 3 THEN BORDER 6
+	IF level = 4 THEN BORDER 5
+	IF level = 5 THEN BORDER 13
+	
+wait_for_read:	PROCEDURE
+	FOR d = 0 TO 60
+		WAIT
+	NEXT d
+	END
+
+	'
+	' Battle monster
+	' c = Monster (1-3)
+	'
+battle_monster:		PROCEDURE
+	monster_type = c + level
+	monster_hp = monster_type * monster_type * 2
+
+	DO
+		damage = RANDOM(current_weapon * 10 + 1)
+
+		GOSUB clear_status
+		IF damage = 0 THEN
+			PRINT AT 546,"You miss!!!"
+			sound_effect = EFFECT_MISS
+			sound_state = 0
+		ELSE
+			IF damage > monster_hp THEN damage = monster_hp
+			PRINT AT 546,"You hit for ",<>damage
+			PRINT AT 578,"damage"
+			sound_effect = EFFECT_HIT
+			sound_state = 0
+		END IF
+
+		GOSUB wait_for_read
+
+		monster_hp = monster_hp - damage
+		IF monster_hp = 0 THEN EXIT DO
+
+		damage = RANDOM(monster_type + 1)
+		IF current_armor > damage THEN
+			damage = 0
+		ELSE
+			damage = damage - current_armor
+		END IF
+
+		GOSUB clear_status
+
+		IF damage > #hp THEN damage = #hp
+
+		IF damage = 0 THEN
+			PRINT AT 546,"Monster miss"
+			sound_effect = EFFECT_MISS
+			sound_state = 0
+		ELSE
+			PRINT AT 546,"Monster hits you"
+			PRINT AT 578,"for ",<>damage," damage!"
+			sound_effect = EFFECT_HIT
+			sound_state = 0
+		END IF
+		#hp = #hp - damage
+		GOSUB update_stats
+
+		GOSUB wait_for_read
+
+		IF #hp = 0 THEN EXIT DO
+
+	LOOP UNTIL #hp < 1 OR monster_hp < 1
+
+	IF #hp = 0 THEN
+		GOSUB clear_status
+		PRINT AT 546,"You've been killed!"
+	ELSE
+		GOSUB clear_status
+		PRINT AT 546,"Monster killed!!!"
+		c = RANDOM(50)
+		IF c THEN PRINT AT 578,<>c," gold found"
+		#gold = #gold + c
+	END IF
+	GOSUB wait_for_read
+
+	END
+
+next_rand:	PROCEDURE
+	#seed = (#seed * 139 + 5) % 191
+	c = #seed % 4
+	END
