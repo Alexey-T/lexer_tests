@@ -1,0 +1,1338 @@
+%include 'include/BEGIN.PROGRAM'
+
+;	Refer to VERSION.HISTORY for...well...version history
+
+;	BEGIN.SYNONYMS **************************************
+;		include/LPACK1.SYN
+;	END.SYNONYMS ****************************************
+
+;=======================================================================
+;		  PROGRAM DATA
+;=======================================================================
+;	The 'dictionary' is the area of the program where Words, phrases and
+;	sentences may be described.
+;	The %include 'BEGIN.DICTIONARY' directive is used
+;		to inform the system that the dictionary will begin here.
+;	The %include 'END.DICTIONARY' directive is used
+;		to inform the system that the Dictionary is complete
+;
+;	Each entry begins with the keyword  'Insertword', followed by a name
+;	you choose to refer to  the item within the program.  It is followed
+;	by the length of the  word you are  describing and  finally the word
+;	itself.  The name  you choose  is case  sensitive, that  is If  your
+;	chosen name is AccountNo, then accountno will not be recognised.
+;	 
+;	Each entry following the Insertword command is seperated by a comma.
+;	If a word   sentence  is  shorter than the described length then the
+;	remainder of the word/sentence will be filled with space. If it is
+;	longer that the described length then an error will be reported
+
+;	The following Words have been defined by the system
+;		w_CommandLine	:  Contains the arguments entered at the command
+;		line
+;		LF				:  LineFeed character.  Used with Display 
+;
+;	LINUX
+;	Valid characters in word names are letters,_,$,#,@,and ?
+;	The 1st character must be a letter, _, @, ?
+;	You can prefix a languageONE 'keyword' with a $ If you wish to use it.
+;
+;	WINDOWS
+;	The first character of the identifier can be an alphabetic character  A-Z  or 
+;	any of these four characters: @ _ $ ?
+;	The other characters in the identifier can be any of the characters listed above 
+;	or a decimal digit  0-9 . MASM predefined symbols use an @ as the 1st character
+;	so be careful with it's use
+
+%include 'include/BEGIN.DICTIONARY'
+
+	Insertword	result,						08, 'NOT TRUE'
+	Insertword	inputLine,				80, ' '
+	Insertword	char1,						01, ' '
+	Insertword	Fox,							43, 'The quick brown fox jumps over the lazy dog'
+	Insertword	word1,    				26, 'abcdefghijklmnopqrstuvwxyz'
+	Insertword	word2,   					26, '12345678901234567890123456'
+	Insertword	outputLine, 			80, ' '
+	Insertword	numericBuffer,		16, ' '
+	
+	Insertword	outerWord,				23, 'This is the outer word'
+	Insertword	middleWord,				23, 'This is the middle word'
+	Insertword	innerWord,				23, 'This is the inner word'
+
+;	For Synonyms
+	Insertword	w_Synonym,				11,' '
+
+%include 'include/END.DICTIONARY'
+
+;=======================================================================
+;	The  'matrix'  is the  area of  the  program  where numbers  may be
+;	described. 
+;	The %include 'BEGIN.MATRIX' directive is used 
+;		to inform the system that the Matrix will begin here. 
+;	The %include 'END.MATRIX' directive is used
+;		to inform the system that the Matrix is complete
+;
+;	Each entry begins with the keyword 'Insertnumber',followed by a name
+;	you choose to refer to  the item within the program.  It is followed
+;	by the number  and  then  Optionally  by  a   'picture'.  Each entry
+;	following the Insertnumber command is seperated by a comma.
+;
+;	The numbers  'picture'  describes how the system handles/outputs the 
+;	number.It comprises a series of characters that define the formating
+;	of the number in a similar way to the BASIC programming language.
+;	The following symbols are represented:-
+;		'-'  the minus sign  [Last character]
+;			This  defines the  number as  being  signed.  The number can
+;			represent both positive and negative #.
+;		'9' This defines a place value for the number.
+;			If there is a zero in this position it will be Displayed
+;		'#' This also defines a place value for the number
+;			However,a zero in this position will be Displayed as a space
+;		',' This  defines a thousands  indicator and will will Displayed
+;			when appropriate.
+;		'.' This defines the number as a FixedPoint number. 
+;
+;	PLEASE NOTE:-  If an integer does not  have an  associated picture, a 
+;	picture will developed by the system  according to the value  of the 
+;	number.  ie If the no  is  set at  123 [#.EQ No,123] then  the
+;	picture will be '999'.  Equally If a the number is accepted as input
+;	language ONE will assign a picture developed from that input.
+;	ie. accept=1,234.56- Assigned Picture= 9,999.99-
+;
+;	LINUX
+;	Valid characters in word names are letters,_,$,#,@,and ?
+;	The 1st character must be a letter, _, @, ?
+;	You can prefix a languageONE 'keyword' with a $ If you wish to use it.
+;
+;	WINDOWS
+;	The first character of the identifier can be an alphabetic character  A-Z  or 
+;	any of these four characters: @ _ $ ?
+;	The other characters in the identifier can be any of the characters listed above 
+;	or a decimal digit  0-9 . MASM predefined symbols use an @ as the 1st character
+;	so be careful with it's use
+;
+;	INTEGERS
+;		Unsigned: All numbers will be considered as signed
+;		Signed:   From −9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+;						can represented as integer
+;
+;	FIXED POINT #.
+;		Fixed Point numbers are used in languageONE. This is dIfferent 
+;		from many programming languages that use floating point number.
+;		Floating point numbers require a FPU and are not entirely
+;		accurate.  Ever had that experience with a calculator where you
+;		enter something like 2 * 2 and get an answer of 3.9999999999
+;		
+;		Fixed point numbers in languageONE are integers with an 'implied' 
+;		decimal place. This is implemented via the picture clause of the
+;		Insertnumber statement. By defining a picture like '999.99', you
+;		are asking for a number that contains 2 decimal places.
+;		A picture of say '#,###,##9.9999-' defines a number with decimal
+;		places witha sign Displayed  remembering all numbers are treated
+;		as signed .    
+;
+;		Because all numbers are actually 64 bit integers the following
+;		restrictions apply to Fixed Point numbers.
+;		Placing an implied sign into a integer:-
+;		  9,223,372,036,854,775,807  the following range is encapsulated
+;		  .9223372036854775807
+;			This number can define the size of something smaller
+;			than an electron
+;		  922337203685477580.7	
+;			This number can count, in seconds, from the big bank until
+;			now and be only half filled. 
+;		equally the largest number that contains the largest no of 
+;		decimal places is 9223372036.854775807
+;
+;=======================================================================
+%include 'include/BEGIN.MATRIX'
+
+;   Common Counters
+	Insertnumber I,													00,'999999'
+	Insertnumber J,													00,'999999'
+	Insertnumber K,													00,'999999'
+	Insertnumber L,													00,'999999-'
+
+;   Program specIfic
+	Insertnumber Start,											05,'999'
+	Insertnumber NoOfCharacters,						11,'999'
+	Insertnumber counter1,									01,'999'
+
+	Insertnumber tempResult,								00,'99.999'
+	Insertnumber NumberWithPicture ,	 1234567,'###.9999-'
+	Insertnumber NumberWithoutPicture,			0
+
+;	For Synonyms
+	Insertnumber n_CommentPosition, 				0,'999'
+	Insertnumber n_NoOfSpaces,							0,'999'
+
+;	For Version 1.18
+	Insertnumber n_V118_integer1,						0,'9999'
+	Insertnumber n_V118_integer2,						0,'9999'
+	Insertnumber n_V118_integer3,						0,'9999'
+	Insertnumber n_V118_integer4,						0,'9999'
+
+	Insertnumber n_V118_number1,				 1234,'999.9'
+	Insertnumber n_V118_number2,				12.34,'99.99'
+	Insertnumber n_V118_number3,				1.234,'9.999'
+	Insertnumber n_V118_number4,				.1234,'.9999'
+	Insertnumber n_V118_number5,				.1234,'#.999999'
+
+%include 'include/END.MATRIX'
+
+;=======================================================================
+;		PROGRAM INSTRUCTIONS
+;		Mainline  
+;=======================================================================
+%include 'include/BEGIN.INSTRUCTIONS'
+;	Using Sub Routines is the common programming practice of breaking up 
+;	programs  into  smaller  and  more  manageable  tasks.  To  invoke a
+;	SubRoutine you use the 'keyword' Call followed by the procedure name.
+;	SubRoutines may invoke other SubRoutines.
+_l2:
+
+  repeat.for I,1,10
+    If I = I
+    End.If
+  end.repeat
+  
+	Call Routine0A
+
+	Call Routine1A
+	Call Routine1B
+	Call Routine1C
+
+	Call Routine2A
+	Call Routine2B
+	Call Routine2C
+
+	Call Routine3A
+	Call Routine3B
+	Call Routine3C
+
+	Call Routine4A
+	Call Routine4B
+	Call Routine5A
+	Call Routine6A
+	Call Routine10A
+
+%include 'include/END.INSTRUCTIONS'
+%include 'include/END.PROGRAM'
+
+;=======================================================================
+;	Routine to demonstrate its function
+;=======================================================================	
+Begin.SUB Routine0A
+
+;	Using SubRoutines is the common  programming practice of breaking up 
+;	programs into smaller and more manageable tasks. They start with the
+;	'keyword' Begin.SUB followed by a  unique name that you choose. 
+;	They  end  with the  'keyword' End.SUB  followed by  the same unique  
+;	name you have chosen. To invoke a SubRoutine you use the 'keyword'
+;	Call followed by the SubRoutines name.	
+;	SubRoutines may invoke other SubRoutines.
+;
+;	NOTE:- All keyWords in languageONE are case INsensitive.
+;		That is:- Begin.SUB, begin.sub, BeGiN.Sub are all equivalent.
+;
+;	WORKING WITH SIGNED INTEGERS
+;	Some Basics:-
+;		There are certains things that are inherent in writing computer
+;		programs. They are  1  Setting the value of a number [Note:Integer]
+;							2  Adding to a number [Note:Integer]
+;							3  Subtracting from a number [Note:Integer]
+;							4  Multiplying a number [Note:Integer]
+;							5  Dividing a number [Note:Integer]
+;	There are 5 corresponding commands in languageONE to accomplish
+;	these common tasks. They are:-
+;		Integers.eq   MatrixNumber,81  	Set the value of MatrixNumber to 81
+;		Integers.add  MatrixNumber,2 		Add 2 to MatrixNumber
+;		Integers.sub  MatrixNumber,5 		Subtract 5 from MatrixNumber
+;		Integers.mul  MatrixNumber,8 		Multiply a MatrixNumber by 8
+;		Integers.div  MatrixNumber,4 		Divide a MatrixNumber by 2
+;
+;	It must noted that languageONE does no error checking for simple integer manipulation 
+;	When the integer crosses the 9,223,372,036,854,775,807 boundary it will become negative
+;	When the integer crosses the 9,223,372,036,854,775,808- boundary it will become positive
+;	Note also that the simple division will not return a remainder value. Only a quotient is returned
+
+	Display  v_ClearScreen,v_DefaultBG,LF
+	Display v_CyanFG, 'Integer functions' ,LF,v_GreenFG
+	Integers.eq  I,80
+
+	Integers.add I,80
+	Display  '  Add 80 to I;        = ',I,LF
+	Integers.sub I,40
+	Display  '  Subtract 40 from I; = ',I,LF
+	Integers.mul  I,4
+	Display  '  Multiply I by 4;    = ',I,LF
+	Integers.div I,10
+	Display  '  Divide I by 10;     = ',I,LF
+	Call GetUserInput
+
+;	Synonyms introduced in V1.17
+	Display v_CyanFG, 'Synonyms introduced in V1.17' ,LF,v_GreenFG
+	Integers.eq  I,80
+	Display  '  Set I to 80;        = ',I,LF
+	Integers.add I,80
+	Display  '  Add 80 to I;        = ',I,LF
+	Integers.sub I,40
+	Display  '  Subtract 40 from I; = ',I,LF
+	Integers.mul  I,4
+	Display  '  Multiply I by 4;    = ',I,LF
+	Integers.div I,10
+	Display  '  Divide I by 10;     = ',I,LF
+	Call GetUserInput
+
+;	'.CALC' introduced in V1.18
+;	This allow intergers to be 'calculated in a compound statement
+	Display v_CyanFG, ".CALC introduced in V1.18" ,LF,v_GreenFG
+	Integers.eq   I,10
+	Integers.eq   J,20
+	Integers.eq   K,30
+	Integers.Calc L,=,I,+,J,/,K,*,I
+	Display '  Calc Integers L=',L,LF
+
+	Integers.eq I,30
+	Integers.eq J,20
+	Integers.eq K,10
+	Integers.calc L,=,I,+,J,/,K,*,I
+	Display '  Calc Synonyms L=',L,LF
+	Call GetUserInput
+
+;	Additionally in V1.18 the translator is able to infer the .CALC statemnt
+;	and as such may be omitted
+	Display v_CyanFG, ".CALC can be inferred - introduced in V1.18" ,LF,v_GreenFG
+	L = I + J + K / K * J - 1
+	Display '  Calc Infered - L=',L,LF
+	Call GetUserInput
+
+;	Additionally in V1.21 the translator is able to perform integer pecedence
+	Display v_CyanFG, "Integer precedence - introduced in V1.18" ,LF,v_GreenFG 
+	L = [I + J + [K / I] * [J - 1]]
+	Display '  Precedence : [ I + J + K / I * J - 1] ', L,LF
+	Call GetUserInput
+
+End.SUB Routine0A
+
+;=======================================================================
+;	Routine to demonstrate the Display function
+;=======================================================================			
+Begin.SUB Routine1A
+
+;	Display is  a  'keyword'  used to  Display characters  on a terminal
+;	WITHOUT moving to  the next line.  It can be used  with literals and
+;	with dictionary Words/matrix numbers. Display can Display more  than
+;	one word at a time. To do so, code each  word seperated  by a comma.
+;	Display will  also  allow you to  clear the screen,  add colours and
+;	set/reset attributes by  preceeding your  text  with  the  'keyword'
+;	that  describes the required resuclt
+;
+;	V1.14a introduces graphics characters
+;
+;	CLEAR SCREEN
+;		v_ClearScreen
+;
+;	COLOURS
+;	  FOREGROUNDSWF150171
+;		v_defaultFG						v_DarkGreyFG
+;		v_RedFG								v_LightRedFG
+;		v_GreenFG							v_LightGreenFG
+;		v_YellowFG						v_LightLightYellowFG
+;		v_BlueFG							v_LightBlueFG
+;		v_MagentaFG						v_LightMagentaFG
+;		v_CyanFG							v_LightCtyanFG
+;		v_LightGreyFG
+;	  BACKGROUNDS
+;		v_defaultBG						v_DarkGreyBG
+;		v_RedBG								v_LightRedBG
+;		v_GreenBG							v_LightGreenBG
+;		v_YellowBG						v_LightYellowBG
+;		v_BlueBG							v_LightBlueBG
+;		v_MagentaBG						v_LightMagentaBG
+;		v_CyanBG							v_LightCtyanBG
+;		v_LightGreyBG
+;
+;	  ATTRIBUTES
+;		v_Bold								v_ResetBold
+;		v_Dim									v_ResetDim
+;		v_Underlined					v_ResetUnderlined
+;		v_Blink								v_ResetBlink
+;		v_Reverse							v_ResetReverse
+;		v_Hidden							v_ResetHidden
+;		v_ResetAll
+;
+;	  GRAPHICS CHARACTERS
+;		v_BottomRight
+;		v_TopRight
+;		v_TopLeft
+;		v_BottomLeft
+;		v_Cross
+;		v_Line
+;		v_LeftMiddle
+;		v_RightMiddle
+;		v_BottomMiddle
+;		v_TopMiddle	
+;		v_Bar
+;
+;	If you prefer a more  succinct  way of writing  these  you may a_LTer
+;		the OPEN.DICTIONARY file and  rename colour  combinations or create
+;		your own escape values by inserting them into the dictionary.
+;
+;	NOTE:-	By adding the bui_LT in   L ine F eed word you are effectively
+;					replicating the Display.Line keyword  refer next Routine 
+;					The following are functionally equivalent
+;					Display 'Hello World',LF
+;					Display.Line 'Hello World'
+
+	Display  v_ClearScreen,v_DefaultBG, LF
+	Display  v_RedFG,v_Underlined,'01A] DEMONSTRATING the Display routine',v_ResetUnderlined,LF
+	
+	Display  v_GreenFG
+	Display  'The quick ','The quick brown ','The quick brown fox ', LF
+	Display  word1,' ',word2,{w_Spaces,1,1},'Literal after 2 Dictionary Words'
+	Display  LF 
+
+	Call GetUserInput
+
+;	Note in this Routine the use of a space, as a literal ' ' or as a 
+;	command spaces 01 . The spaces   command can be used with a 
+;	matrix number  a variable  or a literal as is coded here.
+;	The value denotes the number of spaces to be used.
+
+End.SUB Routine1A
+
+;=======================================================================
+;	Routine to demonstrate the Display.Line function
+;=======================================================================	
+Begin.SUB Routine1B
+
+;	Display.Line is a 'keyword' used to Display characters on a	terminal
+;	AND THEN  MOVE TO THE NEXT LINE.  It can be used in  the same way as 
+;	the Display statement. Note though If you Display.Line more  than one
+;	item  seperated by comma's  then each  item will Display on seperate
+;	lines
+
+	Display  v_RedFG,v_Underlined,'1B] DEMONSTRATING the Display.Line routines',v_ResetUnderlined,LF
+
+	Display 	  v_GreenFG 
+	Display.Line  'The quick brown fox jumps over the lazy dog'
+	Display.Line  'The','The quick','The quick brown','The quick brown fox'
+	Display.Line  word1, word2, 'Literal after 2 Dictionary Words'
+
+	Call GetUserInput
+
+End.SUB Routine1B
+
+;=======================================================================
+;	Routine to demonstrate the common functions
+;=======================================================================
+Begin.SUB Routine1C
+
+;	Command line parameters  are made  available to the  program and are
+;	stored  in the  system  word  'w_CommandLine'  while  the AcceptLine
+;	routine  will  accept input  from the  terminal and  store it in the
+;	provided word
+
+	Display  v_RedFG,v_Underlined,'1C] DEMONSTRATING the Commandline/AcceptLine routines',v_ResetUnderlined,LF
+
+	Display	v_GreenFG 
+	Display.Line	'If you start the program with some text as a parameter'
+	Display.Line	'it will be echoed back to you'
+	Display	v_GreenFG,w_CommandLine,v_LightYellowFG,LF
+
+	Display	v_GreenFG
+	Display.Line	'AcceptLine is the "keyword" used to support user input'
+	Display				'What is your full name: ',v_MagentaFG
+	AcceptLine	inputLine
+	Display	v_GreenFG,'Hello ',inputLine,LF
+	Call GetUserInput
+
+	Display	v_GreenFG
+	Display			'Input into a number with a picture: ',v_MagentaFG
+	AcceptLine	NumberWithPicture
+	Display	v_GreenFG,'Your no is ',NumberWithPicture,LF
+
+	Display 	 v_GreenFG
+	Display 	 'Input into a number without a picture: ',v_MagentaFG
+	AcceptLine   NumberWithoutPicture
+	Display  v_GreenFG,'Your no is ',NumberWithoutPicture,LF
+
+	Call GetUserInput
+
+End.SUB Routine1C
+
+;=======================================================================
+;		Routine to demonstrate the way Words can be dissected
+;=======================================================================	
+Begin.SUB Routine2A
+
+;	Literals and Dictionary Words can be  'dissected' so that only parts
+;	of Words are selected. This is done by giving a Start Position and a
+;	count of the  No  Of Characters required. When using this method the
+;	word  and its associated requirements must  be surrounded by opening
+;	and closing braces. That is:- '{' and '}'. 
+;	For example:-
+;		Display	'The quick brown fox' 
+;			is saying Display this from beginning to end
+;		Display {'The quick brown fox',5}
+;			is saying Display this from character 5 to the end
+;		Display {'The quick brown fox',5,11} 
+;			is saying Display 11 characters starting from character 5
+;		Display {Fox,5,11} 
+;		This applies to Dictionary Words as well as literals
+;		Display {'The quick brown fox',Start,NoOfCharacters} 
+
+	Display  v_RedFG,v_Underlined,'02A] DEMONSTRATING the way Words can be dissected',v_ResetUnderlined,LF
+
+	Display	v_GreenFG
+	Display.Line	'The quick brown fox jumps over the lazy dog'
+	Display.Line	{'The quick brown fox jumps over the lazy dog',5}
+	Display.Line	{'The quick brown fox jumps over the lazy dog',5,11}
+
+	Display.Line	Fox
+	Display.Line	{Fox,5}
+	Display.Line	{Fox,5,11}
+	Display.Line	{'The quick brown fox jumps over the lazy dog',Start}
+	Display.Line	{'The quick brown fox jumps over the lazy dog',Start,NoOfCharacters}
+
+	Call GetUserInput
+
+End.SUB Routine2A
+
+;=======================================================================
+;		Routine to demonstrate the way numbers can be Displayed
+;=======================================================================	
+Begin.SUB Routine2B
+
+;	numbers can  also be Displayed.  They may  be a literal  or a number
+;	from  the  Matrix.   A  literal  will  have  a  defau_LT  picture  of
+;	'#,###,###,###,###,###,###-'  A picture can be coded  following  the
+;	literal  all in braces  to inform Display as  to how  to a_LTernately
+;	format the number. When Displaying a number from the matrix a picture
+;	may also be supplied. This will override the defau_LT picture. 
+
+
+	Display	v_RedFG,v_Underlined,'2B]  Display_Line  DEMONSTRATING number Displays',v_ResetUnderlined,LF
+
+	Display	v_GreenFG,'Integer literal alone ',-1234567, LF
+	Display	'Integer literal with picture override ',{-1234567,'999-'},LF
+	Display	'Matrix integer WITHOUT picture override ',NumberWithPicture,LF
+	Display	'Matrix integer WITH picture override [999.999] ',{NumberWithPicture,'999.999'},LF
+
+	Display.Line
+	Display	'Rational literal must be followed by a picture ',{1234567,'99.9999'},LF
+
+;	Introduced in V1.18
+;	where as a fixed point number used as a literal following the begin.instructions directive
+;	needed a picture, The translator will now provide that picture such that you may code only
+;	the fixed point number.
+	Display.Line
+	Display.Line	'V1.18 - Translator provides the picture when coding a fixed point number'
+	Display	'Fixed Point number, tanslator supplying the picture  ',-123.4567,LF
+
+	Call GetUserInput
+
+End.SUB Routine2B
+
+;=======================================================================
+;		DEMONSTRATING a simple program with terminal usage
+;=======================================================================
+Begin.SUB Routine2C
+
+;	Text may be  Displayed or  accepted from  dIfferent positions on the
+;	screen.  This can be  done by  setting the  row and  column position
+;	with the Cursor macro
+;	First prepate the screen by Displaying the v_ClearScreen field
+
+	Display	v_ClearScreen
+
+	Cursor	02,02
+	Display	v_RedFG,v_Underlined,'2C] Routine TO DEMONSTRATE Cursor CONTROL',v_ResetUnderlined
+
+	Cursor	04,05
+	Display	v_DefaultFG,'Prompt No 1'
+	Cursor	05,05
+	Display	'Prompt No 2'
+	Cursor	06,05
+	Display	'Prompt No 3'
+
+	Cursor	04,18
+	Display	v_CyanFG
+	AcceptLine	inputLine
+
+	Cursor	05,18
+	Display	v_CyanFG
+	AcceptLine	inputLine
+
+	Cursor	06,18
+	Display	v_CyanFG
+	AcceptLine	inputLine
+
+End.SUB Routine2C
+
+;=======================================================================
+;		Routine to demonstrate the way the Words package works
+;=======================================================================	
+Begin.SUB Routine3A
+
+;	The  Words  package  contains  the  routines  that are  available to 
+;	manipulate  Words from  the dictionary   and literals .  It includes
+;	support for output from the matrix or numeric literals.
+;	The format for Words is the keyword 'Words.' followed by the required
+;	operation, the source and the destination  optional 
+;	ie. Words.copy 'This is a literal', outputLine
+;	The following operations are supported.
+;		Words.copy 
+;		Words.pad
+;		Words.uppercase
+;		Words.lowercase
+;		Words.insert
+;		Words.find
+;		Words.replace
+;		Words.environment
+;	In some cases the destination is optional. If not supplied the source
+;	is used as the destination. ie 'Words.uppercase, word1'
+
+	Display	v_RedFG,v_Underlined,'3A] Routine TO DEMONSTRATE THE Words PACKAGE',v_ResetUnderlined,LF
+	Integers.eq	I,5
+
+	Display			{w_Spaces,1,I},v_RedFG,'SIMPLE COPY - WORD TO WORD',LF
+	Words.copy	Fox,outputLine
+	Display			{w_Spaces,1,I},v_LightYellowFG,outputLine,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'SIMPLE COPY - LITERAL TO WORD',LF
+	Words.copy	'THIS IS A LITERAL', outputLine
+	Display			{w_Spaces,1,I},v_LightYellowFG,outputLine,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'SIMPLE PAD - LITERAL TO WORD',LF
+	Words.pad		'literal with padding', outputLine
+	Display			{w_Spaces,1,I},v_LightYellowFG,outputLine, LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'CONVERT TO UPPERCASE',LF
+	Words.uppercase	outputLine
+	Display			{w_Spaces,1,I},v_LightYellowFG,outputLine,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'AND BACK TO LOWERCASE',LF
+	Words.lowercase	'CONVERT BACK TO LOWERCASE', outputLine
+	Display			{w_Spaces,1,I},v_LightYellowFG,outputLine,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE COPY OPERATION - {WORD1,10}, WORD2',LF
+	Call				Routine3A_A
+	Words.copy	{word1,10}, word2
+	Display			{w_Spaces,1,I},v_LightYellowFG,word2,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE COPY OPERATION - {WORD1,3,5}, WORD2',LF
+	Words.copy	'12345678901234567890123456',word2
+	Call				Routine3A_A
+	Words.copy	{word1,3,5},word2
+	Display			{w_Spaces,1,I},v_LightYellowFG,word2, LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE COPY OPERATION - {WORD1,3,5}, {WORD2,11}',LF
+	Words.copy	'12345678901234567890123456', word2
+	Call				Routine3A_A
+	Words.copy	{word1,3,5}, {word2,11}
+	Display			{w_Spaces,1,I},v_LightYellowFG,word2,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE INSERT OPERATION - {WORD1,1,12}, {WORD2,11}',LF
+	Words.copy	'12345678901234567890123456',word2
+	Call				Routine3A_A
+	Words.insert	{word1,1,12},{word2,11}
+	Display			{w_Spaces,1,I},v_LightYellowFG,word2,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE FIND OPERATION - rst in word1',LF
+	Call				Routine3A_A
+	Words.find	{'rst',counter1},word1
+	Display			{w_Spaces,1,5}, '"rst" starts @ character ', counter1,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE FIND OPERATION - rst in word1 - starting at 19',LF
+	Call				Routine3A_A
+	Words.find	{'rst',counter1},{word1,19}
+	Display			{w_Spaces,1,I}, '"rst" not found ',counter1,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE REPLACE OPERATION - replace "12" with "~~" ',LF
+	Words.pad 	'123412341234', word2
+	Call				Routine3A_A
+	Display			{w_Spaces,1,I}, word2,LF
+	Words.replace	{'12','~~'},word2
+	Display			{w_Spaces,1,I},word2,LF
+	Call				GetUserInput
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE REPLACE OPERATION - replace {"12","~~",2,1}'
+	Display			'= DUMB but still do-able',LF
+	Words.copy	'12345678901234567890123456',word2
+	Call				Routine3A_A
+	Display			{w_Spaces,1,I},word2,LF
+	Words.replace	{'12','~~',2,1},word2
+	Display			{w_Spaces,1,I},word2,LF
+	Call				GetUserInput
+
+;	NOTE:- An aLTernate syntax exists whereby you may combine operations
+;	ie. Words uppercase+pad, 'This is a literal', outputLine
+;	By coding Words and combining operations with = '+' sign, followed 
+;	by a comma the Words package will perform both functions. 
+;	Code the operation preceeded by the '$' sign. ie.
+;		Words $copy, Src, Dest 
+;		Words $pad, Src, Dest
+;		Words $uppercase, Src
+;		Words $lowercase, Dest
+;		Words $insert, '123', {Dest,5}
+;		Words $find, '123', Src
+;		Words $replace, {'123','456'}, Dest
+
+	Display			{w_Spaces,1,I},v_RedFG,'DEMONSTRATE COMBINING OPERATIONS - Uppercase+Pad',LF
+	Words.copy	'123456789012345678901234567890',word2
+	Display			v_GreenFG,{w_Spaces,1,I},word2,LF
+	Words				$uppercase+$pad,'uppercase and pad',word2
+	Display			v_LightYellowFG,{w_Spaces,1,I}, word2,LF
+	Call				GetUserInput
+
+;	Additionally in V1.18 the translator is able to add the Words keyword and 
+;	to rearrange the statement to suit a more traditional style of programming.
+;	ie:-
+	Display	{w_Spaces,1,I},v_RedFG,'DEMONSTRATE INFERED MACROS',LF
+	Call Routine3A_A
+
+	word2 = word1
+
+	Display	v_GreenFG,{w_Spaces,1,I},'word2 = word1' ,LF
+	Display	v_LightYellowFG,{w_Spaces,1,I},word1,LF
+
+	{word2,1} = {word1,26,1}
+
+	Display  v_GreenFG,{w_Spaces,1,I},'{word2,1} = {word1,26,1}' ,LF
+	Display v_LightYellowFG,{w_Spaces,1,I},word2,LF
+	Call GetUserInput
+
+End.SUB Routine3A
+
+;---Called from Routine3A
+Begin.SUB Routine3A_A
+
+;	Demonstrates how Calling a Routine from a Routine can occur
+
+;	word1 'abcdefghijklmnopqrstuvwxyz'
+;	word2 '12345678901234567890123456'
+
+	Display	v_GreenFG
+	Display	{w_Spaces,1,5},word1,' Word1 ',LF
+	Display	{w_Spaces,1,5},word2,' Word2 ',LF
+	Display	v_LightYellowFG
+
+End.SUB Routine3A_A
+
+;=======================================================================
+;		DEMONSTRATING the way the Words package works  # 
+;=======================================================================	
+Begin.SUB Routine3B
+
+;	The  Words packages works with numbers by first converting them into
+;	alphanumeric  fields   alphabetic fields that  contain numbers   and
+;	then Displaying them.  A defau_LT picture is used for  literals while
+;	Matrix numbers use their own picture. Pictures may be over-ridden on
+;	both literals and matrix numbers. 
+
+	Display	v_RedFG,v_Underlined,'3B] Routine TO DEMONSTRATE THE Words PACKAGE  # ',v_ResetUnderlined,LF
+	Display	{w_Spaces,1,5},'DEMONSTRATE Numeric copy ',LF
+
+;	Defau_LT picture for a integer literal is 26 characters and so this move would fail
+;	as he numericBuffer is only 16 characters long.
+;		Words.pad 12345, numericBuffer
+;		Display {w_Spaces,1,5},v_LightYellowFG,numericBuffer,LF
+
+;	word2 is large enough for the move
+	Words.pad	12345, word2
+	Display		{w_Spaces,1,5},v_LightYellowFG,word2,LF
+
+;	OR use a picture over-ride
+	Words.pad	{12345,'####9'},numericBuffer
+	Display		{w_Spaces,1,5},v_LightYellowFG,numericBuffer,LF
+	Call	GetUserInput
+
+	Display		{w_Spaces,1,5},v_RedFG,'DEMONSTRATE Matrix copy',LF
+	Words.pad	NumberWithPicture,numericBuffer
+	Display		{w_Spaces,1,5},v_LightYellowFG,numericBuffer,LF
+	Call	GetUserInput
+
+	Display		{w_Spaces,1,5},v_RedFG,'DEMONSTRATE Matrix copy with picture',LF
+	Words.copy	word1,outputLine 
+	Words.copy	{NumberWithPicture,'##9.99'},{outputLine,30}
+	Display		{w_Spaces,1,5},v_LightYellowFG,{outputLine,1,40},LF
+	Call	GetUserInput
+
+;	Introduced in V1.18
+;	where as a fixed point number used as a literal following the begin.instructions directive
+;	needed a picture, The translator will now provide that picture such that you may code only
+;	the fixed point number. 
+
+	Display			{w_Spaces,1,5},v_RedFG,'DEMONSTRATE Literal copy without picture',LF
+	Words.copy	word1,outputLine
+	Words.copy	123.456,{outputLine,30}
+	Display			{w_Spaces,1,5},v_LightYellowFG,{outputLine,1,40},LF
+	Call	GetUserInput
+
+End.SUB Routine3B
+
+;=======================================================================
+;		DEMONSTRATING the way the Words package works  Environement 
+;=======================================================================	
+Begin.SUB Routine3C
+
+;	The Words package is also used to handle environment variables.
+;	Pass the  Environment Variable  name to  the package  and the  value  
+;	associated  with  that name  will be  returned  in  the  destination
+;	field.
+
+	Display	v_ClearScreen
+	Cursor 	02,02
+	Display	v_RedFG,v_Underlined,'3C] Routine TO DEMONSTRATE the Words package - Environment variables',v_ResetUnderlined
+	Cursor 	03,02
+	Display	'Type printenv on another terminal to list environment variables'
+
+	Cursor	04,02
+	Display	v_CyanFG,'Please enter an Environment Variable name: '
+	Display	v_LightYellowFG
+	Cursor	04,45
+	AcceptLine	inputLine
+	Words.uppercase	inputLine
+
+	Words.pad	{w_Spaces,1,1},outputLine
+	Words.environment	inputLine,outputLine
+
+	Cursor	06,02
+	Display	v_CyanFG,'The value associated with this name is=',v_GreenFG,outputLine,LF
+	Call GetUserInput
+
+End.SUB Routine3C
+
+;=======================================================================
+;		DEMONSTRATING the way the If/Else/END constructs
+;=======================================================================	
+Begin.SUB Routine4A
+
+;	'languageONE'  contains the  functionality to  implement  decisions.
+;	It is performed via the If/Else/ENDIf construct
+;   The  'If'  keyword is followed by  3  parameters,  then a  series of 
+;	statements to be executed, and terminates with an 'ENDIf'  keyword.
+;	The  'Else'  keyword may be used to  denote an  a_LTernate  series of
+;	statements in the event that the 'If' condition is not met.
+;
+;	There are 6 decisions that can be made. They are:
+;		_EQ  		equ 1
+;		_NEQ		equ 2
+;		_LT 		equ 4
+;		_NLT 		equ 8
+;		_GT			equ 16
+;		_NGT 		equ 32
+;	you may then write your decision statements as follows:-
+;	If {'Name',_EQ,w_1stName}
+
+
+;	Examples
+	Display	v_RedFG,v_Underlined,'04A] Routine TO DEMONSTRATE THE Decisions PACKAGE',v_ResetUnderlined,LF
+	Display	v_RedFG,{w_Spaces,1,5},'DEMONSTRATE Word Decisions',LF
+
+	If 'abcdef',_LT,'ABCDEF'
+		Display {w_Spaces,1,5},v_RedFG,'NOT WORK-abcdef,_LT,ABCDEF',LF
+	Else
+		Display {w_Spaces,1,5},v_GreenFG,'abcdef,isNOTLessThan,ABCDEF',LF
+	End.If
+
+	If {'abcdef'},_GT,{'ABCDEF'}
+		Display	{w_Spaces,1,5},v_GreenFG,'{abcdef},_GT,{ABCDEF}',LF
+	Else
+		Display	{w_Spaces,1,5},v_RedFG,'NOT WORK-{abcdef},isNOTGreaterThan,{ABCDEF}',LF
+	End.If
+
+	If {'abcdef',3},_EQ,{'ABcdef',3}
+		Display {w_Spaces,1,5},v_GreenFG,'{abcdef,3},_EQ,{ABcdef,3}',LF
+	End.If
+
+	If {'abcdef',3,2},_EQ,{'ABcdEF',2}
+		Display {w_Spaces,1,5},v_GreenFG,'{abcdef,3,2},_EQ,{ABcdEF,2}',LF
+	End.If
+
+	If {'abcdef',2,2},_EQ,{'ABcdEF',5}
+		Display {w_Spaces,1,5},v_GreenFG,'{abcdef,2,2},_EQ,{ABcdEF,5}',LF
+	Else
+		Display {w_Spaces,1,5},v_RedFG,'{abcdef,2,2},Does Not Equal,{ABcdEF,5}',LF
+	End.If
+
+	Call GetUserInput
+
+
+	Display {w_Spaces,1,5},v_RedFG,'DEMONSTRATE Integer Decisions -1',LF
+	If {1,'9'},_NEQ,{1,'9'}
+		Display v_RedFG,{w_Spaces,1,5},'1,isNOTEqua_LTo,1',LF
+	Else
+		If 1,_GT,1
+			Display v_RedFG,{w_Spaces,1,5},'1,_GT,1',LF
+		Else
+			If 1,_LT,1
+				Display v_RedFG,{w_Spaces,1,5},'1,_LT,1',LF
+			Else
+				If 1,_NLT,1
+					Display v_GreenFG,{w_Spaces,1,5},'1,isNOTLessThan,1',LF
+					If  1,_NGT,1
+						Display v_GreenFG,{w_Spaces,1,5},'1,isNOTGreaterThan,1',LF
+					End.If
+				End.If
+			End.If
+		End.If
+	End.If
+	Call GetUserInput
+
+
+	Display {w_Spaces,1,5},v_RedFG,'DEMONSTRATE Integer Decisions -2',LF
+	If 1,_EQ,1
+		Display v_GreenFG,{w_Spaces,1,5},'1 _EQ 1',LF
+		If 1,_NLT,1
+			Display v_GreenFG,{w_Spaces,1,5},'1 isNOTLessThan 1',LF
+			If 1,_NGT,1
+				Display v_GreenFG,{w_Spaces,1,5},'1 isNOTGreaterThan 1',LF
+				If 1,_NEQ,1
+				Else
+					Display v_GreenFG,{w_Spaces,1,5},'1 isEqua_LTo 1',LF
+					If 1,_GT,1
+					Else
+						Display v_GreenFG,{w_Spaces,1,5},'1 isNOTGreaterThan 1',LF
+						If 1,_LT,1
+						Else
+							Display v_GreenFG,{w_Spaces,1,5},'1 isNOTLessThan 1',LF
+						End.If
+					End.If
+				End.If
+			End.If
+		End.If
+	End.If
+	Call GetUserInput
+
+
+	Display {w_Spaces,1,5},v_RedFG,'DEMONSTRATE Fixed PointNumeric Decisions -3',LF
+	If {1,'9.9'},_NEQ,{1,'9'}
+		Display v_GreenFG,{w_Spaces,1,5},"{1,'9.9'},_NEQ,{1,'9'}",LF
+	End.If
+	If {10,'9.9'},_EQ,{1,'9'}
+		Display v_GreenFG,{w_Spaces,1,5},"{10,'9.9'},_EQ,{1,'9'}",LF
+	End.If
+	If {1230000,'999.9999-'},_EQ,NumberWithPicture
+		Display v_GreenFG,{w_Spaces,1,5},"{1230000,'999.9999-'},_EQ,NumberWithPicture",LF
+	End.If
+	If {123000,'999.999'},_EQ,NumberWithPicture
+		Display v_GreenFG,{w_Spaces,1,5},"{123000,'999.999-'},_EQ,NumberWithPicture",LF
+	End.If
+
+	If {1234567,'999.9999-'},_EQ,NumberWithPicture
+		Display v_GreenFG,{w_Spaces,1,5},"{1234567,'999.9999-'},_EQ,NumberWithPicture",LF
+	End.If
+
+	If {123000,'999.9999-'},_NEQ,NumberWithPicture
+		Display v_GreenFG,{w_Spaces,1,5},"{123000,'999.9999-'},_NEQ,NumberWithPicture",LF
+	End.If
+	Call GetUserInput
+
+;	Introduced in V1.18
+;	where as a fixed point number used as a literal following the begin.instructions directive
+;	needed a picture, The translator will now provide that picture such that you may code only
+;	the fixed point number. 
+	If 123.456 = 123.456
+		Display v_GreenFG,{w_Spaces,1,5},"{123.456 = 123.456},_EQ,Literals Without Picture",LF
+	Else
+		Display v_RedFG,{w_Spaces,1,5},"This should not fail",LF
+	End.If
+	Call GetUserInput
+	
+End.SUB Routine4A
+
+;=======================================================================
+;		DEMONSTRATING the way @OR/@AND works
+;=======================================================================	
+Begin.SUB Routine4B
+
+;	COMPOUND IF staements can be formed with the .If .Or .And and the .End
+;	keyWords.
+;	In effect the .If .Or and .And keyWords set a decision flag to TRUE/FALSE
+;	which is then interpreted by th .End keyword.
+;	When an .Or follows the .If then the  comparison is made and the flag
+;	is  reset accordingly.  The same applies with  .And in that  it will 
+;	reset the comparison flag.
+;
+;	In effect an AND can be coded as
+;	If 1,_EQ,1
+;		If 2,_EQ,2
+;			.
+;	and an OR can be coded as
+;	If 1,_EQ,1
+;		@_eq I,1 
+;	ENDIf
+;	If 2,_EQ,2
+;		@_eq I,1 
+;	ENDIf
+;
+;	Complex conditions such as follows will be addressed in a later	
+;	version:- It should be noted that on scanning previously written
+;	applications the need for complex decisions is minimal
+;
+;	If  A=A AND B=B  OR   C=C OR D=D  AND E=E  AND   F=F OR G+G   
+;	etc
+;
+
+	Display v_RedFG,v_Underlined,'04B] Routine TO DEMONSTRATE THE Decisions PACKAGE',v_ResetUnderlined,LF
+	Display {w_Spaces,1,5},'DEMONSTRATE AND, OR',LF
+
+	.If 0,_EQ,1
+	.Or 1,_EQ,1
+	.End
+		Display	{w_Spaces,1,5},v_GreenFG, '0=1 OR 1=1 is evaluated as TRUE',LF
+	Else
+		Display {w_Spaces,1,5},v_GreenFG, '0=1 OR 1=1 is evaluated as FALSE',LF
+	End.If
+
+	.If 0,_EQ,1
+	.And 1,_EQ,1
+	.End
+		Display {w_Spaces,1,5},'0=1 AND 1=1 is evaluated as TRUE',LF
+	Else
+		Display {w_Spaces,1,5}, '0=1 AND 1=1 is evaluated as FALSE',LF
+	End.If
+
+	.If 0,_EQ,{1,'9'}
+	.Or 1,_EQ,{20,'9.9'}
+	.Or 3,_EQ,{300,'9.99'}
+	.End
+		Display {w_Spaces,1,5}, '0=1 OR 1=2 OR 3=3 is evaluated as TRUE',LF
+	Else
+		Display {w_Spaces,1,5}, '0=1 OR 1=2 OR 3=3  is evaluated as FALSE',LF
+	End.If
+
+	.If 1,_EQ,1
+	.And 2,_EQ,{20,'9.9'}
+	.And 3,_EQ,{300,'9.99'}
+	.End
+		Display {w_Spaces,1,5}, '1=1 AND 2=2 AND 3=3 is evaluated as TRUE',LF
+	Else
+		Display {w_Spaces,1,5}, '1=1 AND 2=2 AND 3=3  is evaluated as FALSE',LF
+	End.If
+
+	.If 0,_EQ,1
+	.Or 2,_EQ,2
+	.And 3,_EQ,{300,"9.99"}
+	.End
+		Display {w_Spaces,1,5},'0=1 OR 2=2 AND 3=3 is evaluated as TRUE',LF
+	Else
+		Display {w_Spaces,1,5}, '0=1 OR 2=2 AND 3=3  is evaluated as FALSE',LF
+	End.If
+
+	Call GetUserInput
+
+End.SUB Routine4B
+	
+;=======================================================================
+;		DEMONSTRATING the way the LOOPS work
+;=======================================================================	
+Begin.SUB Routine5A
+
+;	'languageONE'  contains the  functionality to  implement  looping, a
+;	common  programming function  where a command or  number of commands
+;	are repeated a number of times.
+;
+;	There are 3 types of loop designated with the following keyWords:- 
+;*******repeat <name>	 Named Loop  		@Exit_Repeat /End.Repeat
+;			is replaced with Repeat.While 1 = 1 / @Exit_Repeat / End.Repeat
+;		repeat.If		 Conditional Loop  				/End.Repeat
+;		Repeat.For		 Loop Counter 					/End.Repeat
+;
+;		As  with the  IF statement loops must  be blocked and this is
+;		done withe End.Repeat keyword.
+;
+;		NAMED Loops  must/can have  an exit
+;			This is facilitated with the keyword @Exit_Repeat
+;
+;		CONDITIONAL and COUNTER loops syntactically describe their own terminating
+;		condion
+;
+;		All three versions of the repeat keyword have an additional way of
+;		termination. They all evaluate the 'exitRepeat' flag at the top of the
+;		loop and will terminate if it is set to true. Care should be taken when
+;		setting the flag as any statements following will still be processed.
+;		It is simplest to code an IF/Else statement immediatelly following the 
+;		repeat kwyword. 
+;		The @Exit_Repeat keyword automatically sets the exitRepeat flag
+;
+;	The  condition  that  must  be  met  for  the  loop to continue in a 
+;	Conditional Loop is coded in the same way as an If would be coded.
+;
+;	Consider the following examples.
+
+	Display	v_ClearScreen
+	Display	v_RedFG,v_Underlined,'05A] Routine TO DEMONSTRATE LOOPING',v_ResetUnderlined,LF
+
+;	LOOP 1 - Named Loop
+	Display 'LOOP 1 - Named Loop',LF
+	I = 0
+	Repeat.While 1 = 1
+		I = I + 1
+		If  I > 5
+			@Exit_Repeat
+		Else
+			Display {w_Spaces,1,5},v_GreenFG,'Loop1 - Display 5 times',LF
+		End.If
+	End.Repeat
+	Call GetUserInput
+
+;	LOOP 2 - Conditional Loop
+	Display v_RedFG,'LOOP 2 - Conditional Loop',LF
+	I = 5
+	Repeat.If I,_GT,0
+		Display {w_Spaces,1,5},v_GreenFG,'Loop2 - Display 5 times',LF
+		I = I - 1
+	End.Repeat
+	Call GetUserInput
+
+;	LOOP 3 - Loops may be nested. That is Loops within Loops
+	Display.Line
+	Display {w_Spaces,1,5}, 'Loop3 - Nested Loop',LF
+
+	I = 0
+  Repeat.If I,_LT,2
+		Display {w_Spaces,1,5},v_RedFG,outerWord,LF
+		I = I + 1
+		J = 0
+		Repeat.If J,_LT,2
+			Display {w_Spaces,1,10},v_GreenFG,middleWord,LF
+			J = J + 1
+			K = 0
+			Repeat.If K,_LT,2
+				Display {w_Spaces,1,15},v_CyanFG,innerWord,LF
+				K = K + 1
+			End.Repeat
+		End.Repeat
+	End.Repeat
+	Call GetUserInput
+
+;	LOOP 4 - exiting nested loops
+	Display.Line
+	Display {w_Spaces,1,5}, v_RedFG,'Loop4 - Nested Loop with exit',LF
+
+	I = 0
+	Repeat.If I,_LT,10
+		If I,_GT,1
+			Exit.Repeat
+		Else
+			Display {w_Spaces,1,5},v_RedFG,outerWord,LF
+			I = I + 1
+			J = 0
+			Repeat.If J,_LT,20
+				If J,_GT,1
+					Exit.Repeat
+				Else
+					Display {w_Spaces,1,10},v_GreenFG,middleWord,LF
+					J = J + 1
+					K = 0
+					Repeat.If K,_LT,30
+						If K,_GT,2
+							Exit.Repeat
+						Else
+							Display {w_Spaces,1,15},v_CyanFG,innerWord,LF
+							K = K + 1
+						End.If
+					End.Repeat
+				End.If
+			End.Repeat
+		End.If
+	End.Repeat
+	Call GetUserInput
+
+;	Loops with counters are coded in the following manner.
+;	Repeat.For {IdentIfier}, Counter, Start Value, End Value, Step
+;	The step value is optional and when omitted, 1 is assumed
+
+;	Loop 5 - Loop with counter
+	Display v_ClearScreen
+	Display {w_Spaces,1,5},v_RedFG,'Loop5 - Loops with counters',LF
+		
+	Repeat.For I,1,5
+		Display {w_Spaces,1,5},v_GreenFG,I,' For I,1,5',LF
+	End.Repeat
+	Display.Line
+
+	Repeat.For I,5,1
+		Display {w_Spaces,1,5},v_YellowFG,I,' For I,5,1  counting backwards ',LF
+	End.Repeat
+	Display.Line
+
+	Repeat.For I,1,10,2
+		Display {w_Spaces,1,5},v_CyanFG,I,' ForI,1,10,2  with step ',LF
+	End.Repeat
+	Display.Line
+
+	Repeat.For I,10,1,2
+		Display {w_Spaces,1,5},v_LightYellowFG,I,' For I,10,1,2  backwards with step ',LF
+	End.Repeat
+	Display.Line
+
+	Repeat.For I,1,10
+		If I,_GT,3
+			Exit.Repeat
+		Else
+			Display {w_Spaces,1,5},v_BlueFG,I,' For I,1,10  with exit ',LF
+		End.If
+	End.Repeat
+	Display.Line
+	Call GetUserInput
+
+END.SUB Routine5A
+
+;=======================================================================
+;		DEMONSTRATING a more rigoreous rest
+;=======================================================================
+Begin.SUB Routine6A
+
+;	The following demonstrates the combination of utilities presented in
+;	languageONE v0.01A
+
+	Display v_ClearScreen
+	Display.at 01,01,'Combining languageONE utilities'
+	
+	Integers.eq I,2
+	If 1,_EQ,1
+		If 1,_EQ,1
+			Repeat.If I,_NGT,5
+				If 1,_EQ,1
+					If 1,_EQ,1
+						If I,_NGT,3
+							Cursor I,02
+							Display 'First ',{I,'99'},' times',LF
+						Else
+							Exit.Repeat
+						End.If
+					End.If
+				End.If
+				Integers.add I,1
+			End.Repeat
+		Else
+			Repeat.If I,_NGT,10
+				If 1,_EQ,1
+					If 1,_EQ,1
+						If I,_LT,5
+							Cursor I,02
+							Display 'Second ',{I,'99'},' times',LF
+						End.If
+					End.If
+				End.If
+				Integers.add I,1
+			End.Repeat
+		End.If
+	Else
+		Display.Line 'Third - very bottom'
+	End.If															
+	Call GetUserInput
+
+;	And combining utilities with V1.18 additions
+	Display	v_ClearScreen
+	Display	'Combining languageONE utilities  V1.18 ',LF
+	
+	I = 2
+	.If 1 = 1
+	.And {10,"9.9"} = {100,"9.99"}
+	.End
+		Repeat.If I,!>,5
+			.If 1 = 1
+			.And {2000,"9.999"} = 2
+			.End
+				If I !> {3000,"9.999"}
+					Cursor I,02
+					Display 'First ',{I,'99'},' times',LF
+				Else
+					Exit.Repeat
+				End.If
+			End.If
+			I = I + 1
+		End.Repeat
+	Else
+		Repeat.If I !> 10
+			.If 1 = 1
+			.And 1 = {10000,"9.9999"}
+			.And I < {5000,"9.999"}
+			.End
+				Cursor I,02
+				Display 'Second ',{I,'99'},' times',LF
+			End.If
+			I = I + 1
+		End.Repeat
+	End.If
+	Call GetUserInput
+	
+End.SUB Routine6A
+
+;=======================================================================
+;		DEMONSTRATING a simple program
+;=======================================================================
+Begin.SUB Routine10A
+
+;	1] accept Text from the terminal
+;	2] Capitalise it
+;   3] Work backwards until the first NON space is found
+;	4] Display the no of characters entered
+;	5] Display the commandline backwards
+
+;	User interaction
+	Display	v_ClearScreen 
+	Cursor	02,02
+	Display	v_RedFG,v_Underlined,'10A] Routine TO DEMONSTRATE A SIMPLE PROGRAM',v_ResetUnderlined
+	Cursor	03,02
+	Display	v_CyanFG,'What is your full name: '
+	Display	v_LightYellowFG
+	
+	Cursor 03,26
+	AcceptLine inputLine 
+
+;	Capitalise input
+	Words.uppercase	inputLine
+
+;	Find last character
+	Repeat.For I,80,1
+		If {inputLine,I,1},_NEQ,{w_Spaces,1,1}
+			Exit.Repeat
+		End.If
+	End.Repeat
+
+	Cursor 04,02
+	Display 'Input Line is ', I, ' characters long', LF
+
+;	Display input  backwards 
+	Cursor   05,02
+	Repeat.For J,I,1
+		Display {inputLine,J,1}
+	End.Repeat
+	Display.Line
+
+	Call GetUserInput
+
+;	The keyword TERMINATE was also added in V118. When used the program
+;	will be stopped and the value specified will be returned to the shell
+	@TERMINATE 1
+	
+End.SUB Routine10A
+
+;=======================================================================
+;		Routines that are common  can be Called from anywhere 
+;=======================================================================
+Begin.SUB GetUserInput
+  
+	Display {w_Spaces,1,5},v_LightBlueFG,'Press <ENTER> to continue '
+	AcceptLine char1
+	Display v_WhiteFG, LF
+
+End.SUB GetUserInput

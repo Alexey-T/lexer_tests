@@ -1,0 +1,578 @@
+%include 'include/BEGIN.PROGRAM'  
+
+;	Refer to VERSION.HISTORY for...well...version history
+
+;	BEGIN.SYNONYMS **************************************
+;		include/LPACK1.SYN
+;	END.SYNONYMS ****************************************
+
+;=======================================================================
+;		  PROGRAM DATA
+;=======================================================================	      
+
+;-----------------------------------------------------------------------
+;			WORDS
+;-----------------------------------------------------------------------
+%include 'include/BEGIN.DICTIONARY'
+
+;	Demonstrated in ProcedureB01
+	Insertword	w_F_Alphabet,	05,' '
+	Insertword	w_F_Space,		01,' '
+	Insertword	w_F_Literal,	17,' '
+	Insertword	w_Name,				05,'James'
+
+%include 'include/END.DICTIONARY'
+
+;-----------------------------------------------------------------------
+;			NUMBERS
+;-----------------------------------------------------------------------
+%include 'include/BEGIN.MATRIX'
+
+;	Common Counters
+	Insertnumber I,	0,'999999999'
+	Insertnumber J,	0,'999999999'
+	Insertnumber K,	0,'999999999'
+	
+;	Demonstrated in ProcedureB01
+	Insertnumber w_F_No1,	0,'#,###,###,###,###,###,###-'
+	Insertnumber w_F_No2,	0,'999'
+
+%include 'include/END.MATRIX'
+
+;-----------------------------------------------------------------------
+;			files
+;-----------------------------------------------------------------------
+%include 'include/BEGIN.FILES'
+;	files  are  defined  between  the  'BEGIN.files  and  the  end.files
+;	directives.  They begin  with the  keyword  'Insertfile  and  take 3
+;	parameters seperated by commas.
+;
+;		Parameter 1:-	 Line terminating character
+;			c_NULL:	Terminate each line with a null  0x00
+;			c_LF:	Terminate each line with a Line Feed
+;			'?':	Your own character
+;			c_CSV:	Comma Delimited File
+;			c_RECORD - Refer later
+;			c_RANDOM - Refer later
+;			c_INDEXED - Refer later
+;
+;		Parameter 2:-	Internal Name.
+;			The name by which the file is referenced to in the program
+;			It follows the same rules as the WORDS/NUMBERS naming
+;			convention.
+;
+;		Parameter 3:-	External Name
+;			The name by which the file is identified externally.
+
+;	Demonstrated in ProcedureA01/B01
+	Insertfile c_LF,A01_FILE,'./a01file.txt'
+
+;	Demonstrated in ProcedureA02/B02
+	Insertfile c_NULL,A02_FILE,'./a02file.txt'
+
+;	Demonstrated in ProcedureA03/B03
+	Insertfile '~',A03_FILE,'./a03file.txt'
+
+;	Demonstrated in ProcedureA04/B04
+	Insertfile c_CSV+c_LF,A04_FILE,'./a04file.txt'
+
+;-----------------------------------------------------------------------
+;			RECORDS
+;-----------------------------------------------------------------------
+;			from WIKI
+;	A record is a collection of elements, typiCally in fixed number and 
+;	sequence and typiCally indexed by serial numbers or identity numbers
+;	The elements of records may also be Called fields or members.	
+;
+;	Records  provide for  structuring data  in a logical  way.  They are
+;	usually, but not always,  used to describe  data in a  file and thus
+;	provide clearer code when  defined with  the file  in question. Each
+;	entry in a file is described as a record.
+;
+;	Each record entry start with Begin.Record keyword.  It is follwed by
+;	a numeric  value  defining the  length of  the record,  and then the
+;	record name.  Each record terminates  with  the  End.Record  keyword
+;	followed  by the  record name.  Fields can then be  defined  wiithin
+;	the  BEGIN and end of the record by using Insertword and Insertnumber.
+;
+;		Please Note:- Insertfile Parameter 1:-
+;			c_RECORD:	The file will use records
+;
+;		When using a record in  accessing a file,  languageONE  will not
+;		provide a terminating character ie. Line Feed etc.
+;		If required then code it as the last field in the record
+
+
+;	Demonstrated in Procedure C01
+	Insertfile c_RECORD,C01_FILE,'./c01file.txt'
+		Begin.Record 79,C01_Record
+			Insertword 	C01_FirstName,				10,			'James'
+			Insertword 	C01_LastName,					20,			'Lucas'
+			Insertword 	C01_Address,					40,			'Cathies Lane, Wantirna South'
+			Insertnumber	C01_Phone,		123456789,		'999999999'
+		End.Record C01_Record
+
+;-----------------------------------------------------------------------
+;			RECORD Numbers
+;-----------------------------------------------------------------------
+;	When a  record  is  used for  File  access,  languageONE  provides a
+;	Record Number which may be used to access records in a random manner
+;	rather than sequentially  [one after the other].  This access method 
+;	is termed  'relative' or  'random'.  The Record Number is the record
+;	name followed by '_No',so in the case below the record no field will
+;	be C02_Record_NO.
+;	The files module  must be informed  of the  record  length and it is 
+;	Parameter 1 or the Begin.Record keyword that accomplishes this.
+
+;		Please Note:- Insertfile Parameter 1:-
+;			c_Random:	A File accessed by Record No  Must use Records
+
+
+;	Demonstrated in Procedure C02
+	Insertfile c_RANDOM,C02_FILE,'./c02file.txt'
+		Begin.Record 80,C02_Record
+			Insertword		C02_FirstName,			10,			'James'
+			Insertword		C02_LastName,				20,			'Lucas'
+			Insertword		C02_Address,				40,			'Cathies Lane, Wantirna South'
+			Insertnumber	C02_Phone,	 123456789,			'999999999'
+			Insertnumber	C02_ID,							00,			'9'
+		End.Record	C02_Record
+;	Do not confuse C02_ID in the C02_Record above with the record Number
+;	It is used here only as a convenient way to view the records created
+;	in C02_FILE
+
+;-----------------------------------------------------------------------
+;			FILE STATUS
+;-----------------------------------------------------------------------
+;	When accessing files  languageONE provides a  'STATUS' field.  It is
+;	defined as FileName_STATUS. Thus the STATUS field for the above file
+;	would be C02_FILE_STATUS. This field can be checked each time a file
+;	is accessed.
+;		Present values are:-
+;			10 = end Of File  EOF
+;			23 = Invalid Key  INVALIDKEY
+	 			
+%include 'include/END.FILES'
+
+;=======================================================================
+;		PROGRAM INSTRUCTIONS
+;		Mainline  
+;=======================================================================
+%include 'include/BEGIN.INSTRUCTIONS'
+
+	Call ProcedureA01
+	Call ProcedureA02
+	Call ProcedureA03
+	Call ProcedureA04
+
+	Call ProcedureB01
+	Call ProcedureB02
+	Call ProcedureB03
+	Call ProcedureB04
+
+	Call ProcedureC01
+	Call ProcedureC02
+	
+	Call ProcedureD01
+
+%include 'include/END.INSTRUCTIONS'
+%include 'include/END.PROGRAM'
+
+
+;-----------------------------------------------------------------------
+;	Write files with lines terminated with c_LF
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureA01
+
+;	files is the 'keyword' used to manage sequential/random files within
+;	languageONE. It is supported by the files.o package.
+;
+;	files must be opened before they are referenced.  The open directive
+;	is used to accomplish this.
+;		Parameter 1:-	The OPEN directive.
+;						If the file does not exist it will be created.
+;		Parameter 2:-	The INTERNAL name given in the BEGIN.files section.
+;		Parameter 3:-	Describes how the file has been opened.
+;						WRITE:-	The file will only be written to
+;						READ:-	The file will only be read from
+;						READWRITE:-	The file will be both written to and
+;									read from
+;
+;						for open WRITE:-
+;							You may add the directives:-
+;							  +'$beginning' to indicate the file is being 
+;							    overwritten from the beginning 
+;							  +'$end' to indicate that data is being 
+;								written to the end of the file  appended					
+;			
+;		NOTE:-	in this example the record terminating  character c_LF
+;				has been selected
+
+	Files.Open  A01_FILE,$write+$beginning
+
+;	The  WRITE parameter  issues an  instruction to the files package to 
+;	write to FILENAME using the following listed fields.  Note that  the
+;	fields  written to  the  file follow  the  same formatting rules  as
+;	supported in languageONE. 
+;
+;	The following loop writes  5 records  to A01_FILE.  I is incremented
+;	so that lines can be differentiated.
+;	At a bash prompt type cat ./a01file.txt to view the contents.
+ 
+	Repeat.for I,1,5
+		Files $write,A01_FILE,	{'Alphabet',1,5},		\
+								{w_Spaces,1,1},									\
+								'Text as a Literal',						\
+								' ',														\
+								123456,													\
+								' ',														\
+								{654321,'###'},									\
+								{w_Spaces,1,1},									\
+								w_Name,													\
+								' ',														\
+								I
+	End.Repeat
+
+;	files  must be closed  when they are  no longer required.  The CLOSE
+;	directive issued to the files package followed by the file name will
+;	accomplish the task.
+
+	Files.Close  A01_FILE
+
+End.Sub ProcedureA01
+
+;-----------------------------------------------------------------------
+;	Write files with lines terminated with c_NULL. 
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureA02
+
+;		NOTE:-	in this example the record terminating character c_NULL
+;				has been selected
+
+;	Open the file
+	Files.Open  A02_FILE,$write+$beginning
+
+;	Write to the file
+	Repeat.for  I,1,5
+		Files $write,A02_FILE,	{'Alphabet',1,5},			\
+								{w_Spaces,1,1},										\
+								'Text as a Literal',							\
+								' ',															\
+								123456,														\
+								' ',															\
+								{654321,'###'},										\
+								{w_Spaces,1,1},										\
+								w_Name,														\
+								' ',															\
+								I
+	End.Repeat
+
+;	Close the file
+	Files.Close  A02_FILE
+
+End.Sub ProcedureA02
+
+;-----------------------------------------------------------------------
+;	Write files with lines terminated with '~'  Any Literal
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureA03
+
+;		NOTE:-	in this example the record terminating character has 
+;				has been defined as something other than c_LF or c_NULL
+
+;	Open the file
+	Files.Open  A03_FILE,$write+$beginning
+
+;	Write to the file
+	Repeat.for I,1,5
+
+		Files $write,A03_FILE,	{'Alphabet',1,5},			\
+								{w_Spaces,1,1},										\
+								'Text as a Literal',							\
+								' ',															\
+								123456,														\
+								' ',															\
+								{654321,'###'},										\
+								{w_Spaces,1,1},										\
+								w_Name,														\
+								' ',															\
+								I
+	End.Repeat
+
+;	Close the file
+	Files.Close  A03_FILE
+	
+End.Sub ProcedureA03
+
+;-----------------------------------------------------------------------
+;	Write CSV files 
+;	CSV is  a common  data exchange  format that is  widely supported by
+;	consumer, business, and scientific applications. As such you may use
+;	c_CSV in your  file  description   Insertfile and  languageONE will
+;	produce the file format for you.  Most commonly used  CSV files have
+;	lines terminated  with a LF so you may  add c_LF to c_CSV to produce
+;	the format
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureA04
+
+;		NOTE:-	in this example the file is produced as a Comma delimited 
+;				file with each terminated with a LF
+
+;	Open the file
+	Files.Open  A04_FILE,$write+$beginning
+
+;	Write to the file
+	Repeat.for  I,1,5
+		Files $write,A04_FILE,	{'Alphabet',1,5},			\
+								{w_Spaces,1,1},										\
+								'Text as a Literal',							\
+								' ',															\
+								123456,														\
+								' ',															\
+								{654321,'###'},										\
+								{w_Spaces,1,1},										\
+								w_Name,														\
+								' ',															\
+								I
+	End.Repeat
+
+;	Close the file
+	Files.Close A04_FILE
+
+End.Sub ProcedureA04
+
+;-----------------------------------------------------------------------
+;	Read files with lines terminated with c_LFiles_ 
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureB01
+
+	Files.Open A01_FILE,$read
+ 
+	Repeat.for  I,1,5
+		Files $read,A01_FILE,	w_F_Alphabet,			\
+								w_F_Space,									\
+								w_F_Literal,								\
+								w_F_Space,									\
+								w_F_No1,										\
+								w_F_Space,									\
+								w_F_No2,										\
+								w_F_Space,									\
+								w_Name,											\
+								w_F_Space,									\
+								J
+		Display  w_F_Alphabet,' ',w_F_Literal,' ',w_F_No1,' ',w_F_No2,' ',w_Name,' ',J,LF
+	End.Repeat
+
+	Files.Close A01_FILE
+	Display.line
+
+End.Sub ProcedureB01
+
+;-----------------------------------------------------------------------
+;	Read files with lines terminated with c_NULL. 
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureB02
+
+	Files.Open A02_FILE,$read
+	 
+	Repeat.for I,1,5
+		Files $read,A02_FILE,	w_F_Alphabet,			\
+								w_F_Space,									\
+								w_F_Literal,								\
+								w_F_Space,									\
+								w_F_No1,										\
+								w_F_Space,									\
+								w_F_No2,										\
+								w_F_Space,									\
+								w_Name,											\
+								w_F_Space,									\
+								J
+		display  w_F_Alphabet,' ',w_F_Literal,' ',w_F_No1,' ',w_F_No2,' ',w_Name,' ',J,LF
+	End.Repeat
+
+	Files.Close A02_FILE
+	Display.line
+
+End.Sub ProcedureB02
+
+;-----------------------------------------------------------------------
+;	Read files with lines terminated with ANY Character  '~' 
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureB03
+
+	Files.Open A03_FILE,$read
+	 
+	Repeat.for I,1,5
+		Files $read,A03_FILE,	w_F_Alphabet,			\
+								w_F_Space,									\
+								w_F_Literal,								\
+								w_F_Space,									\
+								w_F_No1,										\
+								w_F_Space,									\
+								w_F_No2,										\
+								w_F_Space,									\
+								w_Name,											\
+								w_F_Space,									\
+								J
+	
+		display  w_F_Alphabet,' ',w_F_Literal,' ',w_F_No1,' ',w_F_No2,' ',w_Name,' ',J,LF
+	End.Repeat 
+
+	Files.Close A03_FILE
+	Display.line
+	
+End.Sub ProcedureB03
+
+;-----------------------------------------------------------------------
+;	Read files  CSV with line feed
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureB04
+
+
+	Files.Open A04_FILE,$read
+	 
+	Repeat.for I,1,5
+		Files $read,A04_FILE,w_F_Alphabet,			\
+								w_F_Space,									\
+								w_F_Literal,								\
+								w_F_Space,									\
+								w_F_No1,										\
+								w_F_Space,									\
+								w_F_No2,										\
+								w_F_Space,									\
+								w_Name,											\
+								w_F_Space,									\
+								J
+		display  w_F_Alphabet,' ',w_F_Literal,' ',w_F_No1,' ',w_F_No2,' ',w_Name,' ',J,LF
+	End.Repeat
+
+	Files.Close A04_FILE
+	Display.line
+
+End.Sub ProcedureB04
+
+;-----------------------------------------------------------------------
+;	Using RECORDS
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureC01
+
+;	NOTE:-	in this example the file is produced using a record.
+
+;	Write 5 records
+	Files.Open C01_FILE,$write+$beginning
+		Repeat.for I,1,5
+			Files.Write C01_FILE,C01_Record
+		End.Repeat
+	Files.Close C01_FILE
+
+;	Now read 5 records
+	Files.Open C01_FILE,$read
+		Repeat.for I,1,5
+			Files.Read  C01_FILE,C01_Record
+			display C01_FirstName,		\
+					C01_LastName,					\
+					C01_Address,					\
+					C01_Phone,						\
+					LF
+		End.Repeat
+	Files.Close C01_FILE
+	Display.line
+
+End.Sub ProcedureC01
+
+;-----------------------------------------------------------------------
+;	Using RECORD NUMBERS
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureC02
+
+;		NOTE:-	in this example the file is  produced using a record,
+;				accessed with a record no.
+;		NOTE:-	The 2 different forms of syntax 
+;				ie. The Call does not contain the Record_No but is set separately
+;				or.	The Call doe include the Record_No
+
+;	Note that with 'random' access the file is open read/write
+	Files.Open C02_FILE,$readwrite
+
+;	So, create 5 records
+	C02_ID = 0
+	Repeat.for C02_Record_NO,1,5
+		C02_ID = C02_ID + 1
+		Files.Write C02_FILE,C02_Record
+	End.Repeat
+
+;	And access them randomly
+	Files.Read C02_FILE,C02_Record,3
+	Call C02_1_display
+
+	Files.Read C02_FILE,C02_Record,5
+	Call C02_1_display
+
+	Files.Read C02_FILE,C02_Record,1
+	Call C02_1_display
+
+;	And close the file
+	Files.Close C02_FILE
+
+End.Sub ProcedureC02
+
+;-----------------------------------------------------------------------
+;	display fields
+;-----------------------------------------------------------------------
+Begin.Sub C02_1_display
+
+	@display C02_FirstName,	\
+			 C02_LastName,			\
+			 C02_Address,				\
+			 C02_Phone,					\
+			 {w_Spaces,1,1},		\
+			 C02_ID,						\
+			 LF
+			
+End.Sub C02_1_display
+
+;-----------------------------------------------------------------------
+;	Using the FILE STATUS value
+;-----------------------------------------------------------------------
+Begin.Sub ProcedureD01
+
+;	When accessing files  languageONE provides a  'STATUS' field.  It is
+;	defined as FileName_STATUS.  Thus the STATUS field for the following
+;	file would be A01_FILE_STATUS. This field can be checked each time a
+;	file is accessed.
+;		Present values are:-
+;			10 = end Of File  EOF
+;			23 = Invalid Key  INVALIDKEY
+
+;	Test EOF
+	Files.Open A01_FILE,$read
+	J = 0
+	Repeat.while 1 = 1
+		Files $read,A01_FILE,	w_F_Alphabet,		\
+								w_F_Space,								\
+								w_F_Literal,							\
+								w_F_Space,								\
+								w_F_No1,									\
+								w_F_Space,								\
+								w_F_No2,									\
+								w_F_Space,								\
+								w_Name,										\
+								w_F_Space,								\
+								I
+		If  A01_FILE_STATUS = EOF
+			display 'end of File has been reached : Records read = ',J,LF
+			Exit.Repeat
+		End.If
+		J = J + 1
+	End.Repeat
+	Files.Close  A01_FILE
+	
+;	Test Record Not Found - using C02_FILE  random access
+	Files.Open C02_FILE,$read
+	Files.Read C02_FILE,C02_Record,10
+	If C02_FILE_STATUS = INVALIDKEY
+		Display.line  'Record Not on File'
+	End.If
+	Files.Close C02_FILE
+
+End.Sub ProcedureD01
