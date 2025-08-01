@@ -7,7 +7,7 @@
   #comments-start
       This is another block comment.
       It can also span multiple lines.
-  #comments-end
+  text #comments-end
 
   #AutoIt3Wrapper_Outfile=MyScript.exe
 

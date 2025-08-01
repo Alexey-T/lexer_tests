@@ -5,12 +5,9 @@ test
     #CE
 
     #CS
-    
-      test
-      ;#comments-end
-      test
-      
-    #comments-end
+    test
+
+    end #comments-end
     
 test
     
