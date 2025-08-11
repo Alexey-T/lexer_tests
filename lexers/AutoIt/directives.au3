@@ -148,3 +148,5 @@
 #Au3Stripper_Ignore_Errors_in_Funcs= Ignore any au3stripper error in these functions. FuncNames may end with an * to indicated matching FuncNames starting with the specified string.
 
 #Au3Stripper_Ignore_Variables= Do not Strip these variables. VarNames may end with an * to indicated matching VarNames starting with the specified string. 
+
+#eee
