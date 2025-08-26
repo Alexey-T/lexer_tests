@@ -1,4 +1,3 @@
- 
 # Title #
 
 **Please read the [installation documentation](http://app.readthedocs.org)!**
