@@ -1,0 +1,87 @@
+# 进入系统视图
+<Huawei> system-view
+[Huawei]
+
+# 系统基本配置
+[Huawei] sysname Huawei-Switch-01  # 设置交换机名称
+[Huawei-Switch-01] clock timezone Beijing add 08:00  # 设置北京时区
+[Huawei-Switch-01] info-center enable  # 启用信息中心
+[Huawei-Switch-01] info-center loghost 192.168.30.100  # 配置日志服务器（可选）
+
+# VLAN配置
+[Huawei-Switch-01] vlan batch 10 20 30  # 批量创建VLAN 10、20、30
+[Huawei-Switch-01] vlan 10
+[Huawei-Switch-01-vlan10] description Sales-Department  # 销售部门VLAN
+[Huawei-Switch-01-vlan10] quit
+[Huawei-Switch-01] vlan 20
+[Huawei-Switch-01-vlan20] description Tech-Department  # 技术部门VLAN
+[Huawei-Switch-01-vlan20] quit
+[Huawei-Switch-01] vlan 30
+[Huawei-Switch-01-vlan30] description Management-VLAN  # 管理VLAN
+[Huawei-Switch-01-vlan30] quit
+
+# 端口配置
+[Huawei-Switch-01] interface GigabitEthernet 0/0/1  # 进入千兆端口1
+[Huawei-Switch-01-GigabitEthernet0/0/1] port link-type access  # 设置为接入模式
+[Huawei-Switch-01-GigabitEthernet0/0/1] port default vlan 10  # 加入VLAN 10
+[Huawei-Switch-01-GigabitEthernet0/0/1] undo shutdown  # 启用端口
+[Huawei-Switch-01-GigabitEthernet0/0/1] quit
+
+[Huawei-Switch-01] interface GigabitEthernet 0/0/2  # 进入千兆端口2
+[Huawei-Switch-01-GigabitEthernet0/0/2] port link-type access
+[Huawei-Switch-01-GigabitEthernet0/0/2] port default vlan 20  # 加入VLAN 20
+[Huawei-Switch-01-GigabitEthernet0/0/2] undo shutdown
+[Huawei-Switch-01-GigabitEthernet0/0/2] quit
+
+[Huawei-Switch-01] interface GigabitEthernet 0/0/3  # 进入千兆端口3（级联端口）
+[Huawei-Switch-01-GigabitEthernet0/0/3] port link-type trunk  # 设置为Trunk模式
+[Huawei-Switch-01-GigabitEthernet0/0/3] port trunk allow-pass vlan all  # 允许所有VLAN通过
+[Huawei-Switch-01-GigabitEthernet0/0/3] undo shutdown
+[Huawei-Switch-01-GigabitEthernet0/0/3] quit
+
+# VLAN接口配置（三层功能）
+[Huawei-Switch-01] interface Vlanif 10  # VLAN 10的三层接口
+[Huawei-Switch-01-Vlanif10] ip address 192.168.10.1 255.255.255.0  # 配置IP地址
+[Huawei-Switch-01-Vlanif10] quit
+
+[Huawei-Switch-01] interface Vlanif 20  # VLAN 20的三层接口
+[Huawei-Switch-01-Vlanif20] ip address 192.168.20.1 255.255.255.0
+[Huawei-Switch-01-Vlanif20] quit
+
+[Huawei-Switch-01] interface Vlanif 30  # 管理VLAN接口
+[Huawei-Switch-01-Vlanif30] ip address 192.168.30.1 255.255.255.0
+[Huawei-Switch-01-Vlanif30] quit
+
+# 路由配置
+[Huawei-Switch-01] ip route-static 0.0.0.0 0.0.0.0 192.168.30.254  # 默认路由
+
+# SSH远程管理配置
+[Huawei-Switch-01] stelnet server enable  # 启用stelnet（SSH）服务
+[Huawei-Switch-01] ssh user admin  # 创建SSH用户
+[Huawei-Switch-01] ssh user admin authentication-type password  # 认证方式为密码
+[Huawei-Switch-01] ssh user admin service-type stelnet  # 服务类型为stelnet
+[Huawei-Switch-01] aaa  # 进入AAA视图
+[Huawei-Switch-01-aaa] local-user admin password irreversible-cipher Admin@123  # 设置密码（不可逆加密）
+[Huawei-Switch-01-aaa] local-user admin privilege level 15  # 管理员权限级别
+[Huawei-Switch-01-aaa] local-user admin service-type ssh  # 允许SSH服务
+[Huawei-Switch-01-aaa] quit
+
+# 配置VTY终端
+[Huawei-Switch-01] user-interface vty 0 15  # 配置虚拟终端
+[Huawei-Switch-01-ui-vty0-15] authentication-mode aaa  # 采用AAA认证
+[Huawei-Switch-01-ui-vty0-15] protocol inbound ssh  # 只允许SSH接入
+[Huawei-Switch-01-ui-vty0-15] quit
+
+# 安全配置（ACL）
+[Huawei-Switch-01] acl 2000  # 创建基本ACL
+[Huawei-Switch-01-acl-basic-2000] rule 5 permit source 192.168.30.0 0.0.0.255  # 允许管理网段
+[Huawei-Switch-01-acl-basic-2000] rule 10 deny  # 拒绝其他所有
+[Huawei-Switch-01-acl-basic-2000] quit
+[Huawei-Switch-01] user-interface vty 0 15
+[Huawei-Switch-01-ui-vty0-15] acl 2000 inbound  # 应用ACL到VTY
+[Huawei-Switch-01-ui-vty0-15] quit
+
+# 保存配置
+[Huawei-Switch-01] save
+The current configuration will be written to the device.
+Are you sure to continue?[Y/N]y

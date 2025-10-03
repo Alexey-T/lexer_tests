@@ -1,0 +1,67 @@
+# 系统基本配置
+sysname H3C-Switch-01  # 设置交换机名称
+clock timezone Beijing add 08:00:00  # 设置时区为北京时区
+undo info-center enable  # 关闭信息中心（可选，根据实际需求）
+
+# VLAN配置
+vlan 10  # 创建VLAN 10
+ name Sales  # 命名为销售部门
+vlan 20  # 创建VLAN 20
+ name Tech  # 命名为技术部门
+vlan 30  # 创建VLAN 30
+ name Management  # 命名为管理VLAN
+
+# 端口配置
+interface GigabitEthernet1/0/1  # 进入千兆以太网端口1
+ port link-mode bridge  # 设置为桥接模式
+ port access vlan 10  # 将端口加入VLAN 10
+ undo shutdown  # 启用端口
+
+interface GigabitEthernet1/0/2  # 进入千兆以太网端口2
+ port link-mode bridge
+ port access vlan 20
+ undo shutdown
+
+interface GigabitEthernet1/0/3  # 进入千兆以太网端口3
+ port link-mode bridge
+ port link-type trunk  # 设置为Trunk模式
+ port trunk permit vlan all  # 允许所有VLAN通过
+ undo shutdown
+
+interface Vlan-interface10  # 配置VLAN 10的三层接口
+ ip address 192.168.10.1 255.255.255.0  # 设置IP地址和子网掩码
+ undo shutdown
+
+interface Vlan-interface20  # 配置VLAN 20的三层接口
+ ip address 192.168.20.1 255.255.255.0
+ undo shutdown
+
+interface Vlan-interface30  # 配置管理VLAN的三层接口
+ ip address 192.168.30.1 255.255.255.0
+ undo shutdown
+
+# 路由配置（如果交换机支持三层功能）
+ip route-static 0.0.0.0 0.0.0.0 192.168.30.254  # 设置默认路由
+
+# SSH配置（远程管理）
+user-interface vty 0 15  # 进入虚拟终端
+ authentication-mode scheme  # 设置认证方式
+ protocol inbound ssh  # 允许SSH接入
+
+local-user admin class manage  # 创建管理员用户
+ password simple Admin@123  # 设置密码（实际使用中应使用更安全的密码）
+ service-type ssh  # 允许SSH服务
+ authorization-attribute user-role network-admin  # 赋予管理员权限
+
+ssh server enable  # 启用SSH服务
+
+# 安全配置
+acl number 2000  # 创建基本ACL
+ rule 10 permit source 192.168.30.0 0.0.0.255  # 允许管理网段访问
+ rule 20 deny  # 拒绝其他所有访问
+
+user-interface vty 0 15
+ acl 2000 inbound  # 应用ACL到虚拟终端
+
+# 保存配置
+save force
