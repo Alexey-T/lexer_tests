@@ -8,6 +8,8 @@ function a() { return 0; }
   def a():
     pass
   ```.text
+}
+
 ```xml <a></a> ```
 ```yaml - dfdf: 10 ```
 ```sh echo "test" ```
