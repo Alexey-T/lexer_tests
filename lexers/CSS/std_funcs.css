@@ -1,0 +1,145 @@
+﻿/* =========================================
+   ПОЛНЫЙ НАБОР ЗАПРОШЕННЫХ CSS-КОНСТРУКЦИЙ
+   Валидно для современных браузеров (2024–2026)
+   ========================================= */
+
+/* 1. layer — модуль каскада */
+@layer base, theme, utilities;
+
+/* 2. supports, 3. selector, 4. font-tech, 5. font-format, 6. and */
+@supports selector(:has(p)) and font-tech(color-COLRv1) and font-format("woff2") {
+  .modern-fonts {
+    font-family: "System Advanced", system-ui;
+  }
+}
+
+:root {
+  /* Математические функции (CSS Values & Math Level 4) */
+  --m-calc: calc(100% - 20px);
+  --m-min: min(50vw, 600px);
+  --m-max: max(1rem, 10px);
+  --m-clamp: clamp(1rem, 2vw, 2rem);
+  --m-round: round(10px, 3.5px, nearest);
+  --m-mod: mod(25, 4);
+  --m-rem: rem(13, 5);
+  --m-sign: sign(-5);
+  --m-sqrt: sqrt(16);
+  --m-pow: pow(2, 3);
+  --m-exp: exp(2);
+  --m-log: log(10, 10);
+  --m-hypot: hypot(3, 4);
+
+  /* Тригонометрия */
+  --m-sin: sin(45deg);
+  --m-cos: cos(45deg);
+  --m-tan: tan(45deg);
+  --m-asin: asin(0.5);
+  --m-acos: acos(0.5);
+  --m-atan: atan(1);
+  --m-atan2: atan2(1, 1);
+
+  /* Цветовые модели */
+  --c-rgb: rgb(255 0 0 / 0.8);
+  --c-rgba: rgba(0, 255, 0, 0.5);
+  --c-hsl: hsl(120 100% 50%);
+  --c-hsla: hsla(240, 100%, 50%, 0.8);
+  --c-hwb: hwb(120 0% 0%);
+  --c-lab: lab(50% 40 50);
+  --c-lch: lch(60% 50 270);
+  --c-oklab: oklab(0.6 0.1 0.1);
+  --c-oklch: oklch(0.7 0.2 30);
+  --c-light-dark: light-dark(#333, #eee);
+
+  /* Сетка и размеры */
+  --grid: repeat(3, minmax(200px, 1fr));
+  --width-fit: fit-content(auto);
+}
+
+/* Генерация контента */
+.gen-content::before {
+  /* 7. content, 8. attr, 9. var */
+  content: var(--label) " [" attr(data-id) "]";
+  color: var(--c-light-dark);
+}
+
+.counters-demo {
+  counter-reset: chapter;
+}
+.counters-demo::after {
+  counter-increment: chapter;
+  /* 10. counter, 11. counters */
+  content: "Глава " counter(chapter) " [" counters(chapter, "-") "]";
+}
+
+/* Фильтры и трансформации */
+.visual-effects {
+  /* 12-21. Фильтры + hue */
+  filter: blur(2px) brightness(1.1) contrast(1.2) grayscale(0.5) invert(0.2)
+          opacity(0.9) saturate(1.5) sepia(0.3) hue-rotate(45deg);
+  /* 22. rotate */
+  transform: rotate(15deg);
+  /* 23. shadow (через box-shadow) */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  /* 24. drop (через drop-shadow) */
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}
+
+/* Изображения и фоны */
+.image-bg {
+  /* 25. url, 26. image, 27. set (image-set), 28. cross (cross-fade) */
+  background-image: url("bg.png");
+  background-image: image("fallback.svg");
+  background-image: image-set("photo.webp" 1x, "photo-2x.webp" 2x);
+  background-image: cross-fade(url("a.png"), url("b.png"), 50%);
+  /* 29. element */
+  background: element(#header-preview);
+}
+
+/* Шрифты и OpenType */
+@font-face {
+  font-family: "OT Demo";
+  /* 30. local, 31. format */
+  src: local("Segoe UI"), url("font.woff2") format("woff2");
+}
+
+.ot-features {
+  font-family: "OT Demo", sans-serif;
+  /* 32. variant */
+  font-variant: common-ligatures;
+  font-variant-alternates:
+    annotation(1)
+    character-variant(2)
+    ornaments(1)
+    styleset(1, 2)
+    stylistic(alt1)
+    swash(1)
+    symbols(circled, "A", "B");
+}
+
+/* Анимация */
+/* 33. fade — в спецификации нет функции fade(), поэтому используем как имя @keyframes */
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-anim {
+  animation: fade 0.8s ease forwards;
+}
+
+/* Медиа-запросы */
+/* 34. and (повторно для демонстрации логического оператора) */
+@media (min-width: 768px) and (prefers-color-scheme: dark) {
+  .responsive { width: var(--width-fit); }
+}
+
+pre {
+  abs(), calc-size()
+  color-mix(), color-contrast(), palette-mix()
+  linear(), view(), scroll()
+  anchor(), anchor-size()
+  translate(), scale(), skew(), matrix()
+  linear-gradient(), radial-gradient(), conic-gradient(), circle(), ellipse(), inset(), polygon(), path()
+  env()
+  paint(), registerProp()
+  target-counter(), target-text(), string-set()
+}
