@@ -1,0 +1,21 @@
+t{
+	padding: 10px;
+}
+
+/*zzz*/.test a{
+	color: #000;
+}
+
+.test > a{
+	background: #fff;
+}
+
+.test > a:before{
+	content: "";
+}
+
+#test div{
+    margin: 15px;
+}
+
+.test2{	padding: 10px;}.test3 a{	color: #000;}.test4 > a{	background: #fff;}
