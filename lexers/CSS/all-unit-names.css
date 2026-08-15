@@ -1,0 +1,113 @@
+/* 1. Пустая строка (без юнита / целые числа) */
+.z-index-example {
+  z-index: 10;
+  opacity: 0.8;
+}
+
+/* 2. Абсолютные длины (Absolute lengths) */
+.absolute-lengths {
+  width: 100px;
+  height: 2.54cm;
+  margin: 25.4mm;
+  border-width: 1Q;
+  padding: 1in;
+  font-size: 12pt;
+  letter-spacing: 1pc;
+}
+
+/* 3. Проценты */
+.percentage {
+  width: 50%;
+  color: rgba(0, 0, 0, 0.5); /* 50% alpha */
+}
+
+/* 4. Относительно шрифта элемента (Relative to element's font) */
+.element-font-relative {
+  margin: 1em;
+  padding: 2ex;
+  height: 1cap;
+  width: 5ch;
+  text-indent: 1ic;
+  line-height: 1.5lh;
+}
+
+/* 5. Относительно корневого шрифта (Relative to root's font) */
+.root-font-relative {
+  font-size: 1.2rem;
+  padding: 2rex;
+  height: 1rcap;
+  width: 3rch;
+  text-indent: 1ric;
+  line-height: 1.2rlh;
+}
+
+/* 6. Viewport (Стандартные) */
+.viewport-relative {
+  width: 100vw;
+  height: 100vh;
+  max-width: 50vmax;
+  min-height: 20vmin;
+  block-size: 10vb;
+  inline-size: 10vi;
+}
+
+/* 7. Small Viewport (sv*) - Для мобильных браузеров со сжатым UI */
+.small-viewport {
+  height: 100svh;
+  width: 100svw;
+  max-height: 50svmax;
+  min-width: 20svmin;
+  block-size: 10svb;
+  inline-size: 10svi;
+}
+
+/* 8. Large Viewport (lv*) - Для браузеров с развернутым UI */
+.large-viewport {
+  height: 100lvh;
+  width: 100lvw;
+  max-height: 50lvmax;
+  min-width: 20lvmin;
+  block-size: 10lvb;
+  inline-size: 10lvi;
+}
+
+/* 9. Dynamic Viewport (dv*) - Адаптивные, пересчитываются на лету */
+.dynamic-viewport {
+  height: 100dvh;
+  width: 100dvw;
+  max-height: 50dvmax;
+  min-width: 20dvmin;
+  block-size: 10dvb;
+  inline-size: 10dvi;
+}
+
+/* 10. Container Queries (cqw, cqh, cqi, cqb, cqmin, cqmax) */
+.container-units {
+  /* Валидны внутри контейнера с container-type */
+  width: 100cqw;
+  height: 100cqh;
+  block-size: 50cqb;
+  inline-size: 50cqi;
+  max-width: 100cqmax;
+  min-height: 100cqmin;
+}
+
+/* 11. Углы (Angles) */
+.angles {
+  transform: rotate(45deg);
+  background: linear-gradient(100grad, red, blue);
+  filter: hue-rotate(1.5rad);
+  skew(0.25turn);
+}
+
+/* 12. Время (Time) */
+.time {
+  transition-duration: 2s;
+  animation-delay: 500ms;
+}
+
+/* 13. Специальные (Special) - Grid Flex */
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+}
