@@ -1,5 +1,5 @@
 body{
-
+    color: #AAbb00;
     background: rgba(0%, 50%, 0%);    /* underline_color: not OK, cuda_html_tooltips: not OK */
     background: rgba(72 122 180 / .2);  /* underline_color: OK, cuda_html_tooltips: not OK     */
     background: rgba(190, 80, 120);     /* underline_color: OK, cuda_html_tooltips: OK         */

@@ -1,0 +1,4 @@
+# wwwwwwwwwww
+User-agent: Yandex #wwwwwwww
+Disallow:
+Clean-param: parm1&parm2&parm3 /news.html
