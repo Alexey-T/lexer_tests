@@ -1,5 +1,5 @@
 body{
-    color: #AAbb00;
+    color: #AAbb00 #ff0;
     background: rgba(0%, 50%, 0%);    /* underline_color: not OK, cuda_html_tooltips: not OK */
     background: rgba(72 122 180 / .2);  /* underline_color: OK, cuda_html_tooltips: not OK     */
     background: rgba(190, 80, 120);     /* underline_color: OK, cuda_html_tooltips: OK         */
@@ -22,5 +22,13 @@ body{
 
     background: hsl(0,50%,100%);
     background: hsla(0,50%,100%,0.5);
-    
+
+rgb(10 200 20  %)
+rgb(10 200 30 /   40%   )
+rgb(10 200 30 /   40  %   )
+hsl(200, 100%, 50%)
+hsl(   200  ,   100%  ,   50%   )
+hsl(   200  ,   100%  ,   50  %   )
+hsla(   200  ,   100%  ,   50%  /  10% )
+hsla(   200  ,   100%  ,   50%  /  10  % )
 }
