@@ -733,7 +733,7 @@ let text = "hello, world! hello, foobar!";
 
 print(text.index_of("ll"));
 
-print(text.index_of("xx:));
+print(text.index_of("xx"));
 
 fn plural(x) { x > 1 }
 
